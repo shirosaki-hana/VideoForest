@@ -1,0 +1,20 @@
+dist/
+node_modules/
+
+# Backend
+backend/dist/
+backend/prisma/migrations/
+backend/src/generated/
+
+# Frontend
+frontend/dist/
+frontend/public/
+coverage/
+build/
+
+# Logs and env files
+*.log
+.env*
+
+# Lock files and configs that shouldn't be formatted
+pnpm-lock.yaml
