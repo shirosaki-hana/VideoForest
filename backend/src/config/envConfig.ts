@@ -3,7 +3,6 @@ import { logger } from '../utils/log.js';
 
 /**
  * 환경변수 스키마 정의
- * 모든 환경변수는 여기서 타입 검증과 기본값 설정을 담당합니다.
  */
 const envSchema = z.object({
   // === 서버 관련 ===
@@ -19,7 +18,7 @@ const envSchema = z.object({
       return port;
     }),
 
-  NODE_ENV: z.enum(['production', 'development', 'test']).default('development').describe('Application environment'),
+  NODE_ENV: z.enum(['production', 'development']).default('development').describe('Application environment'),
 
   REQUEST_BODY_LIMIT: z.string().default('50mb').describe('Maximum request body size'),
 
@@ -103,22 +102,3 @@ export type Environment = z.infer<typeof envSchema>;
 // 유틸리티 함수들
 export const isProduction = env.NODE_ENV === 'production';
 export const isDevelopment = env.NODE_ENV === 'development';
-export const isTest = env.NODE_ENV === 'test';
-
-/**
- * 런타임에 특정 환경변수가 설정되었는지 확인하는 유틸리티
- */
-export function hasEnvVar(key: keyof Environment): boolean {
-  return process.env[key] !== undefined;
-}
-
-/**
- * 개발 환경에서만 사용할 수 있는 환경변수 getter
- * production에서는 빈 문자열을 반환
- */
-export function getDevEnvVar(key: string, fallback = ''): string {
-  if (isProduction) {
-    return fallback;
-  }
-  return process.env[key] || fallback;
-}
