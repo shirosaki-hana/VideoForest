@@ -17,7 +17,7 @@ const externalizeGeneratedClient = {
   name: 'externalize-generated-client',
   setup(build) {
     build.onResolve({ filter: /prismaclient(\/.*)?$/ }, () => {
-      return { path: './prismaclient/index.js', external: true };
+      return { path: './database/prismaclient/index.js', external: true };
     });
   },
 };
