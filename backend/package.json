@@ -12,12 +12,18 @@
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
     "typecheck": "pnpm -w exec tsc --project backend/tsconfig.json --noEmit --pretty",
-    "build": "pnpm clean && pnpm run typecheck && node ./esbuild.config.mjs",
-    "clean": "rimraf dist && rimraf src/generated",
+    "build": "pnpm clean && pnpm db:generate && pnpm run typecheck && node ./esbuild.config.mjs && cpy \"src/prismaclient/**\" \"dist/prismaclient\"",
+    "clean": "rimraf dist && rimraf src/prismaclient",
     "lint": "pnpm -w exec eslint backend/",
     "lint:fix": "pnpm -w exec eslint backend/ --fix",
     "format": "pnpm exec prettier --write .",
-    "format:check": "pnpm exec prettier --check ."
+    "format:check": "pnpm exec prettier --check .",
+    "db:status": "prisma migrate status",
+    "db:dev": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:generate": "prisma generate --no-hints",
+    "db:studio": "prisma studio",
+    "db:reset": "migrate reset"
   },
   "dependencies": {
     "@fastify/compress": "^8.1.0",

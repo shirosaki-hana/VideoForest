@@ -4,7 +4,7 @@ node_modules/
 # Backend
 backend/dist/
 backend/prisma/migrations/
-backend/src/generated/
+backend/prismaclient/
 
 # Frontend
 frontend/dist/

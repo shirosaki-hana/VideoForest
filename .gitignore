@@ -144,4 +144,4 @@ dist
 # Prisma
 *.db
 *.db-journal
-backend/src/generated/
+backend/src/prismaclient/
