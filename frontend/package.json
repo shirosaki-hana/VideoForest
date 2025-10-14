@@ -12,8 +12,8 @@
     "build": "pnpm clean && pnpm -w exec tsc -b frontend/tsconfig.json && vite build",
     "lint": "pnpm -w exec eslint frontend/",
     "lint:fix": "pnpm -w exec eslint frontend/ --fix",
-    "format": "pnpm exec prettier --write .",
-    "format:check": "pnpm exec prettier --check .",
+    "format": "pnpm -w exec prettier --write frontend/",
+    "format:check": "pnpm -w exec prettier --check frontend/",
     "preview": "vite preview",
     "clean": "rimraf dist"
   },

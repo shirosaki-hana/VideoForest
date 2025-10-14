@@ -16,9 +16,8 @@ const externals = [
 const externalizeGeneratedClient = {
   name: 'externalize-generated-client',
   setup(build) {
-    build.onResolve({ filter: /generated\/client(\/.*)?$/ }, () => {
-      // 번들 결과 파일(dist/index.js)에서 './generated/client/index.js'로 참조되도록 고정
-      return { path: './generated/client/index.js', external: true };
+    build.onResolve({ filter: /prismaclient(\/.*)?$/ }, () => {
+      return { path: './prismaclient/index.js', external: true };
     });
   },
 };

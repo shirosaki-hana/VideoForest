@@ -12,6 +12,7 @@ import staticFiles from '@fastify/static';
 import { logger } from './utils/log.js';
 import { env, isProduction, isDevelopment } from './config/envConfig.js';
 import { parseDurationToJustMs } from './utils/time.js';
+import { checkDatabaseConnection, disconnectDatabase } from './lib/database.js';
 
 dotenv.config({ quiet: true });
 
@@ -19,28 +20,19 @@ const __filename: string = fileURLToPath(import.meta.url);
 const __dirname: string = path.dirname(__filename);
 const frontendDistPath: string = path.join(__dirname, '../../frontend/dist');
 
-// ===== Fastify 앱 생성 =====
 async function createFastifyApp() {
   const fastify = Fastify({
     logger: false,
     bodyLimit: parseInt(env.REQUEST_BODY_LIMIT.replace('mb', '')) * 1024 * 1024,
   });
 
-  // 보안 헤더
   if (!isDevelopment) {
     await fastify.register(helmet);
   }
 
-  // 압축
   await fastify.register(compress);
-
-  // CORS
   await fastify.register(cors, { origin: isDevelopment ? true : env.FRONTEND_URL, credentials: true });
-
-  // 쿠키 파싱
   await fastify.register(cookie);
-
-  // 정적 파일 서빙
   await fastify.register(staticFiles, {
     root: frontendDistPath,
     prefix: '/',
@@ -50,7 +42,6 @@ async function createFastifyApp() {
     maxAge: isProduction ? parseDurationToJustMs('1d') : 0,
   });
 
-  // SPA 라우팅
   fastify.setNotFoundHandler(async (request, reply) => {
     if (request.method === 'GET') {
       return reply.type('text/html').sendFile('index.html');
@@ -58,7 +49,6 @@ async function createFastifyApp() {
     return reply.code(404).send({ error: 'Not Found' });
   });
 
-  // 에러 핸들링
   fastify.setErrorHandler(async (error, request, reply) => {
     logger.error('Unhandled error:', error);
 
@@ -72,6 +62,13 @@ async function createFastifyApp() {
 
 async function startServer(port: number) {
   const fastify = await createFastifyApp();
+
+  logger.info('Starting server...');
+  const dbConnected = await checkDatabaseConnection();
+
+  if (!dbConnected) {
+    logger.warn('Database connection failed, but continuing to start server');
+  }
 
   try {
     await fastify.listen({ port, host: '127.0.0.1' });
@@ -91,21 +88,21 @@ startServer(env.PORT)
   .then(fastify => {
     logger.success('Server started successfully');
 
-    // Cleanup work on process termination
     const gracefulShutdown = async (signal: string) => {
       logger.warn(`Received ${signal}: shutting down server gracefully...`);
 
       try {
-        // Close Fastify server gracefully
         await fastify.close();
         logger.success('Server closed');
+
+        await disconnectDatabase();
+        logger.success('Database disconnected');
       } catch (error) {
         logger.error('Error during graceful shutdown:', error);
         throw error;
       }
     };
 
-    // Handle termination signals
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
   })
