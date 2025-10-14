@@ -7,9 +7,10 @@ import staticFiles from '@fastify/static';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { logger } from './utils/log.js';
+
+import { logger } from './utils/index.js';
 import { env, isProduction, isDevelopment } from './config/index.js';
-import { parseDurationToJustMs } from './utils/time.js';
+import { parseDurationToJustMs } from './utils/index.js';
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
 //------------------------------------------------------------------------------//
 dotenv.config({ quiet: true });
