@@ -1,6 +1,7 @@
 packages:
   - backend
   - frontend
+  - types
 
 onlyBuiltDependencies:
   - '@prisma/client'
