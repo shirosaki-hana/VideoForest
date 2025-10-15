@@ -19,7 +19,7 @@ const corsConfig = {
   credentials: true,
 };
 const helmetConfig = {
-  contentSecurityPolicy: isProduction ? undefined : false, // dev에서는 비활성화
+  contentSecurityPolicy: isProduction ? undefined : false,
   crossOriginEmbedderPolicy: false,
 };
 const staticFilesConfig = {
