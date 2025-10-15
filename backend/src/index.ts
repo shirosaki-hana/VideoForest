@@ -4,6 +4,7 @@ import cookie from '@fastify/cookie';
 import compress from '@fastify/compress';
 import helmet from '@fastify/helmet';
 import staticFiles from '@fastify/static';
+import apiRoutes from './api/index.js';
 import path from 'path';
 
 import { logger, projectRoot } from './utils/index.js';
@@ -39,19 +40,8 @@ async function createFastifyApp() {
   await fastify.register(compress);
   await fastify.register(cors, corsConfig);
   await fastify.register(cookie);
+  await fastify.register(apiRoutes, { prefix: '/api' });
   await fastify.register(staticFiles, staticFilesConfig);
-
-  // 404 핸들러: API는 JSON, 그 외 GET은 SPA 폴백
-  fastify.setNotFoundHandler(async (request, reply) => {
-    const isApiRoute = request.url.startsWith('/api/');
-    const isGetRequest = request.method === 'GET';
-
-    if (isApiRoute || !isGetRequest) {
-      return reply.code(404).send({ error: 'Not Found' });
-    }
-
-    return reply.type('text/html').sendFile('index.html');
-  });
 
   // 전역 에러 핸들러
   fastify.setErrorHandler(async (error, request, reply) => {
