@@ -1,9 +1,12 @@
+import dotenv from 'dotenv';
 import { z } from 'zod';
 import { logger } from '../utils/log.js';
 //------------------------------------------------------------------------------//
+dotenv.config({ quiet: true });
 
 //환경 변수 Zod 스키마
 const envSchema = z.object({
+  HOST: z.string().default('127.0.0.1').describe('Server listening host'),
   PORT: z
     .string()
     .default('4001')
@@ -34,9 +37,23 @@ const envSchema = z.object({
     )
     .describe('Frontend application URL'),
 
+  // === 데이터베이스 ===
+  DATABASE_URL_SQLITE: z.string().default('file:./prisma/videoforest.db').describe('SQLite database URL'),
+
   // === 인증 관련 ===
   SESSION_COOKIE: z.string().default('nf_session').describe('Session cookie name'),
-  SESSION_TTL: z.string().default('86400000').describe('Session TTL in milliseconds'),
+  SESSION_TTL: z
+    .string()
+    .default('86400000')
+    .transform(val => {
+      const ttl = parseInt(val, 10);
+      if (isNaN(ttl) || ttl <= 0) {
+        logger.warn(`Invalid SESSION_TTL value: ${val}, using default 86400000`);
+        return 86400000;
+      }
+      return ttl;
+    })
+    .describe('Session TTL in milliseconds'),
   LOGIN_WINDOWMS: z.string().default('900000').describe('Login rate limit window in milliseconds'),
   LOGIN_MAX: z
     .string()
@@ -56,10 +73,12 @@ const envSchema = z.object({
 function parseEnvironmentVariables() {
 
     const rawEnv = {
+      HOST: process.env.HOST,
       PORT: process.env.PORT,
       NODE_ENV: process.env.NODE_ENV,
       REQUEST_BODY_LIMIT: process.env.REQUEST_BODY_LIMIT,
       FRONTEND_URL: process.env.FRONTEND_URL,
+      DATABASE_URL_SQLITE: process.env.DATABASE_URL_SQLITE,
       SESSION_COOKIE: process.env.SESSION_COOKIE,
       SESSION_TTL: process.env.SESSION_TTL,
       LOGIN_WINDOWMS: process.env.LOGIN_WINDOWMS,

@@ -28,9 +28,14 @@ export const database = createPrismaClient();
 
 // Database connection status check function
 export async function checkDatabaseConnection(): Promise<void> {
-  await database.$connect();
-  await database.$queryRaw`SELECT COUNT(*) FROM auth`;
-  logger.success('Database connection established successfully');
+  try {
+    await database.$connect();
+    await database.$queryRaw`SELECT 1`; // 간단한 연결 테스트
+    logger.success('Database connection established successfully');
+  } catch (error) {
+    logger.error('Database connection failed:', error);
+    throw error;
+  }
 }
 
 // Database disconnection function

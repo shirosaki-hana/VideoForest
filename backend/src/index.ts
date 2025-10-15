@@ -4,25 +4,26 @@ import cookie from '@fastify/cookie';
 import compress from '@fastify/compress';
 import helmet from '@fastify/helmet';
 import staticFiles from '@fastify/static';
-import dotenv from 'dotenv';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-import { logger } from './utils/index.js';
+import { logger, projectRoot } from './utils/index.js';
 import { env, isProduction, isDevelopment } from './config/index.js';
 import { parseDurationToJustMs } from './utils/index.js';
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
 //------------------------------------------------------------------------------//
-dotenv.config({ quiet: true });
-
-const __filename: string = fileURLToPath(import.meta.url);
-const __dirname: string = path.dirname(__filename);
 
 // 서버 고정 설정
 const fastifyConfig = { bodyLimit: parseInt(env.REQUEST_BODY_LIMIT.replace('mb', '')) * 1024 * 1024 };
-const corsConfig = { origin: isDevelopment ? true : env.FRONTEND_URL, credentials: true };
+const corsConfig = {
+  origin: isDevelopment ? true : env.FRONTEND_URL,
+  credentials: true,
+};
+const helmetConfig = {
+  contentSecurityPolicy: isProduction ? undefined : false, // dev에서는 비활성화
+  crossOriginEmbedderPolicy: false,
+};
 const staticFilesConfig = {
-  root: path.join(__dirname, '../../frontend/dist'),
+  root: path.join(projectRoot, 'frontend/dist'),
   prefix: '/',
   cacheControl: isProduction,
   etag: true,
@@ -34,23 +35,48 @@ const staticFilesConfig = {
 async function createFastifyApp() {
   const fastify = Fastify(fastifyConfig);
 
-  await fastify.register(helmet);
+  await fastify.register(helmet, helmetConfig);
   await fastify.register(compress);
   await fastify.register(cors, corsConfig);
   await fastify.register(cookie);
   await fastify.register(staticFiles, staticFilesConfig);
 
+  // Health check 엔드포인트
+  fastify.get('/health', async () => {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  });
+
   fastify.setNotFoundHandler(async (request, reply) => {
+    // API 경로는 404 JSON 응답
+    if (request.url.startsWith('/api/')) {
+      return reply.code(404).send({ error: 'Not Found' });
+    }
+
+    // 그 외 GET 요청은 SPA 라우팅을 위해 index.html 반환
     if (request.method === 'GET') {
       return reply.type('text/html').sendFile('index.html');
     }
+
     return reply.code(404).send({ error: 'Not Found' });
   });
 
   fastify.setErrorHandler(async (error, request, reply) => {
     logger.error('Unhandled error:', error);
-    return reply.code(500).send({
+
+    // Fastify validation errors
+    if (error.validation) {
+      return reply.code(400).send({
+        error: 'Validation Error',
+        details: isDevelopment ? error.validation : undefined,
+      });
+    }
+
+    // HTTP status code가 있는 경우
+    const statusCode = error.statusCode || 500;
+
+    return reply.code(statusCode).send({
       error: isDevelopment ? error.message : 'Internal server error',
+      ...(isDevelopment && { stack: error.stack }),
     });
   });
 
@@ -62,9 +88,9 @@ async function startServer(port: number) {
   const fastify = await createFastifyApp();
   await checkDatabaseConnection();
 
-  await fastify.listen({ port, host: '127.0.0.1' });
+  await fastify.listen({ port, host: env.HOST });
   logger.info(`Environment: ${env.NODE_ENV}`);
-  logger.success(`Server is running on http://127.0.0.1:${port}`);
+  logger.success(`Server is running on http://${env.HOST}:${port}`);
 
   return fastify;
 }
