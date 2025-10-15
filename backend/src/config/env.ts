@@ -14,7 +14,7 @@ const envSchema = z.object({
   SESSION_COOKIE: z.string().default('session'),
   SESSION_TTL: z.string().default('24h'),
   RATELIMIT_MAX: z.coerce.number().positive().default(10),
-  RATELIMIT_WINDOWMS: z.string().default('10s')
+  RATELIMIT_WINDOWMS: z.string().default('10s'),
 });
 
 // 환경변수를 파싱하여 export (검증 실패 시 서버 실행 중단)

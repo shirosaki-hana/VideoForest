@@ -41,29 +41,22 @@ async function createFastifyApp() {
   await fastify.register(cookie);
   await fastify.register(staticFiles, staticFilesConfig);
 
-  // Health check 엔드포인트
-  fastify.get('/health', async () => {
-    return { status: 'ok', timestamp: new Date().toISOString() };
-  });
-
+  // 404 핸들러: API는 JSON, 그 외 GET은 SPA 폴백
   fastify.setNotFoundHandler(async (request, reply) => {
-    // API 경로는 404 JSON 응답
-    if (request.url.startsWith('/api/')) {
+    const isApiRoute = request.url.startsWith('/api/');
+    const isGetRequest = request.method === 'GET';
+
+    if (isApiRoute || !isGetRequest) {
       return reply.code(404).send({ error: 'Not Found' });
     }
 
-    // 그 외 GET 요청은 SPA 라우팅을 위해 index.html 반환
-    if (request.method === 'GET') {
-      return reply.type('text/html').sendFile('index.html');
-    }
-
-    return reply.code(404).send({ error: 'Not Found' });
+    return reply.type('text/html').sendFile('index.html');
   });
 
+  // 전역 에러 핸들러
   fastify.setErrorHandler(async (error, request, reply) => {
     logger.error('Unhandled error:', error);
 
-    // Fastify validation errors
     if (error.validation) {
       return reply.code(400).send({
         error: 'Validation Error',
@@ -71,9 +64,7 @@ async function createFastifyApp() {
       });
     }
 
-    // HTTP status code가 있는 경우
     const statusCode = error.statusCode || 500;
-
     return reply.code(statusCode).send({
       error: isDevelopment ? error.message : 'Internal server error',
       ...(isDevelopment && { stack: error.stack }),
