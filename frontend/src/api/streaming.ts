@@ -20,4 +20,3 @@ export function getHLSPlaylistUrl(mediaId: string): string {
   const baseURL = apiClient.defaults.baseURL || '';
   return `${baseURL}/stream/hls/${mediaId}/playlist.m3u8`;
 }
-

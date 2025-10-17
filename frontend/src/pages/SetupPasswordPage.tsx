@@ -31,15 +31,16 @@ export default function SetupPasswordPage() {
     // Zod 스키마로 비밀번호 검증
     try {
       PasswordSchema.parse(password);
-    } catch (err: any) {
-      setValidationError(err.errors?.[0]?.message || t('auth.setup.invalidFormat'));
+    } catch (err) {
+      const zodError = err as { errors?: Array<{ message: string }> };
+      setValidationError(zodError.errors?.[0]?.message || t('auth.setup.invalidFormat'));
       return;
     }
 
     try {
       await setup({ password });
       navigate('/');
-    } catch (err) {
+    } catch {
       // 에러는 스토어에서 처리
     }
   };

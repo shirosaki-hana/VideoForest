@@ -1,17 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Container,
-  Card,
-  CardContent,
-  Typography,
-  CircularProgress,
-  Alert,
-  Box,
-  IconButton,
-  Stack,
-  Chip,
-} from '@mui/material';
+import { Container, Card, CardContent, Typography, CircularProgress, Alert, Box, IconButton, Stack, Chip } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import VideoPlayer from '../components/VideoPlayer';
 import { getMediaInfo, getHLSPlaylistUrl } from '../api/streaming';
@@ -42,9 +31,9 @@ export default function PlayerPage() {
         setMediaInfo(response.media);
         setPlaylistUrl(getHLSPlaylistUrl(mediaId));
         setError(null);
-      } catch (err: any) {
-        console.error('Failed to load media info:', err);
-        setError(err.message || 'Failed to load media info');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load media info';
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -57,9 +46,9 @@ export default function PlayerPage() {
     navigate('/');
   };
 
-  const handlePlayerError = (error: any) => {
-    console.error('Player error:', error);
-    setError(`Playback error: ${error?.message || 'Unknown error'}`);
+  const handlePlayerError = (error: videojs.MediaError | null) => {
+    const errorMessage = error?.message || 'Unknown error';
+    setError(`Playback error: ${errorMessage}`);
   };
 
   return (
@@ -113,9 +102,7 @@ export default function PlayerPage() {
                   {mediaInfo.codec && <Chip label={`Video: ${mediaInfo.codec.toUpperCase()}`} variant='outlined' />}
                   {mediaInfo.audioCodec && <Chip label={`Audio: ${mediaInfo.audioCodec.toUpperCase()}`} variant='outlined' />}
                   {mediaInfo.fps && <Chip label={`${Math.round(mediaInfo.fps)} FPS`} variant='outlined' />}
-                  {mediaInfo.bitrate && (
-                    <Chip label={`Bitrate: ${Math.round(mediaInfo.bitrate / 1000)} kbps`} variant='outlined' />
-                  )}
+                  {mediaInfo.bitrate && <Chip label={`Bitrate: ${Math.round(mediaInfo.bitrate / 1000)} kbps`} variant='outlined' />}
                 </Stack>
               </CardContent>
             </Card>
@@ -125,4 +112,3 @@ export default function PlayerPage() {
     </Container>
   );
 }
-

@@ -16,9 +16,9 @@ function isValidFilePath(filePath: string): boolean {
   // 실제로 위험한 패턴만 검사합니다.
   const dangerousPatterns = [
     /\0/, // NULL 바이트 (모든 시스템에서 금지)
-    /^\.\.[\\\/]/, // 시작이 ../ 또는 ..\ (상위 디렉터리 탐색)
-    /[\\\/]\.\.[\\\/]/, // 경로 중간에 /../ 또는 \..\  (상위 디렉터리 탐색)
-    /[\\\/]\.\.$/, // 경로 끝이 /.. 또는 \.. (상위 디렉터리 탐색)
+    /^\.\.[\\/]/, // 시작이 ../ 또는 ..\ (상위 디렉터리 탐색)
+    /[\\/]\.\.[\\/]/, // 경로 중간에 /../ 또는 \..\  (상위 디렉터리 탐색)
+    /[\\/]\.\.$/, // 경로 끝이 /.. 또는 \.. (상위 디렉터리 탐색)
   ];
 
   return !dangerousPatterns.some(pattern => pattern.test(filePath));
@@ -69,11 +69,24 @@ export async function extractMediaMetadata(filePath: string): Promise<MediaMetad
 
     const probeData = JSON.parse(stdout);
 
+    interface FFprobeStream {
+      codec_type?: string;
+      codec_name?: string;
+      width?: number | string;
+      height?: number | string;
+      r_frame_rate?: string;
+    }
+
+    interface FFprobeFormat {
+      duration?: number | string;
+      bit_rate?: number | string;
+    }
+
     // 비디오 스트림 찾기
-    const videoStream = probeData.streams?.find((s: any) => s.codec_type === 'video');
+    const videoStream = (probeData.streams as FFprobeStream[] | undefined)?.find(s => s.codec_type === 'video');
 
     // 오디오 스트림 찾기
-    const audioStream = probeData.streams?.find((s: any) => s.codec_type === 'audio');
+    const audioStream = (probeData.streams as FFprobeStream[] | undefined)?.find(s => s.codec_type === 'audio');
 
     // fps 계산
     let fps: number | null = null;
@@ -84,17 +97,20 @@ export async function extractMediaMetadata(filePath: string): Promise<MediaMetad
       }
     }
 
+    const format = probeData.format as FFprobeFormat | undefined;
+
     return {
-      duration: probeData.format?.duration ? parseFloat(probeData.format.duration) : null,
-      width: videoStream?.width ? parseInt(videoStream.width) : null,
-      height: videoStream?.height ? parseInt(videoStream.height) : null,
+      duration: format?.duration ? parseFloat(String(format.duration)) : null,
+      width: videoStream?.width ? parseInt(String(videoStream.width)) : null,
+      height: videoStream?.height ? parseInt(String(videoStream.height)) : null,
       codec: videoStream?.codec_name || null,
-      bitrate: probeData.format?.bit_rate ? parseInt(probeData.format.bit_rate) : null,
+      bitrate: format?.bit_rate ? parseInt(String(format.bit_rate)) : null,
       fps: fps,
       audioCodec: audioStream?.codec_name || null,
     };
-  } catch (error: any) {
-    logger.error(`Failed to extract metadata from ${filePath}:`, error.message);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error(`Failed to extract metadata from ${filePath}:`, errorMessage);
 
     // 메타데이터 추출 실패 시 null 반환
     return {

@@ -50,7 +50,6 @@ export function scanMediaLibrary(
         }
       }
     } catch (error) {
-      console.error('Failed to parse SSE event:', error);
       eventSource.close();
       if (onError) {
         onError(error as Error);
@@ -58,8 +57,7 @@ export function scanMediaLibrary(
     }
   };
 
-  eventSource.onerror = error => {
-    console.error('SSE connection error:', error);
+  eventSource.onerror = () => {
     eventSource.close();
     if (onError) {
       onError(new Error('SSE connection failed'));

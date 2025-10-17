@@ -83,23 +83,6 @@ export default defineConfig([
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       '@typescript-eslint/no-explicit-any': 'error',
       'no-console': 'error',
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [
-            {
-              name: '@mui/material',
-              message:
-                'Import individual components for better tree shaking. Example: import Button from "@mui/material/Button"',
-            },
-            {
-              name: '@mui/icons-material',
-              message:
-                'Import individual icons for better tree shaking. Example: import MenuIcon from "@mui/icons-material/Menu"',
-            },
-          ],
-        },
-      ],
     },
   }
 ]);

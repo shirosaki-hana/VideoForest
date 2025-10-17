@@ -18,12 +18,15 @@ interface AuthState {
 }
 
 // 에러 메시지 추출 헬퍼
-const getErrorMessage = (error: any, defaultMessage: string): string => {
-  if (error.response?.data?.error) {
-    return error.response.data.error;
-  }
-  if (error.message) {
-    return error.message;
+const getErrorMessage = (error: unknown, defaultMessage: string): string => {
+  if (error && typeof error === 'object') {
+    const err = error as { response?: { data?: { error?: string } }; message?: string };
+    if (err.response?.data?.error) {
+      return err.response.data.error;
+    }
+    if (err.message) {
+      return err.message;
+    }
   }
   return defaultMessage;
 };
@@ -45,7 +48,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: status.isAuthenticated,
         isLoading: false,
       });
-    } catch (error: any) {
+    } catch (error) {
       set({
         error: getErrorMessage(error, 'Failed to check authentication status'),
         isLoading: false,
@@ -60,7 +63,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await setupPassword(data);
       // 설정 후 상태 재확인
       await get().checkStatus();
-    } catch (error: any) {
+    } catch (error) {
       set({
         error: getErrorMessage(error, 'Failed to set password'),
         isLoading: false,
@@ -76,7 +79,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await apiLogin(data);
       // 로그인 후 상태 재확인
       await get().checkStatus();
-    } catch (error: any) {
+    } catch (error) {
       set({
         error: getErrorMessage(error, 'Login failed'),
         isLoading: false,
@@ -94,7 +97,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: false,
         isLoading: false,
       });
-    } catch (error: any) {
+    } catch (error) {
       set({
         error: getErrorMessage(error, 'Logout failed'),
         isLoading: false,

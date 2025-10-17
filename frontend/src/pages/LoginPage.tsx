@@ -24,7 +24,7 @@ export default function LoginPage() {
     try {
       await login({ password });
       navigate('/welcome');
-    } catch (err) {
+    } catch {
       // 에러는 스토어에서 처리
     }
   };

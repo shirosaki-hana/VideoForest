@@ -15,7 +15,7 @@ export default function AppBar() {
     try {
       await logout();
       navigate('/');
-    } catch (err) {
+    } catch {
       // 에러는 스토어에서 처리
     }
   };

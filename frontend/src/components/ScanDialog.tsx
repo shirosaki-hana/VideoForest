@@ -29,20 +29,11 @@ export default function ScanDialog({ open, onClose, onComplete }: ScanDialogProp
     onCompleteRef.current = onComplete;
   }, [onComplete]);
 
+  // 다이얼로그가 열릴 때 스캔 시작
   useEffect(() => {
     if (!open) {
-      // 다이얼로그가 닫히면 상태 초기화
-      setStatus('idle');
-      setCurrent(0);
-      setTotal(0);
-      setFileName('');
-      setResult(null);
-      setError(null);
       return;
     }
-
-    // 다이얼로그가 열리면 스캔 시작
-    setStatus('scanning');
 
     const cleanup = scanMediaLibrary(
       (event: ScanEvent) => {
@@ -95,10 +86,20 @@ export default function ScanDialog({ open, onClose, onComplete }: ScanDialogProp
     onClose();
   };
 
+  // 다이얼로그 트랜지션이 완료된 후 상태 초기화
+  const handleExited = () => {
+    setStatus('idle');
+    setCurrent(0);
+    setTotal(0);
+    setFileName('');
+    setResult(null);
+    setError(null);
+  };
+
   const progress = total > 0 ? (current / total) * 100 : 0;
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth='sm' fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth='sm' fullWidth TransitionProps={{ onExited: handleExited }}>
       <DialogTitle>{t('media.scanDialog.title')}</DialogTitle>
       <DialogContent>
         <Box sx={{ py: 2 }}>

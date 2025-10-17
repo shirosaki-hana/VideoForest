@@ -31,10 +31,10 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     try {
       const response = await getMediaTree();
       set({ mediaTree: response.tree, loading: false });
-    } catch (err: any) {
-      console.error('Failed to load media tree:', err);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load media tree';
       set({
-        error: err.message || 'Failed to load media tree',
+        error: errorMessage,
         loading: false,
       });
     }

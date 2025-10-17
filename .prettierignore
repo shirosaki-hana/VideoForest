@@ -15,3 +15,7 @@
 
 # Lock files
 pnpm-lock.yaml
+
+# media
+**/backend/temp/
+**/backend/media/

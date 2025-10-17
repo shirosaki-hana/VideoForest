@@ -99,37 +99,50 @@ export async function startStreaming(mediaId: string): Promise<string | null> {
   // - H.264 비디오 코덱, AAC 오디오 코덱
   // - 6초 세그먼트
   const ffmpegProcess = spawn(ffmpegPath, [
-    '-i', mediaPath,
-    '-c:v', 'libx264',
-    '-c:a', 'aac',
-    '-preset', 'veryfast',
-    '-crf', '23',
-    '-sc_threshold', '0',
-    '-g', '48',
-    '-keyint_min', '48',
+    '-i',
+    mediaPath,
+    '-c:v',
+    'libx264',
+    '-c:a',
+    'aac',
+    '-preset',
+    'veryfast',
+    '-crf',
+    '23',
+    '-sc_threshold',
+    '0',
+    '-g',
+    '48',
+    '-keyint_min',
+    '48',
     // HLS 옵션
-    '-hls_time', '6',
-    '-hls_list_size', '0',
-    '-hls_segment_type', 'mpegts',
-    '-hls_segment_filename', path.join(outputDir, 'segment_%03d.ts'),
-    '-f', 'hls',
+    '-hls_time',
+    '6',
+    '-hls_list_size',
+    '0',
+    '-hls_segment_type',
+    'mpegts',
+    '-hls_segment_filename',
+    path.join(outputDir, 'segment_%03d.ts'),
+    '-f',
+    'hls',
     playlistPath,
   ]);
 
   // 에러 로깅
-  ffmpegProcess.stderr?.on('data', (data) => {
+  ffmpegProcess.stderr?.on('data', data => {
     const message = data.toString();
     if (message.includes('error') || message.includes('Error')) {
       logger.error(`FFmpeg error for ${mediaId}: ${message}`);
     }
   });
 
-  ffmpegProcess.on('error', (error) => {
+  ffmpegProcess.on('error', error => {
     logger.error(`Failed to start FFmpeg for ${mediaId}:`, error);
     activeSessions.delete(mediaId);
   });
 
-  ffmpegProcess.on('exit', (code) => {
+  ffmpegProcess.on('exit', code => {
     if (code !== 0 && code !== null) {
       logger.warn(`FFmpeg process exited with code ${code} for ${mediaId}`);
     }
@@ -222,9 +235,8 @@ export function getSegmentPath(mediaId: string, segmentName: string): string | n
 export async function stopAllStreaming(): Promise<void> {
   logger.info('Stopping all HLS streaming sessions...');
   const mediaIds = Array.from(activeSessions.keys());
-  
+
   await Promise.all(mediaIds.map(mediaId => stopStreaming(mediaId)));
-  
+
   logger.success('All HLS streaming sessions stopped');
 }
-

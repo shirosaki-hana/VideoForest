@@ -39,7 +39,7 @@ async function getFileSize(filePath: string): Promise<number | null> {
   try {
     const stats = await fs.stat(filePath);
     return stats.size;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -73,8 +73,9 @@ async function scanDirectoryStructure(dirPath: string): Promise<DirectoryStructu
         files.push(fullPath);
       }
     }
-  } catch (error: any) {
-    logger.error(`Failed to scan directory ${dirPath}:`, error.message);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error(`Failed to scan directory ${dirPath}:`, errorMessage);
   }
 
   return {
@@ -149,8 +150,9 @@ export async function refreshMediaLibraryWithProgress(
       await fs.access(dirPath);
       const structure = await scanDirectoryStructure(dirPath);
       structures.push(structure);
-    } catch (error: any) {
-      logger.warn(`Directory not accessible: ${dirPath} - ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.warn(`Directory not accessible: ${dirPath} - ${errorMessage}`);
     }
   }
 
@@ -229,9 +231,10 @@ export async function refreshMediaLibraryWithProgress(
 
       successCount++;
       logger.info(`[${successCount}/${mediaToProcess.length}] Added: ${filename}`);
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       failedCount++;
-      logger.error(`Failed to process ${filePath}:`, error.message);
+      logger.error(`Failed to process ${filePath}:`, errorMessage);
     }
   }
 

@@ -28,44 +28,37 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
         .header('Content-Type', 'application/vnd.apple.mpegurl')
         .header('Cache-Control', 'no-cache')
         .send(playlistContent);
-    } catch (error: any) {
+    } catch (error) {
       logger.error(`Failed to serve playlist for ${mediaId}:`, error);
       return reply.code(500).send({ error: 'Failed to serve playlist' });
     }
   });
 
   // HLS 세그먼트 파일 제공
-  fastify.get<{ Params: { mediaId: string; segmentName: string } }>(
-    '/hls/:mediaId/:segmentName',
-    async (request, reply) => {
-      const { mediaId, segmentName } = request.params;
+  fastify.get<{ Params: { mediaId: string; segmentName: string } }>('/hls/:mediaId/:segmentName', async (request, reply) => {
+    const { mediaId, segmentName } = request.params;
 
-      // 세그먼트 파일명 검증 (보안)
-      if (!/^segment_\d{3}\.ts$/.test(segmentName)) {
-        return reply.code(400).send({ error: 'Invalid segment name' });
-      }
-
-      try {
-        const segmentPath = getSegmentPath(mediaId, segmentName);
-
-        if (!segmentPath) {
-          return reply.code(404).send({ error: 'Segment not found' });
-        }
-
-        // 세그먼트 파일 스트림으로 전송
-        const stream = (await import('fs')).createReadStream(segmentPath);
-
-        return reply
-          .code(200)
-          .header('Content-Type', 'video/mp2t')
-          .header('Cache-Control', 'public, max-age=31536000')
-          .send(stream);
-      } catch (error: any) {
-        logger.error(`Failed to serve segment ${segmentName} for ${mediaId}:`, error);
-        return reply.code(500).send({ error: 'Failed to serve segment' });
-      }
+    // 세그먼트 파일명 검증 (보안)
+    if (!/^segment_\d{3}\.ts$/.test(segmentName)) {
+      return reply.code(400).send({ error: 'Invalid segment name' });
     }
-  );
+
+    try {
+      const segmentPath = getSegmentPath(mediaId, segmentName);
+
+      if (!segmentPath) {
+        return reply.code(404).send({ error: 'Segment not found' });
+      }
+
+      // 세그먼트 파일 스트림으로 전송
+      const stream = (await import('fs')).createReadStream(segmentPath);
+
+      return reply.code(200).header('Content-Type', 'video/mp2t').header('Cache-Control', 'public, max-age=31536000').send(stream);
+    } catch (error) {
+      logger.error(`Failed to serve segment ${segmentName} for ${mediaId}:`, error);
+      return reply.code(500).send({ error: 'Failed to serve segment' });
+    }
+  });
 
   // 미디어 정보 조회 (재생용)
   fastify.get<{ Params: { mediaId: string } }>('/media/:mediaId', async (request, reply) => {
@@ -96,10 +89,9 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
           fileSize: media.fileSize,
         },
       });
-    } catch (error: any) {
+    } catch (error) {
       logger.error(`Failed to get media info for ${mediaId}:`, error);
       return reply.code(500).send({ error: 'Failed to get media info' });
     }
   });
 };
-

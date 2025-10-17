@@ -8,7 +8,7 @@ interface VideoPlayerProps {
   src: string;
   onReady?: (player: Player) => void;
   onEnded?: () => void;
-  onError?: (error: any) => void;
+  onError?: (error: videojs.MediaError | null) => void;
 }
 
 export default function VideoPlayer({ src, onReady, onEnded, onError }: VideoPlayerProps) {
@@ -85,4 +85,3 @@ export default function VideoPlayer({ src, onReady, onEnded, onError }: VideoPla
     </div>
   );
 }
-

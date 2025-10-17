@@ -5,13 +5,20 @@ import {
   ListMediaResponseSchema,
   MediaTreeResponseSchema,
   ScanEventSchema,
+  type ScanEvent,
 } from '@videoforest/types';
 import { requireAuth } from '../middleware/auth.js';
 import { refreshMediaLibrary, getMediaList, getMediaTree, refreshMediaLibraryWithProgress } from '../services/index.js';
 //------------------------------------------------------------------------------//
 
+interface MediaFromDatabase {
+  createdAt: Date;
+  updatedAt: Date;
+  [key: string]: unknown;
+}
+
 // 미디어 항목을 API 응답 형식으로 변환
-function formatMediaForResponse(media: any) {
+function formatMediaForResponse(media: MediaFromDatabase) {
   return {
     ...media,
     createdAt: media.createdAt.toISOString(),
@@ -77,7 +84,7 @@ export const v1ApiRoutes: FastifyPluginAsync = async fastify => {
     });
 
     // SSE 이벤트 전송 헬퍼 함수
-    const sendEvent = (event: any) => {
+    const sendEvent = (event: ScanEvent) => {
       const validatedEvent = ScanEventSchema.parse(event);
       reply.raw.write(`data: ${JSON.stringify(validatedEvent)}\n\n`);
     };
@@ -105,11 +112,12 @@ export const v1ApiRoutes: FastifyPluginAsync = async fastify => {
       });
 
       reply.raw.end();
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       // 에러 이벤트 전송
       sendEvent({
         type: 'error',
-        message: error.message || 'Unknown error occurred',
+        message: errorMessage,
       });
       reply.raw.end();
     }
