@@ -9,14 +9,7 @@ import {
 } from '@videoforest/types';
 import { env } from '../config/index.js';
 import { authenticateByToken, getCookieOptions, isPasswordSetup, login, logoutByToken, setupPassword } from '../services/auth.js';
-
-/**
- * 인증 관련 라우트
- * - /auth/status - 설정 완료 여부 및 인증 상태 조회
- * - /auth/setup - 최초 비밀번호 설정
- * - /auth/login - 로그인 (세션 발급)
- * - /auth/logout - 로그아웃 (세션 삭제)
- */
+//------------------------------------------------------------------------------//
 export const authRoutes: FastifyPluginAsync = async fastify => {
   // 상태 조회: 최초 설정 여부, 인증 여부
   fastify.get('/status', async (request, reply) => {

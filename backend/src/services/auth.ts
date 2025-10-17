@@ -126,7 +126,7 @@ export function getCookieOptions(): CookieSerializeOptions {
   return {
     path: '/',
     httpOnly: true,
-    sameSite: 'lax' as const,
+    sameSite: 'strict',
     secure: isProduction,
     maxAge: Math.floor(SESSION_TTL_MS / 1000),
   };

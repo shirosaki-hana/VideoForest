@@ -47,7 +47,7 @@ async function createFastifyApp() {
     logger.error('Unhandled error:', error);
 
     const statusCode = error.statusCode || 500;
-    
+
     return reply.code(statusCode).send({
       error: isDevelopment ? error.message : 'Internal server error',
       ...(isDevelopment && { stack: error.stack }),

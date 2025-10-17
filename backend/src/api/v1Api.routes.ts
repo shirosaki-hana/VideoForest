@@ -1,10 +1,7 @@
 import { type FastifyPluginAsync } from 'fastify';
 import { ProtectedPingResponseSchema } from '@videoforest/types';
 import { requireAuth } from '../middleware/auth.js';
-
-/**
- * 메인 API
- */
+//------------------------------------------------------------------------------//
 export const v1ApiRoutes: FastifyPluginAsync = async fastify => {
   fastify.addHook('preHandler', requireAuth);
 
