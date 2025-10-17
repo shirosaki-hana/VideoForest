@@ -1,7 +1,24 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
+import ms from 'ms';
 //------------------------------------------------------------------------------//
 dotenv.config({ quiet: true });
+
+// ms 라이브러리 형식의 시간 문자열을 검증하는 Zod 스키마
+const msStringSchema = z
+  .string()
+  .refine(
+    val => {
+      try {
+        const result = ms(val as ms.StringValue);
+        return typeof result === 'number' && !isNaN(result);
+      } catch {
+        return false;
+      }
+    },
+    { message: 'Invalid time format (e.g., "24h", "10s", "7d")' }
+  )
+  .transform(val => val as ms.StringValue);
 
 // 환경 변수 Zod 스키마
 const envSchema = z.object({
@@ -12,9 +29,9 @@ const envSchema = z.object({
   FRONTEND_URL: z.url().default('http://127.0.0.1'),
   DATABASE_URL_SQLITE: z.string().default('file:./prisma/videoforest.db'),
   SESSION_COOKIE: z.string().default('session'),
-  SESSION_TTL: z.string().default('24h'),
+  SESSION_TTL: msStringSchema.default('24h'),
   RATELIMIT_MAX: z.coerce.number().positive().default(10),
-  RATELIMIT_WINDOWMS: z.string().default('10s'),
+  RATELIMIT_WINDOWMS: msStringSchema.default('10s'),
 });
 
 // 출력

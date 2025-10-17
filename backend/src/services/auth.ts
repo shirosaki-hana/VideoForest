@@ -1,13 +1,13 @@
 import { randomBytes } from 'crypto';
 import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2';
 import type { CookieSerializeOptions } from '@fastify/cookie';
+import ms from 'ms';
 import { database } from '../database/index.js';
 import { env, isProduction } from '../config/index.js';
-import { parseDurationToJustMs } from '../utils/time.js';
 import type { LoginRequest, SetupPasswordRequest } from '@videoforest/types';
 import { LoginRequestSchema, SetupPasswordRequestSchema } from '@videoforest/types';
 //------------------------------------------------------------------------------//
-const SESSION_TTL_MS = parseDurationToJustMs(env.SESSION_TTL) || 24 * 60 * 60 * 1000;
+const SESSION_TTL_MS = ms(env.SESSION_TTL);
 
 /**
  * 안전한 세션 토큰 생성 (96자 hex 문자열)

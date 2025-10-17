@@ -7,9 +7,9 @@ import staticFiles from '@fastify/static';
 import apiRoutes from './api/index.js';
 import path from 'path';
 
+import ms from 'ms';
 import { logger, projectRoot } from './utils/index.js';
 import { env, isProduction, isDevelopment } from './config/index.js';
-import { parseDurationToJustMs } from './utils/index.js';
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
 //------------------------------------------------------------------------------//
 
@@ -29,7 +29,7 @@ const staticFilesConfig = {
   cacheControl: isProduction,
   etag: true,
   lastModified: true,
-  maxAge: isProduction ? parseDurationToJustMs('1d') : 0,
+  maxAge: isProduction ? ms('1d') : 0,
 };
 
 // Fastify 서버 생성

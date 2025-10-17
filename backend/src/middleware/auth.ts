@@ -1,6 +1,6 @@
 import { type FastifyRequest, type FastifyReply } from 'fastify';
 import { env } from '../config/index.js';
-import { authenticateByToken } from '../services/auth.js';
+import { authenticateByToken } from '../services/index.js';
 //------------------------------------------------------------------------------//
 /**
  * 세션 인증 미들웨어
