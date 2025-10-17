@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// 단일 사용자 비밀번호 설정/로그인 공용 스키마
 export const PasswordSchema = z
   .string()
   .min(8)
@@ -22,7 +21,7 @@ export type SetupPasswordResponse = z.infer<typeof SetupPasswordResponseSchema>;
 
 // 로그인 요청/응답
 export const LoginRequestSchema = z.object({
-  password: z.string().min(1),
+  password: z.string().min(1), // 로그인 시에는 기존 비밀번호 형식 검증 불필요
 });
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 
@@ -45,3 +44,10 @@ export type AuthStatusResponse = z.infer<typeof AuthStatusResponseSchema>;
 // 보호된 테스트 응답
 export const ProtectedPingResponseSchema = z.object({ pong: z.literal(true) });
 export type ProtectedPingResponse = z.infer<typeof ProtectedPingResponseSchema>;
+
+// 에러 응답
+export const ErrorResponseSchema = z.object({
+  error: z.string(),
+  statusCode: z.number().optional(),
+});
+export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;

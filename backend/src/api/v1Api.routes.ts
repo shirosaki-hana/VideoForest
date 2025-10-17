@@ -12,5 +12,4 @@ export const v1ApiRoutes: FastifyPluginAsync = async fastify => {
   fastify.get('/ping', async (_request, reply) => {
     return reply.send(ProtectedPingResponseSchema.parse({ pong: true }));
   });
-
 };

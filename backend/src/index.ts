@@ -35,7 +35,6 @@ const staticFilesConfig = {
 // Fastify 서버 생성
 async function createFastifyApp() {
   const fastify = Fastify(fastifyConfig);
-
   await fastify.register(helmet, helmetConfig);
   await fastify.register(compress);
   await fastify.register(cors, corsConfig);
@@ -46,14 +45,6 @@ async function createFastifyApp() {
   // 전역 에러 핸들러
   fastify.setErrorHandler(async (error, request, reply) => {
     logger.error('Unhandled error:', error);
-
-    if (error.validation) {
-      return reply.code(400).send({
-        error: 'Validation Error',
-        details: isDevelopment ? error.validation : undefined,
-      });
-    }
-
     const statusCode = error.statusCode || 500;
     return reply.code(statusCode).send({
       error: isDevelopment ? error.message : 'Internal server error',

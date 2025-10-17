@@ -4,6 +4,7 @@ import {
   LoginRequestSchema,
   LoginResponseSchema,
   LogoutResponseSchema,
+  SetupPasswordRequestSchema,
   SetupPasswordResponseSchema,
 } from '@videoforest/types';
 import { env } from '../config/index.js';
@@ -27,7 +28,8 @@ export const authRoutes: FastifyPluginAsync = async fastify => {
 
   // 최초 비밀번호 설정
   fastify.post('/setup', async (request, reply) => {
-    await setupPassword(request.body);
+    const { password } = SetupPasswordRequestSchema.parse(request.body);
+    await setupPassword({ password });
     return reply.send(SetupPasswordResponseSchema.parse({ success: true }));
   });
 

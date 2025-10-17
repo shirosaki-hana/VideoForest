@@ -17,12 +17,10 @@ const envSchema = z.object({
   RATELIMIT_WINDOWMS: z.string().default('10s'),
 });
 
-// 환경변수를 파싱하여 export (검증 실패 시 서버 실행 중단)
+// 출력
 export const env = envSchema.parse(process.env);
-
-// 타입 export (다른 파일에서 타입 힌트용)
 export type Environment = z.infer<typeof envSchema>;
 
-// 유틸리티 함수들
+// 유틸리티 함수
 export const isProduction = env.NODE_ENV === 'production';
 export const isDevelopment = env.NODE_ENV === 'development';
