@@ -5,7 +5,7 @@ import { requireAuth } from '../middleware/auth.js';
 /**
  * 메인 API
  */
-export const mainApiRoutes: FastifyPluginAsync = async fastify => {
+export const v1ApiRoutes: FastifyPluginAsync = async fastify => {
   fastify.addHook('preHandler', requireAuth);
 
   // 테스트 엔드포인트

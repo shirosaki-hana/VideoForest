@@ -1,10 +1,10 @@
 import { type FastifyPluginAsync } from 'fastify';
 import { authRoutes } from './auth.routes.js';
-import { mainApiRoutes } from './mainApi.routes.js';
+import { v1ApiRoutes } from './v1Api.routes.js';
 
 export const apiRoutes: FastifyPluginAsync = async fastify => {
   await fastify.register(authRoutes, { prefix: '/auth' });
-  await fastify.register(mainApiRoutes, { prefix: '/api' });
+  await fastify.register(v1ApiRoutes, { prefix: '/v1' });
 };
 
 export default apiRoutes;
