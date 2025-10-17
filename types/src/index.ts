@@ -1,2 +1,2 @@
 // Auth types
-export * from './auth';
+export * from './auth.js';
