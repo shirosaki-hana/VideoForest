@@ -45,8 +45,34 @@ async function createFastifyApp() {
   await fastify.register(compress);
   await fastify.register(cors, corsConfig);
   await fastify.register(cookie);
+  
+  // API 라우트를 먼저 등록 (우선순위 높음)
   await fastify.register(apiRoutes, { prefix: '/api' });
+  
+  // 정적 파일 서빙
   await fastify.register(staticFiles, staticFilesConfig);
+
+  // SPA fallback: API가 아닌 모든 GET 요청을 index.html로 처리
+  fastify.setNotFoundHandler(async (request, reply) => {
+    // API 요청은 404 반환
+    if (request.url.startsWith('/api/')) {
+      return reply.code(404).send({
+        error: 'Not Found',
+        message: `Route ${request.method}:${request.url} not found`,
+      });
+    }
+    
+    // GET 요청이고 Accept 헤더가 HTML을 포함하면 index.html 반환 (SPA 라우팅)
+    if (request.method === 'GET' && request.headers.accept?.includes('text/html')) {
+      return reply.type('text/html').sendFile('index.html');
+    }
+    
+    // 그 외의 경우 404 반환
+    return reply.code(404).send({
+      error: 'Not Found',
+      message: `Resource ${request.url} not found`,
+    });
+  });
 
   // 전역 에러 핸들러
   fastify.setErrorHandler(async (error, request, reply) => {
@@ -81,19 +107,32 @@ startServer(env.PORT)
     const gracefulShutdown = async (signal: string) => {
       logger.warn(`Received ${signal}: shutting down server...`);
 
-      // 스트리밍 세션 종료
-      const { stopAllStreaming } = await import('./services/index.js');
-      await stopAllStreaming();
+      try {
+        // 스트리밍 세션 종료
+        const { stopAllStreaming } = await import('./services/index.js');
+        await stopAllStreaming();
 
-      await fastify.close();
-      await disconnectDatabase();
+        // Fastify 서버 종료
+        await fastify.close();
+        
+        // 데이터베이스 연결 해제
+        await disconnectDatabase();
 
-      logger.success('Server closed');
+        logger.success('Server closed successfully');
+        // eslint-disable-next-line no-process-exit
+        process.exit(0);
+      } catch (error) {
+        logger.error('Error during graceful shutdown:', error);
+        // eslint-disable-next-line no-process-exit
+        process.exit(1);
+      }
     };
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    
+    process.on('SIGINT', () => void gracefulShutdown('SIGINT'));
+    process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'));
   })
   .catch(async error => {
     logger.error('Failed to start server:', error);
-    throw error;
+    // eslint-disable-next-line no-process-exit
+    process.exit(1);
   });

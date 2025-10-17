@@ -9,6 +9,8 @@ import {
   ToggleButton,
   Divider,
   Stack,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import { Close as CloseIcon, LightMode, DarkMode, SettingsBrightness } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +19,7 @@ import { useThemeStore, type ThemeMode } from '../stores/themeStore';
 
 export default function SettingsDialog() {
   const { t, i18n } = useTranslation();
-  const { isOpen, closeSettings } = useSettingsStore();
+  const { isOpen, closeSettings, autoPlayNext, setAutoPlayNext } = useSettingsStore();
   const { mode: themeMode, setMode: setThemeMode } = useThemeStore();
 
   const handleThemeChange = (_event: React.MouseEvent<HTMLElement>, newMode: ThemeMode | null) => {
@@ -99,6 +101,23 @@ export default function SettingsDialog() {
                 {t('settings.language.en')}
               </ToggleButton>
             </ToggleButtonGroup>
+          </Box>
+
+          <Divider />
+
+          {/* 재생 설정 */}
+          <Box>
+            <Typography variant='subtitle2' gutterBottom sx={{ fontWeight: 600 }}>
+              {t('settings.playback.title')}
+            </Typography>
+            <FormControlLabel
+              control={<Switch checked={autoPlayNext} onChange={e => setAutoPlayNext(e.target.checked)} />}
+              label={t('settings.playback.autoPlayNext')}
+              sx={{ mt: 1 }}
+            />
+            <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: 0.5, ml: 4 }}>
+              {t('settings.playback.autoPlayNextDesc')}
+            </Typography>
           </Box>
         </Stack>
       </DialogContent>

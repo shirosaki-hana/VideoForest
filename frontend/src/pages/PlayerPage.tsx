@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Card, CardContent, Typography, CircularProgress, Alert, Box, IconButton, Stack, Chip } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { Container, Card, CardContent, Typography, CircularProgress, Alert, Box, IconButton, Stack, Chip, Switch, FormControlLabel, Divider } from '@mui/material';
+import { ArrowBack as ArrowBackIcon, SkipNext as SkipNextIcon, SkipPrevious as SkipPreviousIcon } from '@mui/icons-material';
 import VideoPlayer from '../components/VideoPlayer';
-import { getMediaInfo, getHLSPlaylistUrl } from '../api/streaming';
+import { getMediaInfo, getHLSMasterPlaylistUrl, stopStreaming, waitForPlaylist } from '../api/streaming';
 import { formatDuration, formatFileSize } from '../utils/format';
-import type { MediaInfoResponse } from '@videoforest/types';
+import { useMediaStore } from '../stores/mediaStore';
+import { useSettingsStore } from '../stores/settingsStore';
+import { getNextFile, getPreviousFile, getSiblingFiles } from '../utils/mediaTree';
+import type { MediaInfoResponse, MediaTreeNode } from '@videoforest/types';
 
 export default function PlayerPage() {
   const { mediaId } = useParams<{ mediaId: string }>();
@@ -13,8 +16,19 @@ export default function PlayerPage() {
 
   const [mediaInfo, setMediaInfo] = useState<MediaInfoResponse['media'] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [preparingStream, setPreparingStream] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [playlistUrl, setPlaylistUrl] = useState<string>('');
+
+  // 미디어 트리와 자동재생 설정
+  const { mediaTree } = useMediaStore();
+  const { autoPlayNext, setAutoPlayNext } = useSettingsStore();
+
+  // 재생 목록 정보
+  const [playlist, setPlaylist] = useState<MediaTreeNode[]>([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(-1);
+  const [nextFile, setNextFile] = useState<MediaTreeNode | null>(null);
+  const [prevFile, setPrevFile] = useState<MediaTreeNode | null>(null);
 
   useEffect(() => {
     if (!mediaId) {
@@ -23,32 +37,104 @@ export default function PlayerPage() {
       return;
     }
 
-    // 미디어 정보 로드
-    const loadMediaInfo = async () => {
+    // 미디어 정보 로드 및 스트리밍 준비
+    const loadMediaAndPrepareStream = async () => {
       try {
         setLoading(true);
+        setPreparingStream(true);
+        setError(null);
+
+        // 1. 미디어 정보 먼저 로드
         const response = await getMediaInfo(mediaId);
         setMediaInfo(response.media);
-        setPlaylistUrl(getHLSPlaylistUrl(mediaId));
-        setError(null);
+        setLoading(false);
+
+        // 2. 스트리밍 준비 대기 (Master Playlist가 생성될 때까지)
+        console.log('Waiting for ABR streaming to be ready...');
+        const isReady = await waitForPlaylist(mediaId, 30000); // 최대 30초 대기
+
+        if (isReady) {
+          console.log('ABR streaming is ready! Starting playback...');
+          setPlaylistUrl(getHLSMasterPlaylistUrl(mediaId));
+          setPreparingStream(false);
+        } else {
+          throw new Error('Stream preparation timeout. Please try again.');
+        }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load media info';
         setError(errorMessage);
-      } finally {
         setLoading(false);
+        setPreparingStream(false);
       }
     };
 
-    loadMediaInfo();
+    loadMediaAndPrepareStream();
+  }, [mediaId]);
+
+  // 재생 목록 업데이트
+  useEffect(() => {
+    if (!mediaId || !mediaTree.length) return;
+
+    const siblingFiles = getSiblingFiles(mediaTree, mediaId);
+    setPlaylist(siblingFiles);
+
+    const currentIdx = siblingFiles.findIndex(f => f.id === mediaId);
+    setCurrentIndex(currentIdx);
+
+    const next = getNextFile(mediaTree, mediaId);
+    const prev = getPreviousFile(mediaTree, mediaId);
+    setNextFile(next);
+    setPrevFile(prev);
+  }, [mediaId, mediaTree]);
+
+  // 페이지 이탈 시 스트리밍 세션 종료
+  useEffect(() => {
+    return () => {
+      if (mediaId) {
+        // 페이지 이탈 시 스트리밍 세션 종료 (비동기로 실행하되 기다리지 않음)
+        stopStreaming(mediaId).catch(error => {
+          console.error('Failed to stop streaming on page unmount:', error);
+        });
+      }
+    };
   }, [mediaId]);
 
   const handleBack = () => {
     navigate('/');
   };
 
-  const handlePlayerError = (error: videojs.MediaError | null) => {
+  // useCallback으로 메모이제이션하여 리렌더링 시 재생성 방지
+  const handlePlayerError = useCallback((error: MediaError | null) => {
     const errorMessage = error?.message || 'Unknown error';
-    setError(`Playback error: ${errorMessage}`);
+    console.error('Player error:', errorMessage);
+    // 에러가 발생해도 바로 상태를 업데이트하지 않음
+    // 폴백이 진행 중일 수 있으므로 재시도 기회를 줌
+    setTimeout(() => {
+      setError(`Playback error: ${errorMessage}`);
+    }, 3000); // 3초 후에도 실패하면 에러 표시
+  }, []);
+
+  // 비디오 종료 시 자동으로 다음 파일 재생
+  const handleVideoEnded = useCallback(() => {
+    console.log('Video ended. Auto-play next:', autoPlayNext);
+    if (autoPlayNext && nextFile) {
+      console.log('Playing next file:', nextFile.name);
+      navigate(`/player/${nextFile.id}`);
+    }
+  }, [autoPlayNext, nextFile, navigate]);
+
+  // 다음 파일로 이동
+  const handleNext = () => {
+    if (nextFile) {
+      navigate(`/player/${nextFile.id}`);
+    }
+  };
+
+  // 이전 파일로 이동
+  const handlePrevious = () => {
+    if (prevFile) {
+      navigate(`/player/${prevFile.id}`);
+    }
   };
 
   return (
@@ -58,15 +144,31 @@ export default function PlayerPage() {
         <IconButton onClick={handleBack} sx={{ mr: 2 }}>
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant='h4' component='h1'>
+        <Typography variant='h4' component='h1' sx={{ flexGrow: 1 }}>
           {mediaInfo?.name || 'Loading...'}
         </Typography>
       </Box>
 
       {/* 로딩 상태 */}
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8, gap: 2 }}>
           <CircularProgress size={60} />
+          <Typography variant="body1" color="text.secondary">
+            미디어 정보를 불러오는 중...
+          </Typography>
+        </Box>
+      )}
+
+      {/* 스트리밍 준비 중 */}
+      {!loading && preparingStream && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8, gap: 2 }}>
+          <CircularProgress size={60} />
+          <Typography variant="body1" color="text.secondary">
+            스트리밍 준비 중...
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            트랜스코딩이 진행 중입니다. 잠시만 기다려주세요.
+          </Typography>
         </Box>
       )}
 
@@ -78,31 +180,101 @@ export default function PlayerPage() {
       )}
 
       {/* 플레이어 */}
-      {!loading && !error && playlistUrl && (
+      {!loading && !preparingStream && !error && playlistUrl && (
         <>
           <Card sx={{ mb: 3 }}>
             <CardContent>
-              <VideoPlayer src={playlistUrl} onError={handlePlayerError} />
+              <VideoPlayer src={playlistUrl} mediaId={mediaId!} onError={handlePlayerError} onEnded={handleVideoEnded} />
             </CardContent>
           </Card>
+
+          {/* 재생 컨트롤 */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <IconButton onClick={handlePrevious} disabled={!prevFile} color='primary' size='large'>
+                    <SkipPreviousIcon />
+                  </IconButton>
+                  <IconButton onClick={handleNext} disabled={!nextFile} color='primary' size='large'>
+                    <SkipNextIcon />
+                  </IconButton>
+                  {playlist.length > 0 && (
+                    <Typography variant='body2' sx={{ ml: 2 }}>
+                      {currentIndex + 1} / {playlist.length}
+                    </Typography>
+                  )}
+                </Box>
+                <FormControlLabel
+                  control={<Switch checked={autoPlayNext} onChange={e => setAutoPlayNext(e.target.checked)} />}
+                  label='자동 연속 재생'
+                />
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* 재생 목록 */}
+          {playlist.length > 1 && (
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant='h6' gutterBottom>
+                  재생 목록 ({playlist.length}개)
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                <Stack spacing={1}>
+                  {playlist.map((file, index) => (
+                    <Box
+                      key={file.id}
+                      onClick={() => navigate(`/player/${file.id}`)}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        bgcolor: file.id === mediaId ? 'primary.main' : 'action.hover',
+                        color: file.id === mediaId ? 'primary.contrastText' : 'text.primary',
+                        '&:hover': {
+                          bgcolor: file.id === mediaId ? 'primary.dark' : 'action.selected',
+                        },
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2,
+                      }}
+                    >
+                      <Typography variant='body2' sx={{ minWidth: 30, fontWeight: file.id === mediaId ? 'bold' : 'normal' }}>
+                        {index + 1}.
+                      </Typography>
+                      <Typography variant='body2' sx={{ flexGrow: 1, fontWeight: file.id === mediaId ? 'bold' : 'normal' }}>
+                        {file.name}
+                      </Typography>
+                      {file.duration && (
+                        <Typography variant='caption' sx={{ opacity: 0.7 }}>
+                          {formatDuration(file.duration)}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
 
           {/* 미디어 정보 */}
           {mediaInfo && (
             <Card>
               <CardContent>
                 <Typography variant='h6' gutterBottom>
-                  Media Information
+                  미디어 정보
                 </Typography>
                 <Stack direction='row' spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: 2 }}>
                   {mediaInfo.width && mediaInfo.height && (
-                    <Chip label={`Resolution: ${mediaInfo.width}x${mediaInfo.height}`} variant='outlined' />
+                    <Chip label={`해상도: ${mediaInfo.width}x${mediaInfo.height}`} variant='outlined' />
                   )}
-                  {mediaInfo.duration && <Chip label={`Duration: ${formatDuration(mediaInfo.duration)}`} variant='outlined' />}
-                  {mediaInfo.fileSize && <Chip label={`Size: ${formatFileSize(mediaInfo.fileSize)}`} variant='outlined' />}
-                  {mediaInfo.codec && <Chip label={`Video: ${mediaInfo.codec.toUpperCase()}`} variant='outlined' />}
-                  {mediaInfo.audioCodec && <Chip label={`Audio: ${mediaInfo.audioCodec.toUpperCase()}`} variant='outlined' />}
+                  {mediaInfo.duration && <Chip label={`재생 시간: ${formatDuration(mediaInfo.duration)}`} variant='outlined' />}
+                  {mediaInfo.fileSize && <Chip label={`파일 크기: ${formatFileSize(mediaInfo.fileSize)}`} variant='outlined' />}
+                  {mediaInfo.codec && <Chip label={`비디오: ${mediaInfo.codec.toUpperCase()}`} variant='outlined' />}
+                  {mediaInfo.audioCodec && <Chip label={`오디오: ${mediaInfo.audioCodec.toUpperCase()}`} variant='outlined' />}
                   {mediaInfo.fps && <Chip label={`${Math.round(mediaInfo.fps)} FPS`} variant='outlined' />}
-                  {mediaInfo.bitrate && <Chip label={`Bitrate: ${Math.round(mediaInfo.bitrate / 1000)} kbps`} variant='outlined' />}
+                  {mediaInfo.bitrate && <Chip label={`비트레이트: ${Math.round(mediaInfo.bitrate / 1000)} kbps`} variant='outlined' />}
                 </Stack>
               </CardContent>
             </Card>

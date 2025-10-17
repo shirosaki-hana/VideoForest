@@ -92,6 +92,11 @@ export default {
         ko: '한국어',
         en: 'English',
       },
+      playback: {
+        title: 'Playback Settings',
+        autoPlayNext: 'Auto-play Next',
+        autoPlayNextDesc: 'Automatically play the next file in the same folder when the video ends',
+      },
     },
 
     // Errors
