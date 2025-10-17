@@ -45,7 +45,9 @@ async function createFastifyApp() {
   // 전역 에러 핸들러
   fastify.setErrorHandler(async (error, request, reply) => {
     logger.error('Unhandled error:', error);
+
     const statusCode = error.statusCode || 500;
+    
     return reply.code(statusCode).send({
       error: isDevelopment ? error.message : 'Internal server error',
       ...(isDevelopment && { stack: error.stack }),

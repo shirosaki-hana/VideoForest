@@ -6,7 +6,7 @@ import { env, isProduction } from '../config/index.js';
 import { parseDurationToJustMs } from '../utils/time.js';
 import type { LoginRequest, SetupPasswordRequest } from '@videoforest/types';
 import { LoginRequestSchema, SetupPasswordRequestSchema } from '@videoforest/types';
-
+//------------------------------------------------------------------------------//
 const SESSION_TTL_MS = parseDurationToJustMs(env.SESSION_TTL) || 24 * 60 * 60 * 1000;
 
 /**
