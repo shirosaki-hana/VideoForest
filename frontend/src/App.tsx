@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import SetupPasswordPage from './pages/SetupPasswordPage';
 import LoginPage from './pages/LoginPage';
 import MediaListPage from './pages/MediaListPage';
+import PlayerPage from './pages/PlayerPage';
 
 // 인증 상태에 따른 라우팅 로직
 function AuthRouter() {
@@ -58,6 +59,7 @@ function AuthRouter() {
         <>
           <Route element={<Layout showAppBar={true} />}>
             <Route path='/media' element={<MediaListPage />} />
+            <Route path='/player/:mediaId' element={<PlayerPage />} />
             <Route path='/' element={<Navigate to='/media' replace />} />
           </Route>
           <Route path='*' element={<Navigate to='/media' replace />} />

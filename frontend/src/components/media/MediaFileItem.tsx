@@ -1,5 +1,6 @@
 import { Box, Typography, Chip, Stack, Tooltip } from '@mui/material';
 import { VideoFile as VideoFileIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { formatFileSize, formatDuration } from '../../utils/format';
 import type { MediaTreeNode } from '@videoforest/types';
 
@@ -9,14 +10,22 @@ interface MediaFileItemProps {
 }
 
 export default function MediaFileItem({ node, depth }: MediaFileItemProps) {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/player/${node.id}`);
+  };
+
   return (
     <Box
+      onClick={handleClick}
       sx={{
         display: 'flex',
         alignItems: 'center',
         py: 1.5,
         px: 2,
         pl: 2 + (depth + 1) * 3,
+        cursor: 'pointer',
         '&:hover': {
           bgcolor: 'action.hover',
         },

@@ -81,6 +81,10 @@ startServer(env.PORT)
     const gracefulShutdown = async (signal: string) => {
       logger.warn(`Received ${signal}: shutting down server...`);
 
+      // 스트리밍 세션 종료
+      const { stopAllStreaming } = await import('./services/index.js');
+      await stopAllStreaming();
+
       await fastify.close();
       await disconnectDatabase();
 

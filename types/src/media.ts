@@ -150,3 +150,21 @@ export const ScanEventSchema = z.discriminatedUnion('type', [
 ]);
 export type ScanEvent = z.infer<typeof ScanEventSchema>;
 
+// 스트리밍 관련 타입
+export const MediaInfoResponseSchema = z.object({
+  success: z.literal(true),
+  media: z.object({
+    id: z.string(),
+    name: z.string(),
+    duration: z.number().nullable(),
+    width: z.number().int().nullable(),
+    height: z.number().int().nullable(),
+    codec: z.string().nullable(),
+    bitrate: z.number().int().nullable(),
+    fps: z.number().nullable(),
+    audioCodec: z.string().nullable(),
+    fileSize: z.number().int().nullable(),
+  }),
+});
+export type MediaInfoResponse = z.infer<typeof MediaInfoResponseSchema>;
+
