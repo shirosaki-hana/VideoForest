@@ -1,21 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  Box,
-  Container,
-  TextField,
-  Button,
-  Typography,
-  Paper,
-  Alert,
-  InputAdornment,
-  IconButton,
-  Stack,
-} from '@mui/material';
-import { Visibility, VisibilityOff, Lock } from '@mui/icons-material';
+import { Box, Button, Alert } from '@mui/material';
+import { Lock } from '@mui/icons-material';
 import { useAuthStore } from '../stores/authStore';
 import { PasswordSchema } from '@videoforest/types';
+import AuthPageLayout from '../components/common/AuthPageLayout';
+import PasswordField from '../components/common/PasswordField';
 
 export default function SetupPasswordPage() {
   const { t } = useTranslation();
@@ -24,8 +15,6 @@ export default function SetupPasswordPage() {
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,140 +45,43 @@ export default function SetupPasswordPage() {
   };
 
   return (
-    <Container component="main" maxWidth="sm">
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          py: 6,
-        }}
-      >
-        <Paper
-          elevation={0}
-          sx={theme => ({
-            px: { xs: 3, sm: 6 },
-            py: { xs: 4, sm: 6 },
-            width: '100%',
-            border: '1px solid',
-            borderColor: 'divider',
-            bgcolor:
-              theme.palette.mode === 'light'
-                ? 'rgba(255,255,255,0.7)'
-                : 'rgba(2,6,23,0.55)',
-          })}
-        >
-          <Stack spacing={3} alignItems="center">
-            <Box
-              sx={{
-                width: 72,
-                height: 72,
-                borderRadius: '16px',
-                background:
-                  'linear-gradient(135deg, rgba(59,130,246,0.9), rgba(16,185,129,0.9))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Lock sx={{ fontSize: 32, color: 'white' }} />
-            </Box>
+    <AuthPageLayout icon={<Lock sx={{ fontSize: 32, color: 'white' }} />} title={t('common.appName')} subtitle={t('auth.setup.subtitle')}>
+      {(error || validationError) && (
+        <Alert severity='error' sx={{ width: '100%' }}>
+          {validationError || error}
+        </Alert>
+      )}
 
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography
-                component="h1"
-                variant="h4"
-                sx={{
-                  fontWeight: 800,
-                  background:
-                    'linear-gradient(135deg, #2563eb 0%, #10b981 60%, #7c3aed 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-                gutterBottom
-              >
-                {t('common.appName')}
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                {t('auth.setup.subtitle')}
-              </Typography>
-            </Box>
+      <Box component='form' onSubmit={handleSubmit} sx={{ width: '100%' }}>
+        <PasswordField
+          margin='normal'
+          required
+          fullWidth
+          name='password'
+          label={t('auth.setup.password')}
+          id='password'
+          autoComplete='new-password'
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          helperText={t('auth.setup.passwordHelper')}
+        />
 
-            {(error || validationError) && (
-              <Alert severity="error" sx={{ width: '100%' }}>
-                {validationError || error}
-              </Alert>
-            )}
+        <PasswordField
+          margin='normal'
+          required
+          fullWidth
+          name='confirmPassword'
+          label={t('auth.setup.confirmPassword')}
+          id='confirmPassword'
+          autoComplete='new-password'
+          value={confirmPassword}
+          onChange={e => setConfirmPassword(e.target.value)}
+        />
 
-            <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label={t('auth.setup.password')}
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                autoComplete="new-password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                helperText={t('auth.setup.passwordHelper')}
-              />
-
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="confirmPassword"
-                label={t('auth.setup.confirmPassword')}
-                type={showConfirmPassword ? 'text' : 'password'}
-                id="confirmPassword"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle confirm password visibility"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        edge="end"
-                      >
-                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              <Button
-                type="submit"
-                fullWidth
-                size="large"
-                variant="contained"
-                sx={{ mt: 2 }}
-                disabled={isLoading}
-              >
-                {isLoading ? t('auth.setup.submitting') : t('auth.setup.submit')}
-              </Button>
-            </Box>
-          </Stack>
-        </Paper>
+        <Button type='submit' fullWidth size='large' variant='contained' sx={{ mt: 2 }} disabled={isLoading}>
+          {isLoading ? t('auth.setup.submitting') : t('auth.setup.submit')}
+        </Button>
       </Box>
-    </Container>
+    </AuthPageLayout>
   );
 }

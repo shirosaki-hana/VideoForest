@@ -34,19 +34,48 @@ export default {
       logout: 'Sign Out',
     },
 
-    // Welcome
-    welcome: {
-      title: 'Welcome!',
-      subtitle: 'Successfully signed in to VideoForest',
-      features: {
-        personal: '🎬 Personal media server running on NAS',
-        secure: '🔒 Securely protected content',
-        accessible: '✨ Accessible anytime, anywhere',
-        personal_desc: 'Organize and stream your own library without third-party cloud services.',
-        secure_desc: 'Your library stays in your network with password-protected access.',
-        accessible_desc: 'Watch from desktop and mobile, at home or remotely.',
+    // Media
+    media: {
+      title: 'Media Library',
+      empty: 'No media files',
+      emptyHint: 'Click the Scan button to scan media directories',
+      refresh: 'Refresh',
+      scan: 'Scan',
+      count: 'Total {{count}} media files',
+
+      // Tree controls
+      expandAll: 'Expand All',
+      collapseAll: 'Collapse All',
+
+      // File/Folder types
+      folder: 'Folder',
+      file: 'File',
+      files: '{{count}} files',
+      folders: '{{count}} folders',
+
+      // File information
+      resolution: 'Resolution',
+      codec: 'Codec',
+      duration: 'Duration',
+      fileSize: 'File Size',
+      bitrate: 'Bitrate',
+      fps: 'FPS',
+      audioCodec: 'Audio Codec',
+
+      // Scan dialog
+      scanDialog: {
+        title: 'Media Scan',
+        starting: 'Starting scan...',
+        scanning: 'Scanning...',
+        progress: '{{current}} / {{total}}',
+        currentFile: 'Current File',
+        complete: 'Scan Complete!',
+        success: 'Success: {{count}}',
+        failed: 'Failed: {{count}}',
+        total: 'Total: {{count}}',
+        close: 'Close',
+        error: 'An error occurred during scan',
       },
-      get_started: 'Get started',
     },
 
     // Settings
@@ -76,4 +105,3 @@ export default {
     },
   },
 };
-

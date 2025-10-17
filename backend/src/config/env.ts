@@ -32,6 +32,16 @@ const envSchema = z.object({
   SESSION_TTL: msStringSchema.default('24h'),
   RATELIMIT_MAX: z.coerce.number().positive().default(10),
   RATELIMIT_WINDOWMS: msStringSchema.default('10s'),
+  MEDIA_PATHS: z
+    .string()
+    .default('./media')
+    .transform(val =>
+      val
+        .split(',')
+        .map(p => p.trim())
+        .filter(p => p.length > 0)
+    )
+    .pipe(z.array(z.string()).min(1)),
 });
 
 // 출력

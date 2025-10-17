@@ -126,5 +126,3 @@ export function createAppTheme(mode: 'light' | 'dark') {
     },
   });
 }
-
-

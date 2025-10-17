@@ -10,6 +10,10 @@ const externals = [
 
   // Native
   '@node-rs/argon2',
+
+  // FFmpeg/FFprobe installers (네이티브 바이너리 포함)
+  '@ffmpeg-installer/ffmpeg',
+  '@ffprobe-installer/ffprobe',
 ];
 
 // 상대 경로로 임포트되는 Prisma generated client를 external 처리하는 플러그인

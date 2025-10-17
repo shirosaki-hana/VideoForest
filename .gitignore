@@ -11,3 +11,6 @@ node_modules/
 *.db
 *.db-journal
 **/prismaclient/
+
+# media
+backend/media/

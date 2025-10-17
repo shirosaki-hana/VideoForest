@@ -7,12 +7,7 @@ import type {
   LoginResponse,
   LogoutResponse,
 } from '@videoforest/types';
-import {
-  AuthStatusResponseSchema,
-  SetupPasswordResponseSchema,
-  LoginResponseSchema,
-  LogoutResponseSchema,
-} from '@videoforest/types';
+import { AuthStatusResponseSchema, SetupPasswordResponseSchema, LoginResponseSchema, LogoutResponseSchema } from '@videoforest/types';
 import { z } from 'zod';
 
 // 타입 가드를 위한 검증 헬퍼
@@ -27,9 +22,7 @@ export async function checkAuthStatus(): Promise<AuthStatusResponse> {
 }
 
 // 비밀번호 최초 설정
-export async function setupPassword(
-  data: SetupPasswordRequest
-): Promise<SetupPasswordResponse> {
+export async function setupPassword(data: SetupPasswordRequest): Promise<SetupPasswordResponse> {
   const response = await apiClient.post('/auth/setup', data);
   return validateResponse(SetupPasswordResponseSchema, response.data);
 }
@@ -45,4 +38,3 @@ export async function logout(): Promise<LogoutResponse> {
   const response = await apiClient.post('/auth/logout');
   return validateResponse(LogoutResponseSchema, response.data);
 }
-

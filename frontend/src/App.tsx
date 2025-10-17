@@ -5,7 +5,7 @@ import { useAuthStore } from './stores/authStore';
 import Layout from './components/Layout';
 import SetupPasswordPage from './pages/SetupPasswordPage';
 import LoginPage from './pages/LoginPage';
-import WelcomePage from './pages/WelcomePage';
+import MediaListPage from './pages/MediaListPage';
 
 // 인증 상태에 따른 라우팅 로직
 function AuthRouter() {
@@ -37,9 +37,9 @@ function AuthRouter() {
       {!isSetup && (
         <>
           <Route element={<Layout showAppBar={false} />}>
-            <Route path="/" element={<SetupPasswordPage />} />
+            <Route path='/' element={<SetupPasswordPage />} />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path='*' element={<Navigate to='/' replace />} />
         </>
       )}
 
@@ -47,9 +47,9 @@ function AuthRouter() {
       {isSetup && !isAuthenticated && (
         <>
           <Route element={<Layout showAppBar={false} />}>
-            <Route path="/" element={<LoginPage />} />
+            <Route path='/' element={<LoginPage />} />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path='*' element={<Navigate to='/' replace />} />
         </>
       )}
 
@@ -57,10 +57,10 @@ function AuthRouter() {
       {isSetup && isAuthenticated && (
         <>
           <Route element={<Layout showAppBar={true} />}>
-            <Route path="/welcome" element={<WelcomePage />} />
-            <Route path="/" element={<Navigate to="/welcome" replace />} />
+            <Route path='/media' element={<MediaListPage />} />
+            <Route path='/' element={<Navigate to='/media' replace />} />
           </Route>
-          <Route path="*" element={<Navigate to="/welcome" replace />} />
+          <Route path='*' element={<Navigate to='/media' replace />} />
         </>
       )}
     </Routes>

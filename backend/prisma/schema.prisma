@@ -28,3 +28,44 @@ model Session {
   @@index([token])
   @@index([createdAt])
 }
+
+// 미디어 폴더 테이블
+model MediaFolder {
+  id        String   @id @default(cuid())
+  name      String
+  path      String   @unique
+  parentId  String?
+  parent    MediaFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children  MediaFolder[] @relation("FolderHierarchy")
+  media     Media[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("media_folders")
+  @@index([parentId])
+  @@index([path])
+}
+
+// 미디어 테이블
+model Media {
+  id            String       @id @default(cuid())
+  name          String
+  filePath      String       @unique
+  folderId      String?
+  folder        MediaFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  duration      Float?
+  width         Int?
+  height        Int?
+  codec         String?
+  bitrate       Int?
+  fps           Float?
+  audioCodec    String?
+  fileSize      Int?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  @@map("media")
+  @@index([name])
+  @@index([folderId])
+  @@index([createdAt])
+}

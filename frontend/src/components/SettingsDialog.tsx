@@ -10,12 +10,7 @@ import {
   Divider,
   Stack,
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  LightMode,
-  DarkMode,
-  SettingsBrightness,
-} from '@mui/icons-material';
+import { Close as CloseIcon, LightMode, DarkMode, SettingsBrightness } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useThemeStore, type ThemeMode } from '../stores/themeStore';
@@ -31,10 +26,7 @@ export default function SettingsDialog() {
     }
   };
 
-  const handleLanguageChange = (
-    _event: React.MouseEvent<HTMLElement>,
-    newLang: string | null
-  ) => {
+  const handleLanguageChange = (_event: React.MouseEvent<HTMLElement>, newLang: string | null) => {
     if (newLang !== null) {
       i18n.changeLanguage(newLang);
       localStorage.setItem('language', newLang);
@@ -45,7 +37,7 @@ export default function SettingsDialog() {
     <Dialog
       open={isOpen}
       onClose={closeSettings}
-      maxWidth="sm"
+      maxWidth='sm'
       fullWidth
       PaperProps={{
         sx: {
@@ -61,16 +53,10 @@ export default function SettingsDialog() {
           pb: 1,
         }}
       >
-        <Typography variant="h6" component="div">
+        <Typography variant='h6' component='div'>
           {t('settings.title')}
         </Typography>
-        <IconButton
-          edge="end"
-          color="inherit"
-          onClick={closeSettings}
-          aria-label="close"
-          size="small"
-        >
+        <IconButton edge='end' color='inherit' onClick={closeSettings} aria-label='close' size='small'>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -79,26 +65,19 @@ export default function SettingsDialog() {
         <Stack spacing={3} sx={{ py: 1 }}>
           {/* 테마 설정 */}
           <Box>
-            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+            <Typography variant='subtitle2' gutterBottom sx={{ fontWeight: 600 }}>
               {t('settings.theme.title')}
             </Typography>
-            <ToggleButtonGroup
-              value={themeMode}
-              exclusive
-              onChange={handleThemeChange}
-              fullWidth
-              size="medium"
-              sx={{ mt: 1.5 }}
-            >
-              <ToggleButton value="light" aria-label="light mode">
+            <ToggleButtonGroup value={themeMode} exclusive onChange={handleThemeChange} fullWidth size='medium' sx={{ mt: 1.5 }}>
+              <ToggleButton value='light' aria-label='light mode'>
                 <LightMode sx={{ mr: 1 }} />
                 {t('settings.theme.light')}
               </ToggleButton>
-              <ToggleButton value="dark" aria-label="dark mode">
+              <ToggleButton value='dark' aria-label='dark mode'>
                 <DarkMode sx={{ mr: 1 }} />
                 {t('settings.theme.dark')}
               </ToggleButton>
-              <ToggleButton value="system" aria-label="system mode">
+              <ToggleButton value='system' aria-label='system mode'>
                 <SettingsBrightness sx={{ mr: 1 }} />
                 {t('settings.theme.system')}
               </ToggleButton>
@@ -109,21 +88,14 @@ export default function SettingsDialog() {
 
           {/* 언어 설정 */}
           <Box>
-            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+            <Typography variant='subtitle2' gutterBottom sx={{ fontWeight: 600 }}>
               {t('settings.language.title')}
             </Typography>
-            <ToggleButtonGroup
-              value={i18n.language}
-              exclusive
-              onChange={handleLanguageChange}
-              fullWidth
-              size="medium"
-              sx={{ mt: 1.5 }}
-            >
-              <ToggleButton value="ko" aria-label="korean">
+            <ToggleButtonGroup value={i18n.language} exclusive onChange={handleLanguageChange} fullWidth size='medium' sx={{ mt: 1.5 }}>
+              <ToggleButton value='ko' aria-label='korean'>
                 {t('settings.language.ko')}
               </ToggleButton>
-              <ToggleButton value="en" aria-label="english">
+              <ToggleButton value='en' aria-label='english'>
                 {t('settings.language.en')}
               </ToggleButton>
             </ToggleButtonGroup>
@@ -133,4 +105,3 @@ export default function SettingsDialog() {
     </Dialog>
   );
 }
-

@@ -11,4 +11,3 @@ export const useSettingsStore = create<SettingsState>(set => ({
   openSettings: () => set({ isOpen: true }),
   closeSettings: () => set({ isOpen: false }),
 }));
-

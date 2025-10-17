@@ -1,10 +1,5 @@
 import { create } from 'zustand';
-import {
-  checkAuthStatus,
-  setupPassword,
-  login as apiLogin,
-  logout as apiLogout,
-} from '../api/auth';
+import { checkAuthStatus, setupPassword, login as apiLogin, logout as apiLogout } from '../api/auth';
 import type { SetupPasswordRequest, LoginRequest } from '@videoforest/types';
 
 interface AuthState {

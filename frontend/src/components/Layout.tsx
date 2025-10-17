@@ -18,4 +18,3 @@ export default function Layout({ showAppBar = false }: LayoutProps) {
     </Box>
   );
 }
-

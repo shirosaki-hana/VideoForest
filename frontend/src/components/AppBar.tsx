@@ -22,13 +22,10 @@ export default function AppBar() {
 
   return (
     <MuiAppBar
-      position="sticky"
+      position='sticky'
       sx={theme => ({
         top: 0,
-        bgcolor:
-          theme.palette.mode === 'light'
-            ? 'rgba(255,255,255,0.6)'
-            : 'rgba(2,6,23,0.55)',
+        bgcolor: theme.palette.mode === 'light' ? 'rgba(255,255,255,0.6)' : 'rgba(2,6,23,0.55)',
         color: 'text.primary',
         borderBottom: '1px solid',
         borderColor: 'divider',
@@ -37,24 +34,15 @@ export default function AppBar() {
       })}
     >
       <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
+        <Typography variant='h6' component='div' sx={{ flexGrow: 1, fontWeight: 600 }}>
           {t('common.appName')}
         </Typography>
 
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <IconButton
-            color="inherit"
-            onClick={openSettings}
-            aria-label={t('settings.title')}
-          >
+          <IconButton color='inherit' onClick={openSettings} aria-label={t('settings.title')}>
             <SettingsIcon />
           </IconButton>
-          <IconButton
-            color="inherit"
-            onClick={handleLogout}
-            disabled={isLoading}
-            aria-label={t('auth.logout')}
-          >
+          <IconButton color='inherit' onClick={handleLogout} disabled={isLoading} aria-label={t('auth.logout')}>
             <LogoutIcon />
           </IconButton>
         </Box>
@@ -62,4 +50,3 @@ export default function AppBar() {
     </MuiAppBar>
   );
 }
-

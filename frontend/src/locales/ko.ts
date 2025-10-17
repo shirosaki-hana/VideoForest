@@ -34,19 +34,48 @@ export default {
       logout: '로그아웃',
     },
 
-    // Welcome
-    welcome: {
-      title: '환영합니다!',
-      subtitle: 'VideoForest에 성공적으로 로그인했습니다',
-      features: {
-        personal: '🎬 NAS에서 실행되는 개인 미디어 서버',
-        secure: '🔒 안전하게 보호된 콘텐츠',
-        accessible: '✨ 언제 어디서나 접근 가능',
-        personal_desc: '타사 클라우드 없이 나만의 라이브러리를 구성하고 스트리밍하세요.',
-        secure_desc: '비밀번호로 보호되어 라이브러리는 네트워크 안에 안전하게 보관됩니다.',
-        accessible_desc: '데스크톱과 모바일에서, 집 안팎 어디서든 감상하세요.',
+    // Media
+    media: {
+      title: '미디어 라이브러리',
+      empty: '미디어 파일이 없습니다',
+      emptyHint: '스캔 버튼을 눌러 미디어 디렉터리를 스캔하세요',
+      refresh: '새로고침',
+      scan: '스캔',
+      count: '총 {{count}}개의 미디어 파일',
+
+      // 트리 컨트롤
+      expandAll: '전체 펼치기',
+      collapseAll: '전체 접기',
+
+      // 파일/폴더 타입
+      folder: '폴더',
+      file: '파일',
+      files: '{{count}}개 파일',
+      folders: '{{count}}개 폴더',
+
+      // 파일 정보
+      resolution: '해상도',
+      codec: '코덱',
+      duration: '길이',
+      fileSize: '파일 크기',
+      bitrate: '비트레이트',
+      fps: 'FPS',
+      audioCodec: '오디오 코덱',
+
+      // 스캔 다이얼로그
+      scanDialog: {
+        title: '미디어 스캔',
+        starting: '스캔 시작 중...',
+        scanning: '스캔 중...',
+        progress: '{{current}} / {{total}}',
+        currentFile: '현재 파일',
+        complete: '스캔 완료!',
+        success: '성공: {{count}}개',
+        failed: '실패: {{count}}개',
+        total: '전체: {{count}}개',
+        close: '닫기',
+        error: '스캔 중 오류가 발생했습니다',
       },
-      get_started: '시작하기',
     },
 
     // Settings
@@ -76,4 +105,3 @@ export default {
     },
   },
 };
-
