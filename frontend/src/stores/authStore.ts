@@ -22,6 +22,17 @@ interface AuthState {
   clearError: () => void;
 }
 
+// 에러 메시지 추출 헬퍼
+const getErrorMessage = (error: any, defaultMessage: string): string => {
+  if (error.response?.data?.error) {
+    return error.response.data.error;
+  }
+  if (error.message) {
+    return error.message;
+  }
+  return defaultMessage;
+};
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   // 초기 상태
   isSetup: false,
@@ -41,7 +52,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     } catch (error: any) {
       set({
-        error: error.response?.data?.error || '상태 확인에 실패했습니다.',
+        error: getErrorMessage(error, 'Failed to check authentication status'),
         isLoading: false,
       });
     }
@@ -56,7 +67,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await get().checkStatus();
     } catch (error: any) {
       set({
-        error: error.response?.data?.error || '비밀번호 설정에 실패했습니다.',
+        error: getErrorMessage(error, 'Failed to set password'),
         isLoading: false,
       });
       throw error;
@@ -72,7 +83,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await get().checkStatus();
     } catch (error: any) {
       set({
-        error: error.response?.data?.error || '로그인에 실패했습니다.',
+        error: getErrorMessage(error, 'Login failed'),
         isLoading: false,
       });
       throw error;
@@ -90,7 +101,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     } catch (error: any) {
       set({
-        error: error.response?.data?.error || '로그아웃에 실패했습니다.',
+        error: getErrorMessage(error, 'Logout failed'),
         isLoading: false,
       });
     }
@@ -99,4 +110,3 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // 에러 초기화
   clearError: () => set({ error: null }),
 }));
-

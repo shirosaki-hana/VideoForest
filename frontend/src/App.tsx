@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CircularProgress, Box } from '@mui/material';
 import { useAuthStore } from './stores/authStore';
+import Layout from './components/Layout';
 import SetupPasswordPage from './pages/SetupPasswordPage';
 import LoginPage from './pages/LoginPage';
 import WelcomePage from './pages/WelcomePage';
@@ -35,7 +36,9 @@ function AuthRouter() {
       {/* 비밀번호가 설정되지 않은 경우 */}
       {!isSetup && (
         <>
-          <Route path="/" element={<SetupPasswordPage />} />
+          <Route element={<Layout showAppBar={false} />}>
+            <Route path="/" element={<SetupPasswordPage />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </>
       )}
@@ -43,7 +46,9 @@ function AuthRouter() {
       {/* 비밀번호는 설정되었지만 로그인하지 않은 경우 */}
       {isSetup && !isAuthenticated && (
         <>
-          <Route path="/" element={<LoginPage />} />
+          <Route element={<Layout showAppBar={false} />}>
+            <Route path="/" element={<LoginPage />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </>
       )}
@@ -51,8 +56,10 @@ function AuthRouter() {
       {/* 로그인된 경우 */}
       {isSetup && isAuthenticated && (
         <>
-          <Route path="/welcome" element={<WelcomePage />} />
-          <Route path="/" element={<Navigate to="/welcome" replace />} />
+          <Route element={<Layout showAppBar={true} />}>
+            <Route path="/welcome" element={<WelcomePage />} />
+            <Route path="/" element={<Navigate to="/welcome" replace />} />
+          </Route>
           <Route path="*" element={<Navigate to="/welcome" replace />} />
         </>
       )}

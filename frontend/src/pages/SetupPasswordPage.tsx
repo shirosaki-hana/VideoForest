@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Container,
@@ -10,15 +11,17 @@ import {
   Alert,
   InputAdornment,
   IconButton,
+  Stack,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Lock } from '@mui/icons-material';
 import { useAuthStore } from '../stores/authStore';
 import { PasswordSchema } from '@videoforest/types';
 
 export default function SetupPasswordPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { setup, isLoading, error, clearError } = useAuthStore();
-  
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -32,7 +35,7 @@ export default function SetupPasswordPage() {
 
     // 비밀번호 확인 검증
     if (password !== confirmPassword) {
-      setValidationError('비밀번호가 일치하지 않습니다.');
+      setValidationError(t('auth.setup.passwordMismatch'));
       return;
     }
 
@@ -40,7 +43,7 @@ export default function SetupPasswordPage() {
     try {
       PasswordSchema.parse(password);
     } catch (err: any) {
-      setValidationError(err.errors?.[0]?.message || '비밀번호 형식이 올바르지 않습니다.');
+      setValidationError(err.errors?.[0]?.message || t('auth.setup.invalidFormat'));
       return;
     }
 
@@ -53,122 +56,140 @@ export default function SetupPasswordPage() {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
+    <Container component="main" maxWidth="sm">
       <Box
         sx={{
           minHeight: '100vh',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
+          py: 6,
         }}
       >
         <Paper
-          elevation={3}
-          sx={{
-            p: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
+          elevation={0}
+          sx={theme => ({
+            px: { xs: 3, sm: 6 },
+            py: { xs: 4, sm: 6 },
             width: '100%',
-          }}
+            border: '1px solid',
+            borderColor: 'divider',
+            bgcolor:
+              theme.palette.mode === 'light'
+                ? 'rgba(255,255,255,0.7)'
+                : 'rgba(2,6,23,0.55)',
+          })}
         >
-          <Box
-            sx={{
-              width: 64,
-              height: 64,
-              borderRadius: '50%',
-              bgcolor: 'primary.main',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mb: 2,
-            }}
-          >
-            <Lock sx={{ fontSize: 32, color: 'white' }} />
-          </Box>
-
-          <Typography component="h1" variant="h5" gutterBottom>
-            VideoForest
-          </Typography>
-          
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            시작하려면 관리자 비밀번호를 설정하세요
-          </Typography>
-
-          {(error || validationError) && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-              {validationError || error}
-            </Alert>
-          )}
-
-          <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="비밀번호"
-              type={showPassword ? 'text' : 'password'}
-              id="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="toggle password visibility"
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
+          <Stack spacing={3} alignItems="center">
+            <Box
+              sx={{
+                width: 72,
+                height: 72,
+                borderRadius: '16px',
+                background:
+                  'linear-gradient(135deg, rgba(59,130,246,0.9), rgba(16,185,129,0.9))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
-              helperText="8자 이상, 영문과 숫자 포함"
-            />
-
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="confirmPassword"
-              label="비밀번호 확인"
-              type={showConfirmPassword ? 'text' : 'password'}
-              id="confirmPassword"
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="toggle confirm password visibility"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      edge="end"
-                    >
-                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2, py: 1.5 }}
-              disabled={isLoading}
             >
-              {isLoading ? '설정 중...' : '비밀번호 설정'}
-            </Button>
-          </Box>
+              <Lock sx={{ fontSize: 32, color: 'white' }} />
+            </Box>
+
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                component="h1"
+                variant="h4"
+                sx={{
+                  fontWeight: 800,
+                  background:
+                    'linear-gradient(135deg, #2563eb 0%, #10b981 60%, #7c3aed 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+                gutterBottom
+              >
+                {t('common.appName')}
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                {t('auth.setup.subtitle')}
+              </Typography>
+            </Box>
+
+            {(error || validationError) && (
+              <Alert severity="error" sx={{ width: '100%' }}>
+                {validationError || error}
+              </Alert>
+            )}
+
+            <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="password"
+                label={t('auth.setup.password')}
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                helperText={t('auth.setup.passwordHelper')}
+              />
+
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="confirmPassword"
+                label={t('auth.setup.confirmPassword')}
+                type={showConfirmPassword ? 'text' : 'password'}
+                id="confirmPassword"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle confirm password visibility"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        edge="end"
+                      >
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <Button
+                type="submit"
+                fullWidth
+                size="large"
+                variant="contained"
+                sx={{ mt: 2 }}
+                disabled={isLoading}
+              >
+                {isLoading ? t('auth.setup.submitting') : t('auth.setup.submit')}
+              </Button>
+            </Box>
+          </Stack>
         </Paper>
       </Box>
     </Container>
   );
 }
-

@@ -1,129 +1,130 @@
-import { useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Container,
-  Typography,
-  Paper,
-  Button,
-  Stack,
-} from '@mui/material';
-import { Celebration, Logout as LogoutIcon } from '@mui/icons-material';
-import { useAuthStore } from '../stores/authStore';
+import { useTranslation } from 'react-i18next';
+import { Box, Container, Typography, Paper, Stack, Button } from '@mui/material';
+import { Celebration } from '@mui/icons-material';
 
 export default function WelcomePage() {
-  const navigate = useNavigate();
-  const { logout, isLoading } = useAuthStore();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/');
-    } catch (err) {
-      // 에러는 스토어에서 처리
-    }
-  };
+  const { t } = useTranslation();
 
   return (
-    <Container component="main" maxWidth="md">
+    <Container component="main" maxWidth="lg">
       <Box
         sx={{
-          minHeight: '100vh',
+          minHeight: 'calc(100vh - 64px)',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
+          py: 8,
         }}
       >
         <Paper
-          elevation={3}
-          sx={{
-            p: 6,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
+          elevation={0}
+          sx={theme => ({
+            p: { xs: 4, sm: 8 },
             width: '100%',
-          }}
+            border: '1px solid',
+            borderColor: 'divider',
+            bgcolor:
+              theme.palette.mode === 'light'
+                ? 'rgba(255,255,255,0.7)'
+                : 'rgba(2,6,23,0.55)',
+          })}
         >
-          <Box
-            sx={{
-              width: 96,
-              height: 96,
-              borderRadius: '50%',
-              bgcolor: 'success.light',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mb: 3,
-            }}
-          >
-            <Celebration sx={{ fontSize: 48, color: 'success.dark' }} />
-          </Box>
-
-          <Typography component="h1" variant="h3" gutterBottom>
-            환영합니다!
-          </Typography>
-          
-          <Typography variant="h6" color="text.secondary" sx={{ mb: 4, textAlign: 'center' }}>
-            VideoForest에 성공적으로 로그인했습니다
-          </Typography>
-
-          <Stack spacing={2} direction="column" sx={{ width: '100%', maxWidth: 400 }}>
-            <Paper
-              elevation={0}
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Box
               sx={{
-                p: 3,
-                bgcolor: 'primary.50',
-                border: '1px solid',
-                borderColor: 'primary.200',
+                width: 96,
+                height: 96,
+                borderRadius: '24px',
+                background:
+                  'linear-gradient(135deg, rgba(59,130,246,0.9), rgba(124,58,237,0.9))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mb: 3,
               }}
             >
-              <Typography variant="body1" color="text.primary">
-                🎬 NAS에서 실행되는 개인 미디어 서버
-              </Typography>
-            </Paper>
+              <Celebration sx={{ fontSize: 48, color: 'white' }} />
+            </Box>
 
-            <Paper
-              elevation={0}
+            <Typography
+              component="h1"
+              variant="h3"
               sx={{
-                p: 3,
-                bgcolor: 'secondary.50',
-                border: '1px solid',
-                borderColor: 'secondary.200',
+                fontWeight: 800,
+                textAlign: 'center',
+                background:
+                  'linear-gradient(135deg, #2563eb 0%, #7c3aed 60%, #10b981 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
               }}
+              gutterBottom
             >
-              <Typography variant="body1" color="text.primary">
-                🔒 안전하게 보호된 콘텐츠
-              </Typography>
-            </Paper>
+              {t('welcome.title')}
+            </Typography>
 
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3,
-                bgcolor: 'success.50',
-                border: '1px solid',
-                borderColor: 'success.200',
-              }}
-            >
-              <Typography variant="body1" color="text.primary">
-                ✨ 언제 어디서나 접근 가능
-              </Typography>
-            </Paper>
+            <Typography variant="h6" color="text.secondary" sx={{ mb: 5, textAlign: 'center', maxWidth: 900 }}>
+              {t('welcome.subtitle')}
+            </Typography>
 
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<LogoutIcon />}
-              onClick={handleLogout}
-              disabled={isLoading}
-              sx={{ mt: 2 }}
-            >
-              로그아웃
+            <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ width: '100%' }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  flex: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  {t('welcome.features.personal')}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {t('welcome.features.personal_desc')}
+                </Typography>
+              </Paper>
+
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  flex: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  {t('welcome.features.secure')}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {t('welcome.features.secure_desc')}
+                </Typography>
+              </Paper>
+
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  flex: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  {t('welcome.features.accessible')}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {t('welcome.features.accessible_desc')}
+                </Typography>
+              </Paper>
+            </Stack>
+
+            <Button size="large" variant="contained" sx={{ mt: 5 }}>
+              {t('welcome.get_started')}
             </Button>
-          </Stack>
+          </Box>
         </Paper>
       </Box>
     </Container>
   );
 }
-
