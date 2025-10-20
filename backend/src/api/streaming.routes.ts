@@ -1,13 +1,6 @@
 import { type FastifyPluginAsync } from 'fastify';
 import { requireAuth } from '../middleware/auth.js';
-import {
-  getPlaylistPath,
-  getSegmentPath,
-  stopStreaming,
-  getSessionInfo,
-  getFailures,
-  clearFailure,
-} from '../services/index.js';
+import { getPlaylistPath, getSegmentPath, stopStreaming, getSessionInfo, getFailures, clearFailure } from '../services/index.js';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { logger } from '../utils/index.js';
@@ -19,7 +12,7 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
   /**
    * HLS Playlist 제공 (단일 품질)
    * GET /hls/:mediaId/playlist.m3u8
-   * 
+   *
    * ABR 제거 - 단순화된 단일 품질 스트리밍
    */
   fastify.get<{ Params: { mediaId: string } }>('/hls/:mediaId/playlist.m3u8', async (request, reply) => {
@@ -77,46 +70,43 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
   /**
    * HLS 세그먼트 파일 제공
    * GET /hls/:mediaId/:segmentName
-   * 
+   *
    * 예: /hls/abc123/segment_000.ts
    */
-  fastify.get<{ Params: { mediaId: string; segmentName: string } }>(
-    '/hls/:mediaId/:segmentName',
-    async (request, reply) => {
-      const { mediaId, segmentName } = request.params;
+  fastify.get<{ Params: { mediaId: string; segmentName: string } }>('/hls/:mediaId/:segmentName', async (request, reply) => {
+    const { mediaId, segmentName } = request.params;
 
-      // 세그먼트 파일명 검증 (보안)
-      if (!/^segment_\d{3}\.ts$/.test(segmentName)) {
-        return reply.code(400).send({ error: 'Invalid segment name' });
-      }
-
-      try {
-        const segmentPath = getSegmentPath(mediaId, segmentName);
-
-        if (!segmentPath) {
-          logger.warn(`Session not found for media ${mediaId}, segment ${segmentName}`);
-          return reply.code(404).send({ error: 'Session not found' });
-        }
-
-        if (!existsSync(segmentPath)) {
-          logger.warn(`Segment file not found: ${segmentPath}`);
-          return reply.code(404).send({ error: 'Segment file not found' });
-        }
-
-        // 세그먼트 파일 스트림으로 전송
-        const stream = (await import('fs')).createReadStream(segmentPath);
-
-        return reply
-          .code(200)
-          .header('Content-Type', 'video/mp2t')
-          .header('Cache-Control', 'public, max-age=31536000')  // 1년 캐시
-          .send(stream);
-      } catch (error) {
-        logger.error(`Failed to serve segment ${segmentName} for ${mediaId}:`, error);
-        return reply.code(500).send({ error: 'Failed to serve segment' });
-      }
+    // 세그먼트 파일명 검증 (보안)
+    if (!/^segment_\d{3}\.ts$/.test(segmentName)) {
+      return reply.code(400).send({ error: 'Invalid segment name' });
     }
-  );
+
+    try {
+      const segmentPath = getSegmentPath(mediaId, segmentName);
+
+      if (!segmentPath) {
+        logger.warn(`Session not found for media ${mediaId}, segment ${segmentName}`);
+        return reply.code(404).send({ error: 'Session not found' });
+      }
+
+      if (!existsSync(segmentPath)) {
+        logger.warn(`Segment file not found: ${segmentPath}`);
+        return reply.code(404).send({ error: 'Segment file not found' });
+      }
+
+      // 세그먼트 파일 스트림으로 전송
+      const stream = (await import('fs')).createReadStream(segmentPath);
+
+      return reply
+        .code(200)
+        .header('Content-Type', 'video/mp2t')
+        .header('Cache-Control', 'public, max-age=31536000') // 1년 캐시
+        .send(stream);
+    } catch (error) {
+      logger.error(`Failed to serve segment ${segmentName} for ${mediaId}:`, error);
+      return reply.code(500).send({ error: 'Failed to serve segment' });
+    }
+  });
 
   /**
    * 미디어 정보 조회 (재생용)

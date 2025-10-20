@@ -45,10 +45,10 @@ async function createFastifyApp() {
   await fastify.register(compress);
   await fastify.register(cors, corsConfig);
   await fastify.register(cookie);
-  
+
   // API 라우트를 먼저 등록 (우선순위 높음)
   await fastify.register(apiRoutes, { prefix: '/api' });
-  
+
   // 정적 파일 서빙
   await fastify.register(staticFiles, staticFilesConfig);
 
@@ -61,12 +61,12 @@ async function createFastifyApp() {
         message: `Route ${request.method}:${request.url} not found`,
       });
     }
-    
+
     // GET 요청이고 Accept 헤더가 HTML을 포함하면 index.html 반환 (SPA 라우팅)
     if (request.method === 'GET' && request.headers.accept?.includes('text/html')) {
       return reply.type('text/html').sendFile('index.html');
     }
-    
+
     // 그 외의 경우 404 반환
     return reply.code(404).send({
       error: 'Not Found',
@@ -114,7 +114,7 @@ startServer(env.PORT)
 
         // Fastify 서버 종료
         await fastify.close();
-        
+
         // 데이터베이스 연결 해제
         await disconnectDatabase();
 
@@ -127,7 +127,7 @@ startServer(env.PORT)
         process.exit(1);
       }
     };
-    
+
     process.on('SIGINT', () => void gracefulShutdown('SIGINT'));
     process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'));
   })

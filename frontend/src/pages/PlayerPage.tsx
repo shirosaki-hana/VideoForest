@@ -1,6 +1,20 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Card, CardContent, Typography, CircularProgress, Alert, Box, IconButton, Stack, Chip, Switch, FormControlLabel, Divider } from '@mui/material';
+import {
+  Container,
+  Card,
+  CardContent,
+  Typography,
+  CircularProgress,
+  Alert,
+  Box,
+  IconButton,
+  Stack,
+  Chip,
+  Switch,
+  FormControlLabel,
+  Divider,
+} from '@mui/material';
 import { ArrowBack as ArrowBackIcon, SkipNext as SkipNextIcon, SkipPrevious as SkipPreviousIcon } from '@mui/icons-material';
 import VideoPlayer from '../components/VideoPlayer';
 import { getMediaInfo, getHLSPlaylistUrl, stopStreaming, waitForPlaylist } from '../api/streaming';
@@ -103,7 +117,7 @@ export default function PlayerPage() {
   // mediaId 변경 시 이전 세션 정리
   useEffect(() => {
     const currentMediaId = mediaId;
-    
+
     return () => {
       if (currentMediaId) {
         console.log(`PlayerPage cleanup: stopping streaming for ${currentMediaId}`);
@@ -169,7 +183,7 @@ export default function PlayerPage() {
       {loading && (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8, gap: 2 }}>
           <CircularProgress size={60} />
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant='body1' color='text.secondary'>
             미디어 정보를 불러오는 중...
           </Typography>
         </Box>
@@ -179,10 +193,10 @@ export default function PlayerPage() {
       {!loading && preparingStream && (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8, gap: 2 }}>
           <CircularProgress size={60} />
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant='body1' color='text.secondary'>
             스트리밍 준비 중...
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant='caption' color='text.secondary'>
             트랜스코딩이 진행 중입니다. 잠시만 기다려주세요.
           </Typography>
         </Box>

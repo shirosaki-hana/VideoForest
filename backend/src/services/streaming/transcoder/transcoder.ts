@@ -2,13 +2,7 @@ import { spawn, type ChildProcess } from 'child_process';
 import path from 'path';
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import { logger } from '../../../utils/index.js';
-import {
-  buildVideoEncoderArgs,
-  buildAudioEncoderArgs,
-  buildVideoFilter,
-  getErrorResilienceArgs,
-  getInputArgs,
-} from './encoder.options.js';
+import { buildVideoEncoderArgs, buildAudioEncoderArgs, buildVideoFilter, getErrorResilienceArgs, getInputArgs } from './encoder.options.js';
 import { HLS_CONFIG } from './ffmpeg.config.js';
 import type { TranscodeMethod, QualityProfile, FFmpegProcessResult, MediaAnalysis } from '../types.js';
 //------------------------------------------------------------------------------//
@@ -17,9 +11,9 @@ const ffmpegPath = ffmpegInstaller.path;
 
 /**
  * 단일 품질 HLS 트랜스코딩 시작
- * 
+ *
  * ABR 제거하고 단순하지만 강력한 단일 품질 트랜스코딩
- * 
+ *
  * @param mediaPath 원본 미디어 파일 경로
  * @param outputDir 출력 디렉터리
  * @param profile 품질 프로파일
@@ -48,7 +42,7 @@ export async function startTranscoding(
 
   // FFmpeg 프로세스 시작
   const ffmpegProcess = spawn(ffmpegPath, ffmpegArgs, {
-    stdio: ['ignore', 'pipe', 'pipe'],  // stdin 무시, stdout/stderr 파이프
+    stdio: ['ignore', 'pipe', 'pipe'], // stdin 무시, stdout/stderr 파이프
   });
 
   // GPU 인코더 실패 감지
@@ -58,7 +52,7 @@ export async function startTranscoding(
 
   ffmpegProcess.stderr?.on('data', data => {
     const message = data.toString();
-    
+
     // 메모리 누수 방지: 출력 크기 제한
     if (ffmpegOutput.length < MAX_OUTPUT_SIZE) {
       ffmpegOutput += message;
@@ -121,7 +115,7 @@ export async function startTranscoding(
         profile,
       };
     }
-    
+
     // 0이 아닌 exit code는 실패
     logger.error(`FFmpeg process failed with exit code ${ffmpegProcess.exitCode}`);
     logger.error(`Output:\n${ffmpegOutput}`);
@@ -143,7 +137,7 @@ export async function startTranscoding(
       const errorLines = ffmpegOutput
         .split('\n')
         .filter(line => isCriticalError(line))
-        .slice(-10);  // 마지막 10줄만
+        .slice(-10); // 마지막 10줄만
       if (errorLines.length > 0) {
         logger.error(`Last errors:\n${errorLines.join('\n')}`);
       }
@@ -163,7 +157,7 @@ export async function startTranscoding(
 
 /**
  * FFmpeg 인자 생성 (단일 품질)
- * 
+ *
  * 메타데이터 기반 최적화된 커맨드 빌드
  */
 function buildFFmpegArgs(
@@ -194,12 +188,12 @@ function buildFFmpegArgs(
   // HLS는 비디오/오디오만 지원 - 자막, 첨부 파일 등은 제외
   if (!analysis.hasAudio) {
     // 무음 오디오 사용: 비디오는 첫 번째 입력, 오디오는 두 번째 입력
-    args.push('-map', '0:v:0');      // 첫 번째 입력의 비디오
-    args.push('-map', '1:a:0');      // 두 번째 입력의 오디오 (무음)
+    args.push('-map', '0:v:0'); // 첫 번째 입력의 비디오
+    args.push('-map', '1:a:0'); // 두 번째 입력의 오디오 (무음)
   } else {
     // 일반 케이스: 비디오와 오디오만 선택 (자막, 첨부 파일 제외)
-    args.push('-map', '0:v:0');      // 첫 번째 비디오 스트림
-    args.push('-map', '0:a:0');      // 첫 번째 오디오 스트림
+    args.push('-map', '0:v:0'); // 첫 번째 비디오 스트림
+    args.push('-map', '0:a:0'); // 첫 번째 오디오 스트림
   }
 
   // 6. 비디오 인코딩 옵션
@@ -215,18 +209,24 @@ function buildFFmpegArgs(
 
   // 오디오가 없고 무음을 생성한 경우
   if (!analysis.hasAudio) {
-    args.push('-shortest');  // 비디오 길이에 맞춤
+    args.push('-shortest'); // 비디오 길이에 맞춤
   }
 
   // 8. HLS 출력 옵션 (동적 세그먼트 시간 사용)
   const segmentTime = analysis.segmentTime;
   args.push(
-    '-f', 'hls',
-    '-hls_time', segmentTime.toString(),
-    '-hls_list_size', HLS_CONFIG.listSize.toString(),
-    '-hls_segment_type', HLS_CONFIG.segmentType,
-    '-hls_flags', HLS_CONFIG.flags,
-    '-hls_segment_filename', normalizePathForFFmpeg(path.join(outputDir, 'segment_%03d.ts')),
+    '-f',
+    'hls',
+    '-hls_time',
+    segmentTime.toString(),
+    '-hls_list_size',
+    HLS_CONFIG.listSize.toString(),
+    '-hls_segment_type',
+    HLS_CONFIG.segmentType,
+    '-hls_flags',
+    HLS_CONFIG.flags,
+    '-hls_segment_filename',
+    normalizePathForFFmpeg(path.join(outputDir, 'segment_%03d.ts'))
   );
 
   // 9. 출력 파일
@@ -237,7 +237,7 @@ function buildFFmpegArgs(
 
 /**
  * Windows 경로를 FFmpeg가 이해할 수 있는 형식으로 정규화
- * 
+ *
  * Windows의 역슬래시를 슬래시로 변환하여 FFmpeg 호환성 보장
  */
 function normalizePathForFFmpeg(filePath: string): string {
@@ -276,16 +276,16 @@ function isEncoderInitializationError(message: string, transcodeMethod: Transcod
  */
 function isCriticalError(message: string): boolean {
   const lowerMsg = message.toLowerCase();
-  
+
   // 무시할 일반적인 경고 (심각하지 않은 것들)
   const ignorePatterns = [
     'deprecated',
     'past duration',
     'non-monotonous dts',
     'last message repeated',
-    'cannot use rename',        // Windows 경로 관련 무해한 경고
-    'data is not aligned',      // 성능 경고 (무해)
-    'opening',                   // 파일 열기 정보
+    'cannot use rename', // Windows 경로 관련 무해한 경고
+    'data is not aligned', // 성능 경고 (무해)
+    'opening', // 파일 열기 정보
   ];
 
   if (ignorePatterns.some(pattern => lowerMsg.includes(pattern))) {
@@ -293,14 +293,7 @@ function isCriticalError(message: string): boolean {
   }
 
   // 심각한 에러 패턴
-  const criticalPatterns = [
-    'error',
-    'failed',
-    'cannot',
-    'invalid',
-    'not found',
-    'unable to',
-  ];
+  const criticalPatterns = ['error', 'failed', 'cannot', 'invalid', 'not found', 'unable to'];
 
   return criticalPatterns.some(pattern => lowerMsg.includes(pattern));
 }

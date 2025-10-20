@@ -42,8 +42,8 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
         html5: {
           vhs: {
             // 단일 품질 HLS 최적화 설정
-            overrideNative: true,                 // VHS 사용 (Safari도 포함)
-            withCredentials: true,                // 쿠키 인증 지원
+            overrideNative: true, // VHS 사용 (Safari도 포함)
+            withCredentials: true, // 쿠키 인증 지원
           },
           nativeAudioTracks: false,
           nativeVideoTracks: false,
@@ -52,7 +52,7 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
       () => {
         // 플레이어 준비 완료
         console.log('Video.js player ready');
-        
+
         // HLS 요청에 쿠키 포함 (쿠키 기반 인증용)
         const tech = player.tech({ IWillNotUseThisInPlugins: true }) as any;
         if (tech?.vhs) {
@@ -66,7 +66,7 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
             };
           }
         }
-        
+
         if (onReady) {
           onReady(player);
         }
@@ -80,7 +80,7 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
     player.on('playing', () => console.log('Video.js: playing'));
     player.on('waiting', () => console.log('Video.js: waiting'));
     player.on('stalled', () => console.log('Video.js: stalled'));
-    
+
     // HLS 관련 이벤트 리스너
     const tech = player.tech({ IWillNotUseThisInPlugins: true }) as any;
     if (tech?.vhs) {
@@ -126,7 +126,7 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
       player.ready(() => {
         const playPromise = player.play();
         if (playPromise !== undefined) {
-          playPromise.catch((error) => {
+          playPromise.catch(error => {
             console.warn('Auto-play prevented:', error);
           });
         }

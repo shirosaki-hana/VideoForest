@@ -6,13 +6,13 @@ import { killFFmpegProcess } from './transcoder/index.js';
 
 /**
  * HLS 세션 관리자
- * 
+ *
  * 활성 스트리밍 세션을 관리하고 자동 정리를 수행합니다.
  * 실패한 트랜스코딩을 추적하여 무한 재시도를 방지합니다.
  */
 export class SessionManager {
   private sessions = new Map<string, HLSSession>();
-  private deletingSessions = new Set<string>();  // 삭제 중인 세션 추적
+  private deletingSessions = new Set<string>(); // 삭제 중인 세션 추적
   private failures = new Map<string, TranscodingFailure>();
   private starting = new Map<string, Promise<HLSSession | null>>(); // 생성 중인 세션 프라미스
   private stoppedTombstones = new Map<string, number>(); // 최근 중지된 세션 마커
@@ -23,7 +23,7 @@ export class SessionManager {
 
   constructor(
     sessionTimeout: number = 5 * 60 * 1000,
-    failureTimeout: number = 10 * 60 * 1000  // 10분간 실패 기록 유지
+    failureTimeout: number = 10 * 60 * 1000 // 10분간 실패 기록 유지
   ) {
     this.sessionTimeout = sessionTimeout;
     this.failureTimeout = failureTimeout;
@@ -81,7 +81,7 @@ export class SessionManager {
 
   /**
    * 세션 삭제가 완료될 때까지 대기
-   * 
+   *
    * @param mediaId 대기할 미디어 ID
    * @param timeoutMs 최대 대기 시간 (기본 10초)
    * @returns 삭제 완료 여부 (true: 완료, false: 타임아웃)
@@ -127,7 +127,7 @@ export class SessionManager {
     // 삭제 시작 - 즉시 Map에서 제거하고 삭제 중 상태로 표시
     this.sessions.delete(mediaId);
     this.deletingSessions.add(mediaId);
-    
+
     logger.info(`Removing session for media ${mediaId}`);
 
     try {
@@ -197,13 +197,16 @@ export class SessionManager {
     }
 
     // 10분마다 세션 정리
-    this.cleanupInterval = setInterval(() => {
-      this.cleanupTimeoutSessions().catch(error => {
-        logger.error('Failed to cleanup timeout sessions:', error);
-      });
-      // tombstone도 함께 정리
-      this.cleanupExpiredTombstones();
-    }, 10 * 60 * 1000);
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanupTimeoutSessions().catch(error => {
+          logger.error('Failed to cleanup timeout sessions:', error);
+        });
+        // tombstone도 함께 정리
+        this.cleanupExpiredTombstones();
+      },
+      10 * 60 * 1000
+    );
 
     logger.info('Session cleanup task started');
   }
@@ -241,7 +244,7 @@ export class SessionManager {
    */
   recordFailure(failure: Omit<TranscodingFailure, 'timestamp' | 'attemptCount'>): void {
     const existing = this.failures.get(failure.mediaId);
-    
+
     const newFailure: TranscodingFailure = {
       ...failure,
       timestamp: Date.now(),
@@ -249,13 +252,13 @@ export class SessionManager {
     };
 
     this.failures.set(failure.mediaId, newFailure);
-    
+
     logger.error(`Transcoding failed for ${failure.mediaId} (attempt ${newFailure.attemptCount}): ${failure.error}`);
-    
+
     if (failure.ffmpegCommand) {
       logger.debug?.(`FFmpeg command: ${failure.ffmpegCommand}`);
     }
-    
+
     if (failure.ffmpegOutput) {
       logger.debug?.(`FFmpeg output:\n${failure.ffmpegOutput}`);
     }
@@ -266,7 +269,7 @@ export class SessionManager {
    */
   hasRecentFailure(mediaId: string): TranscodingFailure | null {
     const failure = this.failures.get(mediaId);
-    
+
     if (!failure) {
       return null;
     }
@@ -354,4 +357,3 @@ export class SessionManager {
 
 // 싱글톤 인스턴스
 export const sessionManager = new SessionManager();
-

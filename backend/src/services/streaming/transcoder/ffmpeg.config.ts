@@ -3,7 +3,7 @@ import type { QualityProfile, MediaInfo } from '../types.js';
 
 /**
  * 표준 품질 프로파일 정의
- * 
+ *
  * 단일 품질로 단순화 - 원본 해상도에 맞춰 선택
  */
 const QUALITY_PROFILES: Record<string, QualityProfile> = {
@@ -47,7 +47,7 @@ const QUALITY_PROFILES: Record<string, QualityProfile> = {
 
 /**
  * 원본 해상도를 기반으로 최적의 단일 품질 프로파일을 선택합니다.
- * 
+ *
  * 전략:
  * - 원본 해상도보다 낮거나 같은 최대 품질 선택
  * - 업스케일링 방지
@@ -85,17 +85,20 @@ export function createCustomProfile(width: number, height: number): QualityProfi
   let maxrate: string;
   let bufsize: string;
 
-  if (pixels >= 2073600) { // 1920x1080
+  if (pixels >= 2073600) {
+    // 1920x1080
     videoBitrate = '5M';
     audioBitrate = '128k';
     maxrate = '6M';
     bufsize = '12M';
-  } else if (pixels >= 921600) { // 1280x720
+  } else if (pixels >= 921600) {
+    // 1280x720
     videoBitrate = '3M';
     audioBitrate = '128k';
     maxrate = '3.5M';
     bufsize = '6M';
-  } else if (pixels >= 409920) { // 854x480
+  } else if (pixels >= 409920) {
+    // 854x480
     videoBitrate = '1500k';
     audioBitrate = '128k';
     maxrate = '1750k';
@@ -120,25 +123,25 @@ export function createCustomProfile(width: number, height: number): QualityProfi
 
 /**
  * HLS 공통 설정
- * 
+ *
  * 최적화된 설정:
  * - 6초 세그먼트: 버퍼링 감소, 탐색 정확도 개선
  * - 독립 세그먼트: 각 세그먼트가 독립적으로 디코딩 가능
  */
 export const HLS_CONFIG = {
-  segmentTime: 6,              // 세그먼트 길이 (초) - 4초보다 안정적
-  listSize: 0,                 // 모든 세그먼트 유지 (VOD)
-  segmentType: 'mpegts',       // MPEG-TS (호환성 우수)
+  segmentTime: 6, // 세그먼트 길이 (초) - 4초보다 안정적
+  listSize: 0, // 모든 세그먼트 유지 (VOD)
+  segmentType: 'mpegts', // MPEG-TS (호환성 우수)
   flags: 'independent_segments+temp_file',
   startNumber: 0,
 } as const;
 
 /**
  * 최적 세그먼트 시간 계산
- * 
+ *
  * FPS와 인코더 제약을 고려하여 최적의 HLS 세그먼트 길이를 결정합니다.
  * GOP 크기가 하드웨어 제한(400)을 초과하지 않도록 조정합니다.
- * 
+ *
  * @param fps 프레임레이트
  * @param transcodeMethod 인코더 방식 (NVENC/QSV는 GOP 제한 있음)
  * @returns 최적 세그먼트 시간 (초)
@@ -146,7 +149,7 @@ export const HLS_CONFIG = {
 export function calculateOptimalSegmentTime(fps: number = 24, transcodeMethod?: string): number {
   const MAX_GOP_SIZE = 400; // NVENC/QSV 하드웨어 제한
   const DEFAULT_SEGMENT_TIME = HLS_CONFIG.segmentTime; // 6초
-  
+
   // GPU 인코더의 경우 GOP 크기 제한 고려
   if (transcodeMethod === 'nvenc' || transcodeMethod === 'qsv') {
     const maxSegmentTime = Math.floor(MAX_GOP_SIZE / fps);
@@ -154,7 +157,7 @@ export function calculateOptimalSegmentTime(fps: number = 24, transcodeMethod?: 
     const clampedSegmentTime = Math.max(3, Math.min(DEFAULT_SEGMENT_TIME, maxSegmentTime));
     return clampedSegmentTime;
   }
-  
+
   // CPU 인코더는 GOP 제한 없음
   // 고프레임(60fps+)에서도 기본 6초 유지 가능
   return DEFAULT_SEGMENT_TIME;
@@ -162,9 +165,9 @@ export function calculateOptimalSegmentTime(fps: number = 24, transcodeMethod?: 
 
 /**
  * GOP (Group of Pictures) 크기 계산
- * 
+ *
  * 세그먼트 시간과 정확히 일치하도록 GOP 크기를 계산합니다.
- * 
+ *
  * @param fps 프레임레이트
  * @param segmentTime HLS 세그먼트 시간 (초)
  * @returns GOP 크기 (프레임 수)
@@ -175,13 +178,12 @@ export function getGOPSize(fps: number, segmentTime: number): number {
 
 /**
  * 키프레임 간격 표현식
- * 
+ *
  * FFmpeg의 force_key_frames에 사용되며, 정확한 시간 간격으로 키프레임을 강제합니다.
- * 
+ *
  * @param segmentTime HLS 세그먼트 시간 (초)
  * @returns FFmpeg force_key_frames 표현식
  */
 export function getKeyframeExpression(segmentTime: number): string {
   return `expr:gte(t,n_forced*${segmentTime})`;
 }
-

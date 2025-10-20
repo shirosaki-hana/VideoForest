@@ -16,7 +16,7 @@ export async function getMediaInfo(mediaId: string, signal?: AbortSignal): Promi
 
 /**
  * HLS Playlist URL 생성 (단일 품질)
- * 
+ *
  * 단순화된 단일 품질 스트리밍
  * 서버가 원본 해상도에 맞춰 최적의 품질을 자동 선택합니다.
  */
@@ -44,14 +44,14 @@ export async function waitForPlaylist(mediaId: string, maxWaitMs: number = 30000
     try {
       // GET 요청으로 Playlist 존재 확인
       const response = await apiClient.get(`/stream/hls/${mediaId}/playlist.m3u8`, { signal });
-      
+
       // 202 응답 (트랜스코딩 진행 중)은 계속 대기
       if (response.status === 202) {
         console.log('Transcoding in progress...');
         await new Promise(resolve => setTimeout(resolve, pollInterval));
         continue;
       }
-      
+
       // 200 응답이면 준비 완료
       return true;
     } catch (error: any) {
@@ -64,7 +64,7 @@ export async function waitForPlaylist(mediaId: string, maxWaitMs: number = 30000
         console.error('Transcoding failed:', error.response?.data);
         return false;
       }
-      
+
       // 404 또는 기타 에러는 계속 대기
       await new Promise(resolve => setTimeout(resolve, pollInterval));
     }

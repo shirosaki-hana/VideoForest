@@ -217,10 +217,10 @@ async function buildFolderTree(folderId: string | null): Promise<MediaTreeNode[]
       width: media.width,
       height: media.height,
       codec: media.codec,
-      bitrate: media.bitrate,
+      bitrate: media.bitrate !== null ? Number(media.bitrate) : null,
       fps: media.fps,
       audioCodec: media.audioCodec,
-      fileSize: media.fileSize,
+      fileSize: media.fileSize !== null ? Number(media.fileSize) : null,
     });
   }
 

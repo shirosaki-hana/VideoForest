@@ -3,7 +3,7 @@ import type { QualityProfile } from '../types.js';
 
 /**
  * HLS Master Playlist 생성
- * 
+ *
  * Master Playlist는 사용 가능한 모든 품질(variants)을 나열하며,
  * video.js가 네트워크 상태에 따라 적절한 품질을 선택할 수 있게 합니다.
  */
@@ -49,4 +49,3 @@ function parseBandwidth(bitrateStr: string): number {
       return value;
   }
 }
-
