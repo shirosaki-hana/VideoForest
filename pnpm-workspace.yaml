@@ -4,6 +4,8 @@ packages:
   - types
 
 onlyBuiltDependencies:
+  - '@ffmpeg-installer/linux-x64'
+  - '@ffprobe-installer/linux-x64'
   - '@prisma/client'
   - '@prisma/engines'
   - esbuild
