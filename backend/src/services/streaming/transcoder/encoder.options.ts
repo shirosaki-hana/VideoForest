@@ -65,8 +65,40 @@ function buildCPUVideoArgs(profile: QualityProfile, gopSize: number, keyframeExp
  * NVIDIA NVENC 인코더 옵션
  *
  * GPU 가속으로 빠른 인코딩
+ * 구버전 FFmpeg 호환성을 위해 레거시 모드 지원
  */
 function buildNVENCVideoArgs(profile: QualityProfile, gopSize: number, keyframeExpr: string): string[] {
+  // 레거시 모드: 구버전 FFmpeg (2018년 이전)와 호환되는 기본 옵션만 사용
+  // 최신 옵션(-rc, -cq, -tune, -spatial_aq 등)은 FFmpeg 4.0+ 필요
+  const useLegacyMode = true; // TODO: FFmpeg 버전 감지 후 자동 설정
+
+  if (useLegacyMode) {
+    // 구버전 호환 옵션 (FFmpeg 3.x 이하)
+    return [
+      '-c:v',
+      'h264_nvenc',
+      '-preset',
+      'slow', // slow/medium/fast만 지원
+      '-b:v',
+      profile.videoBitrate, // 목표 비트레이트
+      '-maxrate',
+      profile.maxrate,
+      '-bufsize',
+      profile.bufsize,
+      '-profile:v',
+      'high',
+      '-pix_fmt',
+      'yuv420p',
+      '-g',
+      gopSize.toString(),
+      '-keyint_min',
+      gopSize.toString(),
+      '-force_key_frames',
+      keyframeExpr, // 정확한 키프레임 위치
+    ];
+  }
+
+  // 최신 옵션 (FFmpeg 4.0+)
   return [
     '-c:v',
     'h264_nvenc',
