@@ -37,6 +37,9 @@ export default function PlayerPage() {
       return;
     }
 
+    const abortController = new AbortController();
+    const { signal } = abortController;
+
     // 미디어 정보 로드 및 스트리밍 준비
     const loadMediaAndPrepareStream = async () => {
       try {
@@ -45,13 +48,15 @@ export default function PlayerPage() {
         setError(null);
 
         // 1. 미디어 정보 먼저 로드
-        const response = await getMediaInfo(mediaId);
+        const response = await getMediaInfo(mediaId, signal);
+        if (signal.aborted) return;
         setMediaInfo(response.media);
         setLoading(false);
 
         // 2. 스트리밍 준비 대기 (Playlist가 생성될 때까지)
         console.log('Waiting for HLS streaming to be ready...');
-        const isReady = await waitForPlaylist(mediaId, 30000); // 최대 30초 대기
+        const isReady = await waitForPlaylist(mediaId, 30000, signal); // 최대 30초 대기
+        if (signal.aborted) return;
 
         if (isReady) {
           console.log('HLS streaming is ready! Starting playback...');
@@ -60,7 +65,10 @@ export default function PlayerPage() {
         } else {
           throw new Error('Stream preparation failed or timeout. Please try again.');
         }
-      } catch (err) {
+      } catch (err: any) {
+        if (signal.aborted || err?.code === 'ERR_CANCELED') {
+          return; // 취소 시 무시
+        }
         const errorMessage = err instanceof Error ? err.message : 'Failed to load media info';
         setError(errorMessage);
         setLoading(false);
@@ -69,6 +77,10 @@ export default function PlayerPage() {
     };
 
     loadMediaAndPrepareStream();
+
+    return () => {
+      abortController.abort();
+    };
   }, [mediaId]);
 
   // 재생 목록 업데이트
@@ -88,12 +100,16 @@ export default function PlayerPage() {
   }, [mediaId, mediaTree]);
 
   // 페이지 이탈 시 스트리밍 세션 종료
+  // mediaId 변경 시 이전 세션 정리
   useEffect(() => {
+    const currentMediaId = mediaId;
+    
     return () => {
-      if (mediaId) {
-        // 페이지 이탈 시 스트리밍 세션 종료 (비동기로 실행하되 기다리지 않음)
-        stopStreaming(mediaId).catch(error => {
-          console.error('Failed to stop streaming on page unmount:', error);
+      if (currentMediaId) {
+        console.log(`PlayerPage cleanup: stopping streaming for ${currentMediaId}`);
+        // 페이지 이탈 또는 다른 영상으로 전환 시 현재 세션 종료
+        stopStreaming(currentMediaId).catch(error => {
+          console.error(`Failed to stop streaming for ${currentMediaId}:`, error);
         });
       }
     };

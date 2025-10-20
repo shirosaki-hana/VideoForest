@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import videojs from 'video.js';
 import 'video.js/dist/video-js.css';
-import { stopStreaming } from '../api/streaming';
 
 type Player = ReturnType<typeof videojs>;
 type PlayerError = ReturnType<Player['error']>;
@@ -17,13 +16,16 @@ interface VideoPlayerProps {
 export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }: VideoPlayerProps) {
   const videoRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
-  const isMountedRef = useRef(true);  // 컴포넌트가 마운트되어 있는지 추적
+  const prevMediaIdRef = useRef<string | null>(null);
 
+  // 플레이어 초기화 (한 번만 실행)
   useEffect(() => {
-    // 플레이어가 이미 초기화되어 있으면 무시
+    // 이미 초기화되어 있으면 스킵
     if (playerRef.current) {
       return;
     }
+
+    console.log('VideoPlayer: Initializing player');
 
     // Video.js 플레이어 생성
     const videoElement = document.createElement('video-js');
@@ -46,12 +48,6 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
           nativeAudioTracks: false,
           nativeVideoTracks: false,
         },
-        sources: [
-          {
-            src,
-            type: 'application/x-mpegURL',
-          },
-        ],
       },
       () => {
         // 플레이어 준비 완료
@@ -77,20 +73,7 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
       }
     );
 
-    // 이벤트 리스너 등록
-    if (onEnded) {
-      player.on('ended', onEnded);
-    }
-
-    if (onError) {
-      player.on('error', () => {
-        const error = player.error();
-        console.error('Video.js player error:', error);
-        onError(error);
-      });
-    }
-
-    // 디버깅을 위한 추가 이벤트 리스너
+    // 디버깅을 위한 이벤트 리스너
     player.on('loadstart', () => console.log('Video.js: loadstart'));
     player.on('loadedmetadata', () => console.log('Video.js: loadedmetadata'));
     player.on('canplay', () => console.log('Video.js: canplay'));
@@ -98,7 +81,7 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
     player.on('waiting', () => console.log('Video.js: waiting'));
     player.on('stalled', () => console.log('Video.js: stalled'));
     
-    // HLS 관련 이벤트 리스너 (더 자세한 디버깅)
+    // HLS 관련 이벤트 리스너
     const tech = player.tech({ IWillNotUseThisInPlugins: true }) as any;
     if (tech?.vhs) {
       tech.vhs.on('loadedplaylist', () => {
@@ -111,30 +94,75 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
 
     playerRef.current = player;
 
-    // cleanup 함수는 실제 언마운트 시에만 실행되도록 ref 사용
+    // cleanup: 컴포넌트 언마운트 시에만 플레이어 정리
     return () => {
-      // 실제 언마운트인지 확인
-      if (!isMountedRef.current) {
-        if (playerRef.current && !playerRef.current.isDisposed()) {
-          playerRef.current.dispose();
-          playerRef.current = null;
-        }
-
-        // 스트리밍 세션 종료 (비동기로 실행하되 기다리지 않음)
-        stopStreaming(mediaId).catch(error => {
-          console.error('Failed to stop streaming:', error);
-        });
+      console.log('VideoPlayer cleanup: disposing player');
+      if (playerRef.current && !playerRef.current.isDisposed()) {
+        playerRef.current.dispose();
+        playerRef.current = null;
       }
     };
-  }, [src, mediaId, onReady, onEnded, onError]);
+  }, []); // 의존성 없음 - 한 번만 실행
 
-  // 실제 언마운트 추적
+  // src 변경 감지 및 동적 업데이트 (플레이어 재생성 없이)
   useEffect(() => {
-    isMountedRef.current = true;
+    const player = playerRef.current;
+    if (!player || player.isDisposed()) {
+      return;
+    }
+
+    // 미디어가 실제로 변경되었을 때만 src 업데이트
+    if (prevMediaIdRef.current !== mediaId) {
+      console.log(`VideoPlayer: Changing source to mediaId ${mediaId}`);
+      prevMediaIdRef.current = mediaId;
+
+      // 기존 소스와 다르면 새 소스로 변경
+      player.src({
+        src,
+        type: 'application/x-mpegURL',
+      });
+
+      // 자동 재생 (소스 변경 후)
+      player.ready(() => {
+        const playPromise = player.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.warn('Auto-play prevented:', error);
+          });
+        }
+      });
+    }
+  }, [src, mediaId]);
+
+  // 이벤트 핸들러 등록/업데이트 (플레이어 재생성 없이)
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player || player.isDisposed()) {
+      return;
+    }
+
+    // 이전 리스너 제거 후 새로운 리스너 등록
+    player.off('ended');
+    player.off('error');
+
+    if (onEnded) {
+      player.on('ended', onEnded);
+    }
+
+    if (onError) {
+      player.on('error', () => {
+        const error = player.error();
+        console.error('Video.js player error:', error);
+        onError(error);
+      });
+    }
+
     return () => {
-      isMountedRef.current = false;
+      // cleanup: 이벤트 리스너만 제거 (플레이어는 유지)
+      player.off('ended');
+      player.off('error');
     };
-  }, []);
+  }, [onEnded, onError]);
 
   return (
     <div data-vjs-player>

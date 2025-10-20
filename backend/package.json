@@ -23,7 +23,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate --no-hints",
     "db:studio": "prisma studio",
-    "db:reset": "migrate reset"
+    "db:reset": "prisma migrate reset"
   },
   "dependencies": {
     "@fastify/compress": "^8.1.0",

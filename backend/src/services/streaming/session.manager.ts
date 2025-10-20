@@ -12,9 +12,13 @@ import { killFFmpegProcess } from './transcoder/index.js';
  */
 export class SessionManager {
   private sessions = new Map<string, HLSSession>();
+  private deletingSessions = new Set<string>();  // 삭제 중인 세션 추적
   private failures = new Map<string, TranscodingFailure>();
+  private starting = new Map<string, Promise<HLSSession | null>>(); // 생성 중인 세션 프라미스
+  private stoppedTombstones = new Map<string, number>(); // 최근 중지된 세션 마커
   private readonly sessionTimeout: number;
   private readonly failureTimeout: number;
+  private readonly stoppedTombstoneTtl: number = 5 * 1000; // 5초동안 재시작 방지
   private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(
@@ -47,10 +51,56 @@ export class SessionManager {
   }
 
   /**
-   * 세션 존재 여부 확인
+   * 세션 존재 여부 확인 (삭제 중인 세션 포함)
    */
   hasSession(mediaId: string): boolean {
     return this.sessions.has(mediaId);
+  }
+
+  /**
+   * 세션 생성 프라미스 조회/설정/해제
+   */
+  getStarting(mediaId: string): Promise<HLSSession | null> | undefined {
+    return this.starting.get(mediaId);
+  }
+
+  setStarting(mediaId: string, promise: Promise<HLSSession | null>): void {
+    this.starting.set(mediaId, promise);
+  }
+
+  clearStarting(mediaId: string): void {
+    this.starting.delete(mediaId);
+  }
+
+  /**
+   * 세션이 삭제 중인지 확인
+   */
+  isDeletingSession(mediaId: string): boolean {
+    return this.deletingSessions.has(mediaId);
+  }
+
+  /**
+   * 세션 삭제가 완료될 때까지 대기
+   * 
+   * @param mediaId 대기할 미디어 ID
+   * @param timeoutMs 최대 대기 시간 (기본 10초)
+   * @returns 삭제 완료 여부 (true: 완료, false: 타임아웃)
+   */
+  async waitForSessionDeletion(mediaId: string, timeoutMs: number = 10000): Promise<boolean> {
+    if (!this.deletingSessions.has(mediaId)) {
+      return true; // 이미 삭제 완료
+    }
+
+    const startTime = Date.now();
+    while (this.deletingSessions.has(mediaId)) {
+      if (Date.now() - startTime > timeoutMs) {
+        logger.warn(`Timeout waiting for session deletion: ${mediaId}`);
+        return false; // 타임아웃
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    return true;
   }
 
   /**
@@ -59,27 +109,49 @@ export class SessionManager {
   async removeSession(mediaId: string): Promise<void> {
     const session = this.sessions.get(mediaId);
     if (!session) {
+      // 이미 삭제 중인 경우 대기
+      if (this.deletingSessions.has(mediaId)) {
+        logger.info(`Session ${mediaId} is already being deleted, waiting...`);
+        await this.waitForSessionDeletion(mediaId);
+      }
       return;
     }
 
+    // 이미 삭제 중이면 대기
+    if (this.deletingSessions.has(mediaId)) {
+      logger.info(`Session ${mediaId} is already being deleted, waiting...`);
+      await this.waitForSessionDeletion(mediaId);
+      return;
+    }
+
+    // 삭제 시작 - 즉시 Map에서 제거하고 삭제 중 상태로 표시
+    this.sessions.delete(mediaId);
+    this.deletingSessions.add(mediaId);
+    
     logger.info(`Removing session for media ${mediaId}`);
 
-    // FFmpeg 프로세스 종료
     try {
-      await killFFmpegProcess(session.process);
-    } catch (error) {
-      logger.error(`Failed to kill FFmpeg process for ${mediaId}:`, error);
-    }
+      // FFmpeg 프로세스 종료
+      try {
+        await killFFmpegProcess(session.process);
+      } catch (error) {
+        logger.error(`Failed to kill FFmpeg process for ${mediaId}:`, error);
+      }
 
-    // 출력 디렉터리 삭제
-    try {
-      await fs.rm(session.outputDir, { recursive: true, force: true });
-    } catch (error) {
-      logger.error(`Failed to remove output directory for ${mediaId}:`, error);
-    }
+      // 출력 디렉터리 삭제
+      try {
+        await fs.rm(session.outputDir, { recursive: true, force: true });
+      } catch (error) {
+        logger.error(`Failed to remove output directory for ${mediaId}:`, error);
+      }
 
-    this.sessions.delete(mediaId);
-    logger.success(`Session removed for media ${mediaId}`);
+      logger.success(`Session removed for media ${mediaId}`);
+    } finally {
+      // 삭제 완료 - 상태 제거
+      this.deletingSessions.delete(mediaId);
+      // 최근 중지 마커 설정 (짧은 시간 재시작 방지)
+      this.markStopped(mediaId);
+    }
   }
 
   /**
@@ -129,6 +201,8 @@ export class SessionManager {
       this.cleanupTimeoutSessions().catch(error => {
         logger.error('Failed to cleanup timeout sessions:', error);
       });
+      // tombstone도 함께 정리
+      this.cleanupExpiredTombstones();
     }, 10 * 60 * 1000);
 
     logger.info('Session cleanup task started');
@@ -238,6 +312,43 @@ export class SessionManager {
       this.failures.delete(mediaId);
       logger.info(`Cleared expired failure record for ${mediaId}`);
     });
+  }
+
+  //----------------------------------------------------------------------------//
+  // 최근 중지(tombstone) 관리
+  //----------------------------------------------------------------------------//
+
+  /**
+   * 최근 중지 마커 설정
+   */
+  markStopped(mediaId: string): void {
+    this.stoppedTombstones.set(mediaId, Date.now());
+  }
+
+  /**
+   * 최근에 중지되었는지 확인 (TTL 내)
+   */
+  isRecentlyStopped(mediaId: string): boolean {
+    const ts = this.stoppedTombstones.get(mediaId);
+    if (!ts) return false;
+    const now = Date.now();
+    if (now - ts <= this.stoppedTombstoneTtl) {
+      return true;
+    }
+    this.stoppedTombstones.delete(mediaId);
+    return false;
+  }
+
+  /**
+   * 만료된 tombstone 정리
+   */
+  private cleanupExpiredTombstones(): void {
+    const now = Date.now();
+    for (const [mediaId, ts] of this.stoppedTombstones.entries()) {
+      if (now - ts > this.stoppedTombstoneTtl) {
+        this.stoppedTombstones.delete(mediaId);
+      }
+    }
   }
 }
 

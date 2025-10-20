@@ -42,6 +42,7 @@ export interface MediaAnalysis {
   hasAudio: boolean;                // 오디오 스트림 존재 여부
   compatibilityIssues: string[];    // 호환성 문제 목록
   recommendedProfile: QualityProfile; // 추천 품질 프로파일
+  segmentTime: number;              // HLS 세그먼트 길이 (초) - FPS와 인코더 제약 기반
   inputFormat: {
     videoCodec: string;
     audioCodec: string | null;

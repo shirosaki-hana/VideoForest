@@ -9,8 +9,8 @@ function validateResponse<T>(schema: z.ZodType<T>, data: unknown): T {
 }
 
 // 미디어 정보 조회
-export async function getMediaInfo(mediaId: string): Promise<MediaInfoResponse> {
-  const response = await apiClient.get(`/stream/media/${mediaId}`);
+export async function getMediaInfo(mediaId: string, signal?: AbortSignal): Promise<MediaInfoResponse> {
+  const response = await apiClient.get(`/stream/media/${mediaId}`, { signal });
   return validateResponse(MediaInfoResponseSchema, response.data);
 }
 
@@ -35,14 +35,15 @@ export async function stopStreaming(mediaId: string): Promise<void> {
 /**
  * Playlist가 준비될 때까지 폴링
  */
-export async function waitForPlaylist(mediaId: string, maxWaitMs: number = 30000): Promise<boolean> {
+export async function waitForPlaylist(mediaId: string, maxWaitMs: number = 30000, signal?: AbortSignal): Promise<boolean> {
   const startTime = Date.now();
   const pollInterval = 1000; // 1초마다 확인
 
   while (Date.now() - startTime < maxWaitMs) {
+    if (signal?.aborted) return false;
     try {
       // GET 요청으로 Playlist 존재 확인
-      const response = await apiClient.get(`/stream/hls/${mediaId}/playlist.m3u8`);
+      const response = await apiClient.get(`/stream/hls/${mediaId}/playlist.m3u8`, { signal });
       
       // 202 응답 (트랜스코딩 진행 중)은 계속 대기
       if (response.status === 202) {
@@ -54,6 +55,10 @@ export async function waitForPlaylist(mediaId: string, maxWaitMs: number = 30000
       // 200 응답이면 준비 완료
       return true;
     } catch (error: any) {
+      // 요청이 취소된 경우 즉시 종료
+      if (error?.code === 'ERR_CANCELED') {
+        return false;
+      }
       // 500 에러 (트랜스코딩 실패)는 즉시 실패 처리
       if (error.response?.status === 500) {
         console.error('Transcoding failed:', error.response?.data);

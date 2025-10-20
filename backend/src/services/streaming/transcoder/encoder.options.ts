@@ -13,15 +13,17 @@ export function buildVideoEncoderArgs(
   analysis: MediaAnalysis
 ): string[] {
   const fps = analysis.inputFormat.fps || 24;
-  const gopSize = getGOPSize(fps);
+  const segmentTime = analysis.segmentTime;
+  const gopSize = getGOPSize(fps, segmentTime);
+  const keyframeExpr = getKeyframeExpression(segmentTime);
 
   switch (transcodeMethod) {
     case 'cpu':
-      return buildCPUVideoArgs(profile, gopSize);
+      return buildCPUVideoArgs(profile, gopSize, keyframeExpr);
     case 'nvenc':
-      return buildNVENCVideoArgs(profile, gopSize);
+      return buildNVENCVideoArgs(profile, gopSize, keyframeExpr);
     case 'qsv':
-      return buildQSVVideoArgs(profile, gopSize);
+      return buildQSVVideoArgs(profile, gopSize, keyframeExpr);
     default:
       throw new Error(`Unknown transcode method: ${transcodeMethod}`);
   }
@@ -32,7 +34,7 @@ export function buildVideoEncoderArgs(
  * 
  * 가장 호환성이 좋고 안정적인 옵션
  */
-function buildCPUVideoArgs(profile: QualityProfile, gopSize: number): string[] {
+function buildCPUVideoArgs(profile: QualityProfile, gopSize: number, keyframeExpr: string): string[] {
   return [
     '-c:v', 'libx264',
     '-preset', 'medium',             // 속도와 품질 균형
@@ -46,7 +48,7 @@ function buildCPUVideoArgs(profile: QualityProfile, gopSize: number): string[] {
     '-sc_threshold', '0',            // 장면 전환 감지 비활성화
     '-g', gopSize.toString(),        // GOP 크기
     '-keyint_min', gopSize.toString(),
-    '-force_key_frames', getKeyframeExpression(),
+    '-force_key_frames', keyframeExpr,
   ];
 }
 
@@ -55,10 +57,10 @@ function buildCPUVideoArgs(profile: QualityProfile, gopSize: number): string[] {
  * 
  * GPU 가속으로 빠른 인코딩
  */
-function buildNVENCVideoArgs(profile: QualityProfile, gopSize: number): string[] {
+function buildNVENCVideoArgs(profile: QualityProfile, gopSize: number, keyframeExpr: string): string[] {
   return [
     '-c:v', 'h264_nvenc',
-    '-preset', 'p4',                 // NVENC 프리셋 (p1~p7, p4=medium)
+    '-preset', 'slow',               // NVENC 프리셋 (구형 호환: slow/medium/fast)
     '-tune', 'hq',                   // 고품질 튜닝
     '-rc', 'vbr',                    // 가변 비트레이트
     '-cq', '23',                     // 일정 품질
@@ -66,11 +68,11 @@ function buildNVENCVideoArgs(profile: QualityProfile, gopSize: number): string[]
     '-maxrate', profile.maxrate,
     '-bufsize', profile.bufsize,
     '-profile:v', 'high',
-    '-level', '4.1',
     '-pix_fmt', 'yuv420p',
     '-g', gopSize.toString(),
     '-keyint_min', gopSize.toString(),
     '-forced-idr', '1',              // IDR 프레임 강제
+    '-force_key_frames', keyframeExpr, // 정확한 키프레임 위치
     '-spatial_aq', '1',              // Spatial AQ 활성화
     '-temporal_aq', '1',             // Temporal AQ 활성화
   ];
@@ -81,7 +83,7 @@ function buildNVENCVideoArgs(profile: QualityProfile, gopSize: number): string[]
  * 
  * Intel GPU 가속
  */
-function buildQSVVideoArgs(profile: QualityProfile, gopSize: number): string[] {
+function buildQSVVideoArgs(profile: QualityProfile, gopSize: number, keyframeExpr: string): string[] {
   return [
     '-c:v', 'h264_qsv',
     '-preset', 'medium',
@@ -94,6 +96,7 @@ function buildQSVVideoArgs(profile: QualityProfile, gopSize: number): string[] {
     '-pix_fmt', 'nv12',              // QSV 최적화 포맷
     '-g', gopSize.toString(),
     '-keyint_min', gopSize.toString(),
+    '-force_key_frames', keyframeExpr, // 정확한 키프레임 위치
     '-look_ahead', '1',
   ];
 }
@@ -108,15 +111,12 @@ export function buildAudioEncoderArgs(
   analysis: MediaAnalysis
 ): string[] {
   if (!analysis.hasAudio) {
-    // 오디오 없음 - 무음 오디오 생성
+    // 오디오 없음 - 무음 오디오 인코더 설정만 (입력은 buildFFmpegArgs에서 처리)
     return [
-      '-f', 'lavfi',
-      '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
       '-c:a', 'aac',
       '-b:a', '64k',
       '-ar', '48000',
       '-ac', '2',
-      '-shortest',  // 비디오 길이에 맞춤
     ];
   }
 
@@ -178,6 +178,5 @@ export function getInputArgs(): string[] {
   return [
     '-analyzeduration', '100M',      // 분석 시간 증가
     '-probesize', '100M',             // 프로브 크기 증가
-    '-fflags', '+genpts',             // 타임스탬프 생성
   ];
 }

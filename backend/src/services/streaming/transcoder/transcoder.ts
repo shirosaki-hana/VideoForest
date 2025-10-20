@@ -54,10 +54,18 @@ export async function startTranscoding(
   // GPU 인코더 실패 감지
   let encoderInitFailed = false;
   let ffmpegOutput = '';
+  const MAX_OUTPUT_SIZE = 50000; // 최대 50KB까지만 저장 (메모리 누수 방지)
 
   ffmpegProcess.stderr?.on('data', data => {
     const message = data.toString();
-    ffmpegOutput += message;
+    
+    // 메모리 누수 방지: 출력 크기 제한
+    if (ffmpegOutput.length < MAX_OUTPUT_SIZE) {
+      ffmpegOutput += message;
+    } else if (ffmpegOutput.length < MAX_OUTPUT_SIZE + 1000) {
+      // 한 번만 경고
+      ffmpegOutput += '\n... (output truncated to prevent memory overflow) ...';
+    }
 
     // GPU 인코더 초기화 실패 감지
     if (isEncoderInitializationError(message, transcodeMethod)) {
@@ -79,7 +87,10 @@ export async function startTranscoding(
 
   ffmpegProcess.stdout?.on('data', data => {
     // stdout도 캡처 (일부 에러가 여기 나올 수 있음)
-    ffmpegOutput += data.toString();
+    const output = data.toString();
+    if (ffmpegOutput.length < MAX_OUTPUT_SIZE) {
+      ffmpegOutput += output;
+    }
   });
 
   // 프로세스 시작 대기 (GPU는 초기화 시간 필요)
@@ -88,7 +99,8 @@ export async function startTranscoding(
 
   // GPU 인코더 실패 확인
   if (encoderInitFailed) {
-    logger.warn(`${transcodeMethod.toUpperCase()} encoder initialization failed, will fallback to CPU`);
+    logger.error(`${transcodeMethod.toUpperCase()} encoder initialization failed. GPU encoding is not available.`);
+    logger.error(`Please verify GPU drivers and hardware support for ${transcodeMethod.toUpperCase()}`);
     try {
       ffmpegProcess.kill('SIGKILL');
     } catch {
@@ -169,8 +181,8 @@ function buildFFmpegArgs(
   // 2. 에러 복원 옵션 (손상된 파일 대응)
   args.push(...getErrorResilienceArgs());
 
-  // 3. 입력 파일
-  args.push('-i', mediaPath);
+  // 3. 입력 파일 (Windows 경로 정규화)
+  args.push('-i', normalizePathForFFmpeg(mediaPath));
 
   // 4. 오디오가 없는 경우 무음 생성
   if (!analysis.hasAudio) {
@@ -178,14 +190,26 @@ function buildFFmpegArgs(
     args.push('-i', 'anullsrc=channel_layout=stereo:sample_rate=48000');
   }
 
-  // 5. 비디오 인코딩 옵션
+  // 5. 스트림 매핑 (명시적으로 지정)
+  // HLS는 비디오/오디오만 지원 - 자막, 첨부 파일 등은 제외
+  if (!analysis.hasAudio) {
+    // 무음 오디오 사용: 비디오는 첫 번째 입력, 오디오는 두 번째 입력
+    args.push('-map', '0:v:0');      // 첫 번째 입력의 비디오
+    args.push('-map', '1:a:0');      // 두 번째 입력의 오디오 (무음)
+  } else {
+    // 일반 케이스: 비디오와 오디오만 선택 (자막, 첨부 파일 제외)
+    args.push('-map', '0:v:0');      // 첫 번째 비디오 스트림
+    args.push('-map', '0:a:0');      // 첫 번째 오디오 스트림
+  }
+
+  // 6. 비디오 인코딩 옵션
   const videoFilter = buildVideoFilter(profile, analysis);
   if (videoFilter !== 'null') {
     args.push('-vf', videoFilter);
   }
   args.push(...buildVideoEncoderArgs(transcodeMethod, profile, analysis));
 
-  // 6. 오디오 인코딩 옵션
+  // 7. 오디오 인코딩 옵션
   const audioArgs = buildAudioEncoderArgs(profile, analysis);
   args.push(...audioArgs);
 
@@ -194,20 +218,31 @@ function buildFFmpegArgs(
     args.push('-shortest');  // 비디오 길이에 맞춤
   }
 
-  // 7. HLS 출력 옵션
+  // 8. HLS 출력 옵션 (동적 세그먼트 시간 사용)
+  const segmentTime = analysis.segmentTime;
   args.push(
     '-f', 'hls',
-    '-hls_time', HLS_CONFIG.segmentTime.toString(),
+    '-hls_time', segmentTime.toString(),
     '-hls_list_size', HLS_CONFIG.listSize.toString(),
     '-hls_segment_type', HLS_CONFIG.segmentType,
     '-hls_flags', HLS_CONFIG.flags,
-    '-hls_segment_filename', path.join(outputDir, 'segment_%03d.ts'),
+    '-hls_segment_filename', normalizePathForFFmpeg(path.join(outputDir, 'segment_%03d.ts')),
   );
 
-  // 8. 출력 파일
-  args.push(path.join(outputDir, 'playlist.m3u8'));
+  // 9. 출력 파일
+  args.push(normalizePathForFFmpeg(path.join(outputDir, 'playlist.m3u8')));
 
   return args;
+}
+
+/**
+ * Windows 경로를 FFmpeg가 이해할 수 있는 형식으로 정규화
+ * 
+ * Windows의 역슬래시를 슬래시로 변환하여 FFmpeg 호환성 보장
+ */
+function normalizePathForFFmpeg(filePath: string): string {
+  // Windows 경로를 Unix 스타일로 변환 (FFmpeg는 둘 다 인식)
+  return filePath.replace(/\\/g, '/');
 }
 
 /**
