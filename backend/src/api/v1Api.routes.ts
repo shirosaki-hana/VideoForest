@@ -21,6 +21,9 @@ interface MediaFromDatabase {
 function formatMediaForResponse(media: MediaFromDatabase) {
   return {
     ...media,
+    // BigInt를 number로 변환 (JSON 직렬화 문제 해결)
+    bitrate: media.bitrate !== null ? Number(media.bitrate) : null,
+    fileSize: media.fileSize !== null ? Number(media.fileSize) : null,
     createdAt: media.createdAt.toISOString(),
     updatedAt: media.updatedAt.toISOString(),
   };
