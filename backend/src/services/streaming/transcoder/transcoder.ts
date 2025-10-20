@@ -1,13 +1,10 @@
 import { spawn, type ChildProcess } from 'child_process';
 import path from 'path';
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
-import { logger } from '../../../utils/index.js';
+import { logger, getFFmpegPath } from '../../../utils/index.js';
 import { buildVideoEncoderArgs, buildAudioEncoderArgs, buildVideoFilter, getErrorResilienceArgs, getInputArgs } from './encoder.options.js';
 import { HLS_CONFIG } from './ffmpeg.config.js';
 import type { TranscodeMethod, QualityProfile, FFmpegProcessResult, MediaAnalysis } from '../types.js';
 //------------------------------------------------------------------------------//
-
-const ffmpegPath = ffmpegInstaller.path;
 
 /**
  * 단일 품질 HLS 트랜스코딩 시작
@@ -36,6 +33,9 @@ export async function startTranscoding(
 
   // FFmpeg 명령어 구성
   const ffmpegArgs = buildFFmpegArgs(mediaPath, outputDir, profile, transcodeMethod, analysis);
+
+  // FFmpeg 경로 가져오기 (시스템 FFmpeg 우선)
+  const ffmpegPath = getFFmpegPath();
 
   // 디버그: 커맨드 로깅
   logger.debug?.(`FFmpeg command: ${ffmpegPath} ${ffmpegArgs.join(' ')}`);

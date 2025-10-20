@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { database } from '../../database/index.js';
 import { env } from '../../config/index.js';
-import { logger } from '../../utils/index.js';
+import { logger, supportsNVENC, supportsQSV } from '../../utils/index.js';
 import { sessionManager } from './session.manager.js';
 import { startTranscoding, selectOptimalProfile, calculateOptimalSegmentTime } from './transcoder/index.js';
 import type { HLSSession, MediaInfo, MediaAnalysis, TranscodeMethod } from './types.js';
@@ -214,7 +214,29 @@ export async function startStreaming(mediaId: string): Promise<string | null> {
     }
 
     // 5. 미디어 분석 (트랜스코딩 방식 고려)
-    const transcodeMethod: TranscodeMethod = env.TRANSCODE_METHOD;
+    let transcodeMethod: TranscodeMethod = env.TRANSCODE_METHOD;
+
+    // 트랜스코딩 방식 검증
+    if (transcodeMethod === 'nvenc' && !supportsNVENC()) {
+      sessionManager.recordFailure({
+        mediaId,
+        error: 'NVENC GPU encoding is not available. System FFmpeg does not support h264_nvenc encoder. Please install FFmpeg with NVENC support or change TRANSCODE_METHOD to "cpu" in .env file.',
+      });
+      logger.error('NVENC requested but not available in system FFmpeg');
+      logger.error('Please install FFmpeg with NVENC support or use CPU encoding');
+      return null;
+    }
+
+    if (transcodeMethod === 'qsv' && !supportsQSV()) {
+      sessionManager.recordFailure({
+        mediaId,
+        error: 'QSV GPU encoding is not available. System FFmpeg does not support h264_qsv encoder. Please install FFmpeg with QSV support or change TRANSCODE_METHOD to "cpu" in .env file.',
+      });
+      logger.error('QSV requested but not available in system FFmpeg');
+      logger.error('Please install FFmpeg with QSV support or use CPU encoding');
+      return null;
+    }
+
     logger.info(`Analyzing media ${mediaId}...`);
     const analysis = analyzeMedia(mediaData.info, transcodeMethod);
     logger.info(`Selected profile: ${analysis.recommendedProfile.name}`);

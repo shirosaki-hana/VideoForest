@@ -9,7 +9,7 @@ import apiRoutes from './api/index.js';
 import path from 'path';
 
 import ms from 'ms';
-import { logger, projectRoot } from './utils/index.js';
+import { logger, projectRoot, detectFFmpeg } from './utils/index.js';
 import { env, isProduction, isDevelopment } from './config/index.js';
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
 //------------------------------------------------------------------------------//
@@ -93,6 +93,9 @@ async function createFastifyApp() {
 async function startServer(port: number) {
   const fastify = await createFastifyApp();
   await checkDatabaseConnection();
+
+  // FFmpeg 감지 및 기능 확인
+  await detectFFmpeg();
 
   await fastify.listen({ port, host: env.HOST });
   logger.info(`Environment: ${env.NODE_ENV}`);
