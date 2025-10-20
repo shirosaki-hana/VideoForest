@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Card, CardContent, Typography, CircularProgress, Alert, Box, IconButton, Stack, Chip, Switch, FormControlLabel, Divider } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, SkipNext as SkipNextIcon, SkipPrevious as SkipPreviousIcon } from '@mui/icons-material';
 import VideoPlayer from '../components/VideoPlayer';
-import { getMediaInfo, getHLSMasterPlaylistUrl, stopStreaming, waitForPlaylist } from '../api/streaming';
+import { getMediaInfo, getHLSPlaylistUrl, stopStreaming, waitForPlaylist } from '../api/streaming';
 import { formatDuration, formatFileSize } from '../utils/format';
 import { useMediaStore } from '../stores/mediaStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -49,16 +49,16 @@ export default function PlayerPage() {
         setMediaInfo(response.media);
         setLoading(false);
 
-        // 2. 스트리밍 준비 대기 (Master Playlist가 생성될 때까지)
-        console.log('Waiting for ABR streaming to be ready...');
+        // 2. 스트리밍 준비 대기 (Playlist가 생성될 때까지)
+        console.log('Waiting for HLS streaming to be ready...');
         const isReady = await waitForPlaylist(mediaId, 30000); // 최대 30초 대기
 
         if (isReady) {
-          console.log('ABR streaming is ready! Starting playback...');
-          setPlaylistUrl(getHLSMasterPlaylistUrl(mediaId));
+          console.log('HLS streaming is ready! Starting playback...');
+          setPlaylistUrl(getHLSPlaylistUrl(mediaId));
           setPreparingStream(false);
         } else {
-          throw new Error('Stream preparation timeout. Please try again.');
+          throw new Error('Stream preparation failed or timeout. Please try again.');
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load media info';

@@ -1,5 +1,5 @@
 import fs from 'fs/promises';
-import type { HLSSession } from './types.js';
+import type { HLSSession, TranscodingFailure } from './types.js';
 import { logger } from '../../utils/index.js';
 import { killFFmpegProcess } from './transcoder/index.js';
 //------------------------------------------------------------------------------//
@@ -8,14 +8,21 @@ import { killFFmpegProcess } from './transcoder/index.js';
  * HLS 세션 관리자
  * 
  * 활성 스트리밍 세션을 관리하고 자동 정리를 수행합니다.
+ * 실패한 트랜스코딩을 추적하여 무한 재시도를 방지합니다.
  */
 export class SessionManager {
   private sessions = new Map<string, HLSSession>();
+  private failures = new Map<string, TranscodingFailure>();
   private readonly sessionTimeout: number;
+  private readonly failureTimeout: number;
   private cleanupInterval: NodeJS.Timeout | null = null;
 
-  constructor(sessionTimeout: number = 5 * 60 * 1000) {
+  constructor(
+    sessionTimeout: number = 5 * 60 * 1000,
+    failureTimeout: number = 10 * 60 * 1000  // 10분간 실패 기록 유지
+  ) {
     this.sessionTimeout = sessionTimeout;
+    this.failureTimeout = failureTimeout;
     this.startCleanupTask();
   }
 
@@ -86,7 +93,7 @@ export class SessionManager {
   }
 
   /**
-   * 타임아웃된 세션 정리
+   * 타임아웃된 세션 및 만료된 실패 기록 정리
    */
   private async cleanupTimeoutSessions(): Promise<void> {
     const now = Date.now();
@@ -104,6 +111,9 @@ export class SessionManager {
         await this.removeSession(mediaId);
       }
     }
+
+    // 만료된 실패 기록도 정리
+    this.cleanupExpiredFailures();
   }
 
   /**
@@ -146,6 +156,88 @@ export class SessionManager {
         lastAccess: new Date(session.lastAccess),
       })),
     };
+  }
+
+  //----------------------------------------------------------------------------//
+  // 실패 추적 기능
+  //----------------------------------------------------------------------------//
+
+  /**
+   * 트랜스코딩 실패 기록
+   */
+  recordFailure(failure: Omit<TranscodingFailure, 'timestamp' | 'attemptCount'>): void {
+    const existing = this.failures.get(failure.mediaId);
+    
+    const newFailure: TranscodingFailure = {
+      ...failure,
+      timestamp: Date.now(),
+      attemptCount: existing ? existing.attemptCount + 1 : 1,
+    };
+
+    this.failures.set(failure.mediaId, newFailure);
+    
+    logger.error(`Transcoding failed for ${failure.mediaId} (attempt ${newFailure.attemptCount}): ${failure.error}`);
+    
+    if (failure.ffmpegCommand) {
+      logger.debug?.(`FFmpeg command: ${failure.ffmpegCommand}`);
+    }
+    
+    if (failure.ffmpegOutput) {
+      logger.debug?.(`FFmpeg output:\n${failure.ffmpegOutput}`);
+    }
+  }
+
+  /**
+   * 최근 실패 여부 확인
+   */
+  hasRecentFailure(mediaId: string): TranscodingFailure | null {
+    const failure = this.failures.get(mediaId);
+    
+    if (!failure) {
+      return null;
+    }
+
+    // 타임아웃 체크
+    if (Date.now() - failure.timestamp > this.failureTimeout) {
+      this.failures.delete(mediaId);
+      return null;
+    }
+
+    return failure;
+  }
+
+  /**
+   * 실패 기록 초기화 (재시도 허용)
+   */
+  clearFailure(mediaId: string): void {
+    this.failures.delete(mediaId);
+    logger.info(`Cleared failure record for ${mediaId}`);
+  }
+
+  /**
+   * 모든 실패 기록 조회
+   */
+  getAllFailures(): TranscodingFailure[] {
+    return Array.from(this.failures.values());
+  }
+
+  /**
+   * 만료된 실패 기록 정리
+   */
+  private cleanupExpiredFailures(): void {
+    const now = Date.now();
+    const toDelete: string[] = [];
+
+    for (const [mediaId, failure] of this.failures.entries()) {
+      if (now - failure.timestamp > this.failureTimeout) {
+        toDelete.push(mediaId);
+      }
+    }
+
+    toDelete.forEach(mediaId => {
+      this.failures.delete(mediaId);
+      logger.info(`Cleared expired failure record for ${mediaId}`);
+    });
   }
 }
 

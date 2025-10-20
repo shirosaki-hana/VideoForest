@@ -39,16 +39,9 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
         preload: 'auto',
         html5: {
           vhs: {
-            // ABR (Adaptive Bitrate) 최적화 설정
-            enableLowInitialPlaylist: false,      // 낮은 품질로 시작 비활성화
-            smoothQualityChange: true,            // 부드러운 품질 전환
+            // 단일 품질 HLS 최적화 설정
             overrideNative: true,                 // VHS 사용 (Safari도 포함)
-            experimentalBufferBasedABR: true,     // 버퍼 기반 ABR 활성화 (더 스마트한 품질 선택)
             withCredentials: true,                // 쿠키 인증 지원
-            // 대역폭 추정 설정
-            bandwidth: 4000000,                   // 초기 대역폭 추정 (4Mbps)
-            // 버퍼 설정 (빠른 품질 전환을 위해 작은 버퍼)
-            experimentalBufferBasedABRGoal: 10,   // 목표 버퍼 길이 (초)
           },
           nativeAudioTracks: false,
           nativeVideoTracks: false,

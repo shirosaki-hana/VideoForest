@@ -15,14 +15,14 @@ export async function getMediaInfo(mediaId: string): Promise<MediaInfoResponse> 
 }
 
 /**
- * HLS Master Playlist URL 생성 (ABR 지원)
+ * HLS Playlist URL 생성 (단일 품질)
  * 
- * Master Playlist는 여러 품질을 나열하며,
- * video.js가 네트워크 상태에 따라 자동으로 최적의 품질을 선택합니다.
+ * 단순화된 단일 품질 스트리밍
+ * 서버가 원본 해상도에 맞춰 최적의 품질을 자동 선택합니다.
  */
-export function getHLSMasterPlaylistUrl(mediaId: string): string {
+export function getHLSPlaylistUrl(mediaId: string): string {
   const baseURL = apiClient.defaults.baseURL || '';
-  return `${baseURL}/stream/hls/${mediaId}/master.m3u8`;
+  return `${baseURL}/stream/hls/${mediaId}/playlist.m3u8`;
 }
 
 /**
@@ -33,19 +33,34 @@ export async function stopStreaming(mediaId: string): Promise<void> {
 }
 
 /**
- * Master Playlist가 준비될 때까지 폴링
+ * Playlist가 준비될 때까지 폴링
  */
 export async function waitForPlaylist(mediaId: string, maxWaitMs: number = 30000): Promise<boolean> {
   const startTime = Date.now();
-  const pollInterval = 500; // 0.5초마다 확인
+  const pollInterval = 1000; // 1초마다 확인
 
   while (Date.now() - startTime < maxWaitMs) {
     try {
-      // HEAD 요청으로 Master Playlist 존재 확인
-      await apiClient.head(`/stream/hls/${mediaId}/master.m3u8`);
-      return true; // Master Playlist 준비 완료!
-    } catch (error) {
-      // 아직 준비 안됨, 계속 대기
+      // GET 요청으로 Playlist 존재 확인
+      const response = await apiClient.get(`/stream/hls/${mediaId}/playlist.m3u8`);
+      
+      // 202 응답 (트랜스코딩 진행 중)은 계속 대기
+      if (response.status === 202) {
+        console.log('Transcoding in progress...');
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        continue;
+      }
+      
+      // 200 응답이면 준비 완료
+      return true;
+    } catch (error: any) {
+      // 500 에러 (트랜스코딩 실패)는 즉시 실패 처리
+      if (error.response?.status === 500) {
+        console.error('Transcoding failed:', error.response?.data);
+        return false;
+      }
+      
+      // 404 또는 기타 에러는 계속 대기
       await new Promise(resolve => setTimeout(resolve, pollInterval));
     }
   }

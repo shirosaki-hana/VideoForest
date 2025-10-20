@@ -1,83 +1,134 @@
-import type { QualityProfile } from '../types.js';
+import type { QualityProfile, MediaInfo } from '../types.js';
 //------------------------------------------------------------------------------//
 
 /**
- * 표준 ABR 품질 프로파일 (4단계)
+ * 표준 품질 프로파일 정의
  * 
- * 1080p (5Mbps) - 고화질
- * 720p (2.5Mbps) - 중화질
- * 480p (1Mbps) - 저화질
- * 360p (500kbps) - 매우 저화질
+ * 단일 품질로 단순화 - 원본 해상도에 맞춰 선택
  */
-export const STANDARD_QUALITY_PROFILES: QualityProfile[] = [
-  {
+const QUALITY_PROFILES: Record<string, QualityProfile> = {
+  '1080p': {
     name: '1080p',
     width: 1920,
     height: 1080,
     videoBitrate: '5M',
     audioBitrate: '128k',
-    maxrate: '5.5M',
-    bufsize: '10M',
+    maxrate: '6M',
+    bufsize: '12M',
   },
-  {
+  '720p': {
     name: '720p',
     width: 1280,
     height: 720,
-    videoBitrate: '2500k',
+    videoBitrate: '3M',
     audioBitrate: '128k',
-    maxrate: '2750k',
-    bufsize: '5M',
+    maxrate: '3.5M',
+    bufsize: '6M',
   },
-  {
+  '480p': {
     name: '480p',
     width: 854,
     height: 480,
-    videoBitrate: '1000k',
-    audioBitrate: '96k',
-    maxrate: '1100k',
-    bufsize: '2M',
+    videoBitrate: '1500k',
+    audioBitrate: '128k',
+    maxrate: '1750k',
+    bufsize: '3M',
   },
-  {
+  '360p': {
     name: '360p',
     width: 640,
     height: 360,
-    videoBitrate: '500k',
-    audioBitrate: '64k',
-    maxrate: '550k',
-    bufsize: '1M',
+    videoBitrate: '800k',
+    audioBitrate: '96k',
+    maxrate: '950k',
+    bufsize: '1.5M',
   },
-];
+};
 
 /**
- * 원본 해상도를 기반으로 적절한 품질 프로파일을 선택합니다.
- * 원본보다 높은 해상도는 제외합니다.
+ * 원본 해상도를 기반으로 최적의 단일 품질 프로파일을 선택합니다.
+ * 
+ * 전략:
+ * - 원본 해상도보다 낮거나 같은 최대 품질 선택
+ * - 업스케일링 방지
+ * - 최소 360p 보장
  */
-export function selectQualityProfiles(originalWidth: number | null, originalHeight: number | null): QualityProfile[] {
-  // 원본 해상도 정보가 없으면 모든 프로파일 사용
-  if (!originalWidth || !originalHeight) {
-    return STANDARD_QUALITY_PROFILES;
+export function selectOptimalProfile(mediaInfo: MediaInfo): QualityProfile {
+  const width = mediaInfo.width || 0;
+  const height = mediaInfo.height || 0;
+
+  // 원본 해상도가 없으면 720p 기본값
+  if (!width || !height) {
+    return QUALITY_PROFILES['720p'];
   }
 
-  // 원본 해상도보다 작거나 같은 프로파일만 선택
-  const profiles = STANDARD_QUALITY_PROFILES.filter(
-    profile => profile.width <= originalWidth && profile.height <= originalHeight
-  );
+  // 원본 해상도에 맞는 최적 프로파일 선택
+  if (width >= 1920 && height >= 1080) {
+    return QUALITY_PROFILES['1080p'];
+  } else if (width >= 1280 && height >= 720) {
+    return QUALITY_PROFILES['720p'];
+  } else if (width >= 854 && height >= 480) {
+    return QUALITY_PROFILES['480p'];
+  } else {
+    return QUALITY_PROFILES['360p'];
+  }
+}
 
-  // 최소 1개의 프로파일은 반환 (원본이 매우 작은 경우)
-  if (profiles.length === 0) {
-    return [STANDARD_QUALITY_PROFILES[STANDARD_QUALITY_PROFILES.length - 1]];
+/**
+ * 커스텀 프로파일 생성 (특수한 해상도)
+ */
+export function createCustomProfile(width: number, height: number): QualityProfile {
+  // 픽셀 수 기반 비트레이트 계산 (대략적)
+  const pixels = width * height;
+  let videoBitrate: string;
+  let audioBitrate: string;
+  let maxrate: string;
+  let bufsize: string;
+
+  if (pixels >= 2073600) { // 1920x1080
+    videoBitrate = '5M';
+    audioBitrate = '128k';
+    maxrate = '6M';
+    bufsize = '12M';
+  } else if (pixels >= 921600) { // 1280x720
+    videoBitrate = '3M';
+    audioBitrate = '128k';
+    maxrate = '3.5M';
+    bufsize = '6M';
+  } else if (pixels >= 409920) { // 854x480
+    videoBitrate = '1500k';
+    audioBitrate = '128k';
+    maxrate = '1750k';
+    bufsize = '3M';
+  } else {
+    videoBitrate = '800k';
+    audioBitrate = '96k';
+    maxrate = '950k';
+    bufsize = '1.5M';
   }
 
-  return profiles;
+  return {
+    name: `${width}x${height}`,
+    width,
+    height,
+    videoBitrate,
+    audioBitrate,
+    maxrate,
+    bufsize,
+  };
 }
 
 /**
  * HLS 공통 설정
+ * 
+ * 최적화된 설정:
+ * - 6초 세그먼트: 버퍼링 감소, 탐색 정확도 개선
+ * - 독립 세그먼트: 각 세그먼트가 독립적으로 디코딩 가능
  */
 export const HLS_CONFIG = {
-  segmentTime: 4,              // 세그먼트 길이 (초)
-  listSize: 0,                 // 모든 세그먼트 유지
-  segmentType: 'mpegts',       // 세그먼트 타입
+  segmentTime: 6,              // 세그먼트 길이 (초) - 4초보다 안정적
+  listSize: 0,                 // 모든 세그먼트 유지 (VOD)
+  segmentType: 'mpegts',       // MPEG-TS (호환성 우수)
   flags: 'independent_segments+temp_file',
   startNumber: 0,
 } as const;
@@ -85,9 +136,20 @@ export const HLS_CONFIG = {
 /**
  * GOP (Group of Pictures) 설정
  * 키프레임 간격을 HLS 세그먼트와 동기화
+ * 
+ * 세그먼트와 GOP가 정렬되어야 탐색이 정확합니다.
  */
 export function getGOPSize(fps: number = 24): number {
-  // 2초마다 키프레임 (세그먼트 길이의 절반)
-  return Math.round(fps * 2);
+  // 세그먼트 시간(6초)에 맞춰 GOP 설정
+  // 정확한 탐색을 위해 세그먼트와 동기화
+  return Math.round(fps * HLS_CONFIG.segmentTime);
+}
+
+/**
+ * 키프레임 간격 표현식
+ * FFmpeg의 force_key_frames에 사용
+ */
+export function getKeyframeExpression(): string {
+  return `expr:gte(t,n_forced*${HLS_CONFIG.segmentTime})`;
 }
 
