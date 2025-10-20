@@ -57,10 +57,10 @@ model Media {
   width         Int?
   height        Int?
   codec         String?
-  bitrate       Int?
+  bitrate       BigInt?
   fps           Float?
   audioCodec    String?
-  fileSize      Int?
+  fileSize      BigInt?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   
