@@ -1,6 +1,6 @@
 import { type FastifyPluginAsync } from 'fastify';
 import { requireAuth } from '../middleware/auth.js';
-import { getPlaylistPath, getSegmentPath, stopStreaming, getSessionInfo, getFailures, clearFailure } from '../services/index.js';
+import { getPlaylistPath, getVariantPlaylistPath, getSegmentPath, stopStreaming, getSessionInfo, getFailures, clearFailure } from '../services/index.js';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { logger } from '../utils/index.js';
@@ -10,25 +10,25 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
   fastify.addHook('preHandler', requireAuth);
 
   /**
-   * HLS Playlist 제공 (단일 품질)
-   * GET /hls/:mediaId/playlist.m3u8
+   * HLS Master Playlist 제공 (ABR)
+   * GET /hls/:mediaId/master.m3u8
    *
-   * ABR 제거 - 단순화된 단일 품질 스트리밍
+   * 모든 사용 가능한 품질을 나열하는 마스터 플레이리스트
    */
-  fastify.get<{ Params: { mediaId: string } }>('/hls/:mediaId/playlist.m3u8', async (request, reply) => {
+  fastify.get<{ Params: { mediaId: string } }>('/hls/:mediaId/master.m3u8', async (request, reply) => {
     const { mediaId } = request.params;
 
     try {
       // 자동 시작 (세션 없으면 생성)
-      const playlistPath = await getPlaylistPath(mediaId);
+      const masterPlaylistPath = await getPlaylistPath(mediaId);
 
-      if (!playlistPath) {
+      if (!masterPlaylistPath) {
         // 트랜스코딩 실패 - 명확한 에러 메시지
         const failures = getFailures();
         const failure = failures.find(f => f.mediaId === mediaId);
 
         if (failure) {
-          logger.error(`Playlist request failed for ${mediaId}: ${failure.error}`);
+          logger.error(`Master playlist request failed for ${mediaId}: ${failure.error}`);
           return reply.code(500).send({
             error: 'Transcoding failed',
             message: failure.error,
@@ -37,24 +37,23 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
           });
         }
 
-        return reply.code(404).send({ error: 'Playlist not found' });
+        return reply.code(404).send({ error: 'Master playlist not found' });
       }
 
-      // 플레이리스트 파일 대기 (최대 2초)
-      const resolved = playlistPath;
+      // 마스터 플레이리스트 파일 대기 (최대 2초)
       const start = Date.now();
-      while (!existsSync(resolved) && Date.now() - start < 2000) {
+      while (!existsSync(masterPlaylistPath) && Date.now() - start < 2000) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      if (!existsSync(resolved)) {
-        logger.warn(`Playlist file not ready yet: ${mediaId}`);
+      if (!existsSync(masterPlaylistPath)) {
+        logger.warn(`Master playlist file not ready yet: ${mediaId}`);
         return reply.code(202).send({
-          message: 'Transcoding in progress, please retry',
+          message: 'Session initializing, please retry',
         });
       }
 
-      const playlistContent = await fs.readFile(resolved, 'utf-8');
+      const playlistContent = await fs.readFile(masterPlaylistPath, 'utf-8');
 
       return reply
         .code(200)
@@ -62,19 +61,63 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
         .header('Cache-Control', 'no-cache')
         .send(playlistContent);
     } catch (error) {
-      logger.error(`Failed to serve playlist for ${mediaId}:`, error);
-      return reply.code(500).send({ error: 'Failed to serve playlist' });
+      logger.error(`Failed to serve master playlist for ${mediaId}:`, error);
+      return reply.code(500).send({ error: 'Failed to serve master playlist' });
     }
   });
 
   /**
-   * HLS 세그먼트 파일 제공
-   * GET /hls/:mediaId/:segmentName
+   * HLS Variant Playlist 제공 (특정 품질)
+   * GET /hls/:mediaId/:quality/playlist.m3u8
    *
-   * 예: /hls/abc123/segment_000.ts
+   * On-demand variant 시작 - 요청된 품질이 없으면 즉시 트랜스코딩 시작
    */
-  fastify.get<{ Params: { mediaId: string; segmentName: string } }>('/hls/:mediaId/:segmentName', async (request, reply) => {
-    const { mediaId, segmentName } = request.params;
+  fastify.get<{ Params: { mediaId: string; quality: string } }>('/hls/:mediaId/:quality/playlist.m3u8', async (request, reply) => {
+    const { mediaId, quality } = request.params;
+
+    try {
+      // On-demand variant 시작 (없으면 자동 시작)
+      const playlistPath = await getVariantPlaylistPath(mediaId, quality);
+
+      if (!playlistPath) {
+        logger.error(`Failed to start variant ${quality} for ${mediaId}`);
+        return reply.code(404).send({ error: 'Variant not available' });
+      }
+
+      // 플레이리스트 파일 대기 (최대 2초)
+      const start = Date.now();
+      while (!existsSync(playlistPath) && Date.now() - start < 2000) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      if (!existsSync(playlistPath)) {
+        logger.warn(`Variant playlist not ready yet: ${quality} for ${mediaId}`);
+        return reply.code(202).send({
+          message: 'Variant transcoding in progress, please retry',
+        });
+      }
+
+      const playlistContent = await fs.readFile(playlistPath, 'utf-8');
+
+      return reply
+        .code(200)
+        .header('Content-Type', 'application/vnd.apple.mpegurl')
+        .header('Cache-Control', 'no-cache')
+        .send(playlistContent);
+    } catch (error) {
+      logger.error(`Failed to serve variant playlist ${quality} for ${mediaId}:`, error);
+      return reply.code(500).send({ error: 'Failed to serve variant playlist' });
+    }
+  });
+
+  /**
+   * HLS 세그먼트 파일 제공 (품질별)
+   * GET /hls/:mediaId/:quality/:segmentName
+   *
+   * 예: /hls/abc123/720p/segment_000.ts
+   */
+  fastify.get<{ Params: { mediaId: string; quality: string; segmentName: string } }>('/hls/:mediaId/:quality/:segmentName', async (request, reply) => {
+    const { mediaId, quality, segmentName } = request.params;
 
     // 세그먼트 파일명 검증 (보안)
     if (!/^segment_\d{3}\.ts$/.test(segmentName)) {
@@ -82,11 +125,11 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
     }
 
     try {
-      const segmentPath = getSegmentPath(mediaId, segmentName);
+      const segmentPath = getSegmentPath(mediaId, quality, segmentName);
 
       if (!segmentPath) {
-        logger.warn(`Session not found for media ${mediaId}, segment ${segmentName}`);
-        return reply.code(404).send({ error: 'Session not found' });
+        logger.warn(`Variant not found for media ${mediaId}, quality ${quality}, segment ${segmentName}`);
+        return reply.code(404).send({ error: 'Variant not found' });
       }
 
       if (!existsSync(segmentPath)) {
@@ -103,7 +146,7 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
         .header('Cache-Control', 'public, max-age=31536000') // 1년 캐시
         .send(stream);
     } catch (error) {
-      logger.error(`Failed to serve segment ${segmentName} for ${mediaId}:`, error);
+      logger.error(`Failed to serve segment ${quality}/${segmentName} for ${mediaId}:`, error);
       return reply.code(500).send({ error: 'Failed to serve segment' });
     }
   });
@@ -160,14 +203,24 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
         return reply.code(404).send({ error: 'Session not found' });
       }
 
+      // Variant 정보 수집
+      const variants = Array.from(session.variants.entries()).map(([quality, variant]) => ({
+        quality,
+        profile: variant.profile,
+        isReady: variant.isReady,
+        segmentCount: variant.segmentCount,
+        lastSegmentTime: new Date(variant.lastSegmentTime),
+      }));
+
       return reply.code(200).send({
         success: true,
         session: {
           mediaId: session.mediaId,
-          profile: session.profile,
           analysis: session.analysis,
           lastAccess: new Date(session.lastAccess),
           outputDir: session.outputDir,
+          availableProfiles: session.availableProfiles,
+          variants,
         },
       });
     } catch (error) {

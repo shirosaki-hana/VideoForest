@@ -245,6 +245,124 @@ function isCriticalError(message: string): boolean {
 }
 
 /**
+ * 특정 품질 variant 트랜스코딩 시작 (ABR용)
+ *
+ * Lazy ABR을 위한 on-demand variant 트랜스코딩
+ * 품질별로 별도 디렉터리에 출력
+ *
+ * @param mediaPath 원본 미디어 파일 경로
+ * @param variantOutputDir variant 전용 출력 디렉터리 (예: /tmp/hls/media123/720p)
+ * @param profile 품질 프로파일
+ * @param analysis 미디어 분석 결과
+ * @returns FFmpeg 프로세스 및 플레이리스트 경로
+ */
+export async function startVariantTranscoding(
+  mediaPath: string,
+  variantOutputDir: string,
+  profile: QualityProfile,
+  analysis: MediaAnalysis
+): Promise<FFmpegProcessResult | null> {
+  const playlistPath = path.join(variantOutputDir, 'playlist.m3u8');
+
+  logger.info(`Starting variant transcoding: ${profile.name}`);
+  logger.info(`Quality: ${profile.name} (${profile.width}x${profile.height})`);
+  logger.info(`Output: ${variantOutputDir}`);
+
+  // FFmpeg 명령어 구성 (기존 로직 재사용)
+  const ffmpegArgs = buildFFmpegArgs(mediaPath, variantOutputDir, profile, analysis);
+
+  // FFmpeg 경로 가져오기
+  const ffmpegPath = getFFmpegPath();
+
+  // 디버그: 커맨드 로깅
+  logger.debug?.(`FFmpeg command: ${ffmpegPath} ${ffmpegArgs.join(' ')}`);
+
+  // FFmpeg 프로세스 시작
+  const ffmpegProcess = spawn(ffmpegPath, ffmpegArgs, {
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  // FFmpeg 출력 캡처
+  let ffmpegOutput = '';
+  const MAX_OUTPUT_SIZE = 50000;
+
+  ffmpegProcess.stderr?.on('data', data => {
+    const message = data.toString();
+
+    if (ffmpegOutput.length < MAX_OUTPUT_SIZE) {
+      ffmpegOutput += message;
+    } else if (ffmpegOutput.length < MAX_OUTPUT_SIZE + 1000) {
+      ffmpegOutput += '\n... (output truncated to prevent memory overflow) ...';
+    }
+
+    if (isCriticalError(message)) {
+      logger.error(`FFmpeg critical error (${profile.name}): ${message.trim()}`);
+    }
+
+    if (message.includes('time=') && message.includes('speed=')) {
+      logger.debug?.(message.trim());
+    }
+  });
+
+  ffmpegProcess.stdout?.on('data', data => {
+    const output = data.toString();
+    if (ffmpegOutput.length < MAX_OUTPUT_SIZE) {
+      ffmpegOutput += output;
+    }
+  });
+
+  // 프로세스 시작 대기
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // 프로세스가 즉시 종료되었는지 확인
+  if (ffmpegProcess.exitCode !== null) {
+    if (ffmpegProcess.exitCode === 0) {
+      logger.info(`FFmpeg process completed quickly for ${profile.name}`);
+      return {
+        process: ffmpegProcess,
+        playlistPath,
+        profile,
+      };
+    }
+
+    logger.error(`FFmpeg process failed for ${profile.name} with exit code ${ffmpegProcess.exitCode}`);
+    logger.error(`Output:\n${ffmpegOutput}`);
+    return null;
+  }
+
+  // 프로세스 이벤트 핸들러
+  ffmpegProcess.on('error', error => {
+    logger.error(`Failed to start FFmpeg process for ${profile.name}:`, error);
+  });
+
+  ffmpegProcess.on('exit', (code, signal) => {
+    if (code !== 0 && code !== null) {
+      logger.warn(`FFmpeg process for ${profile.name} exited with code ${code}`);
+      if (signal) {
+        logger.warn(`Killed by signal: ${signal}`);
+      }
+      const errorLines = ffmpegOutput
+        .split('\n')
+        .filter(line => isCriticalError(line))
+        .slice(-10);
+      if (errorLines.length > 0) {
+        logger.error(`Last errors:\n${errorLines.join('\n')}`);
+      }
+    } else if (code === 0) {
+      logger.success(`FFmpeg transcoding completed successfully for ${profile.name}`);
+    }
+  });
+
+  logger.success(`FFmpeg process started successfully for ${profile.name}`);
+
+  return {
+    process: ffmpegProcess,
+    playlistPath,
+    profile,
+  };
+}
+
+/**
  * FFmpeg 프로세스 종료
  */
 export async function killFFmpegProcess(process: ChildProcess): Promise<void> {

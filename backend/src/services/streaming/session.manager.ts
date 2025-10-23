@@ -17,15 +17,18 @@ export class SessionManager {
   private starting = new Map<string, Promise<HLSSession | null>>(); // 생성 중인 세션 프라미스
   private stoppedTombstones = new Map<string, number>(); // 최근 중지된 세션 마커
   private readonly sessionTimeout: number;
+  private readonly variantTimeout: number;
   private readonly failureTimeout: number;
   private readonly stoppedTombstoneTtl: number = 5 * 1000; // 5초동안 재시작 방지
   private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(
-    sessionTimeout: number = 5 * 60 * 1000,
+    sessionTimeout: number = 30 * 60 * 1000, // 30분: 전체 세션 타임아웃
+    variantTimeout: number = 10 * 60 * 1000, // 10분: 개별 variant 타임아웃
     failureTimeout: number = 10 * 60 * 1000 // 10분간 실패 기록 유지
   ) {
     this.sessionTimeout = sessionTimeout;
+    this.variantTimeout = variantTimeout;
     this.failureTimeout = failureTimeout;
     this.startCleanupTask();
   }
@@ -48,6 +51,48 @@ export class SessionManager {
       session.lastAccess = Date.now();
     }
     return session;
+  }
+
+  /**
+   * 특정 품질 variant가 존재하는지 확인
+   */
+  hasVariant(mediaId: string, quality: string): boolean {
+    const session = this.sessions.get(mediaId);
+    return session?.variants.has(quality) ?? false;
+  }
+
+  /**
+   * 특정 품질 variant 조회
+   */
+  getVariant(mediaId: string, quality: string): import('./types.js').VariantSession | undefined {
+    const session = this.sessions.get(mediaId);
+    if (session) {
+      session.lastAccess = Date.now();
+      return session.variants.get(quality);
+    }
+    return undefined;
+  }
+
+  /**
+   * 특정 품질 variant 추가
+   */
+  addVariant(mediaId: string, quality: string, variant: import('./types.js').VariantSession): void {
+    const session = this.sessions.get(mediaId);
+    if (!session) {
+      logger.error(`Cannot add variant: session ${mediaId} not found`);
+      return;
+    }
+
+    session.variants.set(quality, variant);
+    logger.info(`Added ${quality} variant to session ${mediaId}`);
+  }
+
+  /**
+   * 특정 품질 variant가 준비되었는지 확인 (첫 세그먼트 생성 완료)
+   */
+  isVariantReady(mediaId: string, quality: string): boolean {
+    const variant = this.getVariant(mediaId, quality);
+    return variant?.isReady ?? false;
   }
 
   /**
@@ -131,21 +176,25 @@ export class SessionManager {
     logger.info(`Removing session for media ${mediaId}`);
 
     try {
-      // FFmpeg 프로세스 종료
-      try {
-        await killFFmpegProcess(session.process);
-      } catch (error) {
-        logger.error(`Failed to kill FFmpeg process for ${mediaId}:`, error);
-      }
+      // 모든 variant의 FFmpeg 프로세스 종료
+      const variantKillPromises = Array.from(session.variants.values()).map(async variant => {
+        try {
+          await killFFmpegProcess(variant.process);
+        } catch (error) {
+          logger.error(`Failed to kill FFmpeg process for variant ${variant.profile.name}:`, error);
+        }
+      });
 
-      // 출력 디렉터리 삭제
+      await Promise.all(variantKillPromises);
+
+      // 출력 디렉터리 삭제 (모든 variant 포함)
       try {
         await fs.rm(session.outputDir, { recursive: true, force: true });
       } catch (error) {
         logger.error(`Failed to remove output directory for ${mediaId}:`, error);
       }
 
-      logger.success(`Session removed for media ${mediaId}`);
+      logger.success(`Session removed for media ${mediaId} (${session.variants.size} variants)`);
     } finally {
       // 삭제 완료 - 상태 제거
       this.deletingSessions.delete(mediaId);
@@ -165,10 +214,35 @@ export class SessionManager {
   }
 
   /**
-   * 타임아웃된 세션 및 만료된 실패 기록 정리
+   * 타임아웃된 세션 및 variant 정리
+   *
+   * Lazy ABR 캐시 정리:
+   * 1. Variant 타임아웃 체크 (10분) - 오래 사용하지 않은 variant만 삭제
+   * 2. 세션 타임아웃 체크 (30분) - 전체 세션 삭제
+   * 3. 실패 기록 정리
    */
   private async cleanupTimeoutSessions(): Promise<void> {
     const now = Date.now();
+
+    // 1. Variant 타임아웃 정리 (세션은 유지)
+    for (const [mediaId, session] of this.sessions.entries()) {
+      const variantsToRemove: string[] = [];
+
+      // 각 variant의 lastSegmentTime 체크
+      for (const [quality, variant] of session.variants.entries()) {
+        if (now - variant.lastSegmentTime > this.variantTimeout) {
+          variantsToRemove.push(quality);
+        }
+      }
+
+      // 오래된 variant 정리
+      for (const quality of variantsToRemove) {
+        logger.info(`Cleaning up timeout variant ${quality} for ${mediaId}`);
+        await this.removeVariant(mediaId, quality);
+      }
+    }
+
+    // 2. 전체 세션 타임아웃 정리
     const sessionsToCleanup: string[] = [];
 
     for (const [mediaId, session] of this.sessions.entries()) {
@@ -184,8 +258,38 @@ export class SessionManager {
       }
     }
 
-    // 만료된 실패 기록도 정리
+    // 3. 만료된 실패 기록도 정리
     this.cleanupExpiredFailures();
+  }
+
+  /**
+   * 특정 variant만 제거
+   */
+  private async removeVariant(mediaId: string, quality: string): Promise<void> {
+    const session = this.sessions.get(mediaId);
+    if (!session) {
+      return;
+    }
+
+    const variant = session.variants.get(quality);
+    if (!variant) {
+      return;
+    }
+
+    try {
+      // FFmpeg 프로세스 종료
+      await killFFmpegProcess(variant.process);
+
+      // Variant 디렉터리 삭제
+      await fs.rm(variant.outputDir, { recursive: true, force: true });
+
+      // Map에서 제거
+      session.variants.delete(quality);
+
+      logger.success(`Removed variant ${quality} for ${mediaId}`);
+    } catch (error) {
+      logger.error(`Failed to remove variant ${quality} for ${mediaId}:`, error);
+    }
   }
 
   /**

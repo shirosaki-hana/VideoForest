@@ -15,14 +15,16 @@ export async function getMediaInfo(mediaId: string, signal?: AbortSignal): Promi
 }
 
 /**
- * HLS Playlist URL 생성 (단일 품질)
+ * HLS Master Playlist URL 생성 (ABR 지원)
  *
- * 단순화된 단일 품질 스트리밍
- * 서버가 원본 해상도에 맞춰 최적의 품질을 자동 선택합니다.
+ * Lazy ABR:
+ * - Master Playlist는 모든 사용 가능한 품질을 나열
+ * - Video.js가 자동으로 적절한 품질 선택
+ * - 요청된 품질만 서버에서 on-demand로 트랜스코딩
  */
 export function getHLSPlaylistUrl(mediaId: string): string {
   const baseURL = apiClient.defaults.baseURL || '';
-  return `${baseURL}/stream/hls/${mediaId}/playlist.m3u8`;
+  return `${baseURL}/stream/hls/${mediaId}/master.m3u8`;
 }
 
 /**
@@ -33,7 +35,7 @@ export async function stopStreaming(mediaId: string): Promise<void> {
 }
 
 /**
- * Playlist가 준비될 때까지 폴링
+ * Master Playlist가 준비될 때까지 폴링
  */
 export async function waitForPlaylist(mediaId: string, maxWaitMs: number = 30000, signal?: AbortSignal): Promise<boolean> {
   const startTime = Date.now();
@@ -42,10 +44,10 @@ export async function waitForPlaylist(mediaId: string, maxWaitMs: number = 30000
   while (Date.now() - startTime < maxWaitMs) {
     if (signal?.aborted) return false;
     try {
-      // GET 요청으로 Playlist 존재 확인
-      const response = await apiClient.get(`/stream/hls/${mediaId}/playlist.m3u8`, { signal });
+      // GET 요청으로 Master Playlist 존재 확인
+      const response = await apiClient.get(`/stream/hls/${mediaId}/master.m3u8`, { signal });
 
-      // 202 응답 (트랜스코딩 진행 중)은 계속 대기
+      // 202 응답 (세션 초기화 중)은 계속 대기
       if (response.status === 202) {
         await new Promise(resolve => setTimeout(resolve, pollInterval));
         continue;

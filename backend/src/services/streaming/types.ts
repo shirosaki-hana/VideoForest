@@ -62,16 +62,29 @@ export interface FFmpegProcessResult {
 }
 
 /**
- * HLS 세션 정보
+ * 단일 품질 variant 세션
+ */
+export interface VariantSession {
+  profile: QualityProfile;
+  process: ChildProcess;
+  outputDir: string;
+  playlistPath: string;
+  isReady: boolean; // 첫 세그먼트 생성 완료 여부
+  segmentCount: number; // 생성된 세그먼트 수
+  lastSegmentTime: number; // 마지막 세그먼트 생성 시간
+}
+
+/**
+ * HLS 다중 품질 ABR 세션
  */
 export interface HLSSession {
   mediaId: string;
-  process: ChildProcess;
-  outputDir: string;
+  outputDir: string; // 루트 출력 디렉터리
   lastAccess: number;
-  playlistPath: string;
-  profile: QualityProfile;
   analysis: MediaAnalysis;
+  variants: Map<string, VariantSession>; // 품질 이름 -> variant 세션
+  masterPlaylistPath: string; // master.m3u8 경로
+  availableProfiles: QualityProfile[]; // 사용 가능한 모든 품질 프로파일
 }
 
 /**

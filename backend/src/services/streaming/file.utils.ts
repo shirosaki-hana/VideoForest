@@ -38,13 +38,18 @@ export async function cleanupOutputDir(outputDir: string): Promise<void> {
  * 첫 번째 세그먼트가 생성될 때까지 대기
  *
  * 단순화: segment_000.ts와 playlist.m3u8만 체크
+ *
+ * @param outputDir 출력 디렉터리
+ * @param maxWaitMs 최대 대기 시간 (밀리초, 기본 20초)
  */
-export async function waitForFirstSegment(outputDir: string): Promise<boolean> {
+export async function waitForFirstSegment(outputDir: string, maxWaitMs: number = 20000): Promise<boolean> {
   const firstSegmentPath = path.join(outputDir, 'segment_000.ts');
   const playlistPath = path.join(outputDir, 'playlist.m3u8');
 
-  // 최대 20초 대기 (200ms * 100)
-  for (let i = 0; i < 100; i++) {
+  const pollInterval = 200;
+  const maxIterations = Math.ceil(maxWaitMs / pollInterval);
+
+  for (let i = 0; i < maxIterations; i++) {
     const segmentExists = existsSync(firstSegmentPath);
     const playlistExists = existsSync(playlistPath);
 
@@ -60,7 +65,7 @@ export async function waitForFirstSegment(outputDir: string): Promise<boolean> {
       }
     }
 
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
   }
 
   return false;

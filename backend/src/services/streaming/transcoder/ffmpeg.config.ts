@@ -4,9 +4,9 @@ import type { QualityProfile, MediaInfo } from '../types.js';
 /**
  * 표준 품질 프로파일 정의
  *
- * 단일 품질로 단순화 - 원본 해상도에 맞춰 선택
+ * ABR을 위한 다양한 품질 레벨
  */
-const QUALITY_PROFILES: Record<string, QualityProfile> = {
+export const QUALITY_PROFILES: Record<string, QualityProfile> = {
   '1080p': {
     name: '1080p',
     width: 1920,
@@ -159,4 +159,65 @@ export function getGOPSize(fps: number, segmentTime: number): number {
  */
 export function getKeyframeExpression(segmentTime: number): string {
   return `expr:gte(t,n_forced*${segmentTime})`;
+}
+
+/**
+ * 원본 해상도에 적합한 모든 ABR 품질 프로파일 생성
+ *
+ * Lazy ABR 전략:
+ * - 원본보다 높은 해상도는 제외 (업스케일링 방지)
+ * - 최소 2개, 최대 4개 품질 제공
+ * - 대역폭 범위를 최대한 커버
+ *
+ * @param mediaInfo 미디어 정보
+ * @returns 사용 가능한 품질 프로파일 배열 (높은 품질 -> 낮은 품질 순서)
+ */
+export function generateABRProfiles(mediaInfo: MediaInfo): QualityProfile[] {
+  const width = mediaInfo.width || 0;
+  const height = mediaInfo.height || 0;
+
+  // 원본 해상도가 없으면 720p, 480p 기본값
+  if (!width || !height) {
+    return [QUALITY_PROFILES['720p'], QUALITY_PROFILES['480p']];
+  }
+
+  const profiles: QualityProfile[] = [];
+
+  // 원본 해상도 이하의 프로파일만 선택
+  if (width >= 1920 && height >= 1080) {
+    profiles.push(QUALITY_PROFILES['1080p']);
+  }
+  if (width >= 1280 && height >= 720) {
+    profiles.push(QUALITY_PROFILES['720p']);
+  }
+  if (width >= 854 && height >= 480) {
+    profiles.push(QUALITY_PROFILES['480p']);
+  }
+  // 항상 360p는 포함 (모바일/저속 네트워크 대응)
+  profiles.push(QUALITY_PROFILES['360p']);
+
+  // 최소 2개 품질 보장
+  if (profiles.length < 2) {
+    // 매우 낮은 해상도인 경우, 커스텀 프로파일 추가
+    const customProfile = createCustomProfile(width, height);
+    profiles.unshift(customProfile);
+    profiles.push(QUALITY_PROFILES['360p']);
+  }
+
+  return profiles;
+}
+
+/**
+ * 기본(초기) 품질 선택
+ *
+ * Lazy ABR에서 처음에 트랜스코딩을 시작할 품질을 선택합니다.
+ * 중간 품질을 선택하여 대부분의 네트워크 환경에 적합하도록 합니다.
+ *
+ * @param profiles 사용 가능한 품질 프로파일 배열
+ * @returns 초기 트랜스코딩 품질
+ */
+export function selectDefaultProfile(profiles: QualityProfile[]): QualityProfile {
+  // 중간 품질 선택 (대부분의 경우 720p or 480p)
+  const middleIndex = Math.floor(profiles.length / 2);
+  return profiles[middleIndex];
 }
