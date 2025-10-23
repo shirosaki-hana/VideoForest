@@ -193,6 +193,8 @@ function buildFFmpegArgs(mediaPath: string, outputDir: string, profile: QualityP
     segmentTime.toString(),
     '-hls_list_size',
     HLS_CONFIG.listSize.toString(),
+    '-hls_playlist_type',
+    HLS_CONFIG.playlistType,
     '-hls_segment_type',
     HLS_CONFIG.segmentType,
     '-hls_flags',

@@ -127,12 +127,14 @@ export function createCustomProfile(width: number, height: number): QualityProfi
  * 최적화된 설정:
  * - 6초 세그먼트: 버퍼링 감소, 탐색 정확도 개선
  * - 독립 세그먼트: 각 세그먼트가 독립적으로 디코딩 가능
+ * - VOD 플레이리스트 타입: JIT 트랜스코딩에서도 VOD로 인식되도록 함
  */
 export const HLS_CONFIG = {
   segmentTime: 6, // 세그먼트 길이 (초) - 4초보다 안정적
   listSize: 0, // 모든 세그먼트 유지 (VOD)
   segmentType: 'mpegts', // MPEG-TS (호환성 우수)
   flags: 'independent_segments+temp_file',
+  playlistType: 'event', // VOD 플레이리스트 (라이브 스트림 아님)
   startNumber: 0,
 } as const;
 
