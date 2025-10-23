@@ -80,7 +80,7 @@ export function getSiblingFiles(nodes: MediaTreeNode[], targetId: string): Media
   // targetNode의 folderId가 null이면 루트 레벨의 파일들
   // null이 아니면 해당 폴더의 파일들
   const findFilesInSameFolder = (nodes: MediaTreeNode[], folderId: string | null): MediaTreeNode[] => {
-    let files: MediaTreeNode[] = [];
+    const files: MediaTreeNode[] = [];
 
     for (const node of nodes) {
       if (node.type === 'folder') {

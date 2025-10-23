@@ -68,19 +68,17 @@ export default function PlayerPage() {
         setLoading(false);
 
         // 2. 스트리밍 준비 대기 (Playlist가 생성될 때까지)
-        console.log('Waiting for HLS streaming to be ready...');
         const isReady = await waitForPlaylist(mediaId, 30000, signal); // 최대 30초 대기
         if (signal.aborted) return;
 
         if (isReady) {
-          console.log('HLS streaming is ready! Starting playback...');
           setPlaylistUrl(getHLSPlaylistUrl(mediaId));
           setPreparingStream(false);
         } else {
           throw new Error('Stream preparation failed or timeout. Please try again.');
         }
-      } catch (err: any) {
-        if (signal.aborted || err?.code === 'ERR_CANCELED') {
+      } catch (err: unknown) {
+        if (signal.aborted || (err && typeof err === 'object' && 'code' in err && err.code === 'ERR_CANCELED')) {
           return; // 취소 시 무시
         }
         const errorMessage = err instanceof Error ? err.message : 'Failed to load media info';
@@ -120,11 +118,7 @@ export default function PlayerPage() {
 
     return () => {
       if (currentMediaId) {
-        console.log(`PlayerPage cleanup: stopping streaming for ${currentMediaId}`);
-        // 페이지 이탈 또는 다른 영상으로 전환 시 현재 세션 종료
-        stopStreaming(currentMediaId).catch(error => {
-          console.error(`Failed to stop streaming for ${currentMediaId}:`, error);
-        });
+        stopStreaming(currentMediaId);
       }
     };
   }, [mediaId]);
@@ -136,7 +130,6 @@ export default function PlayerPage() {
   // useCallback으로 메모이제이션하여 리렌더링 시 재생성 방지
   const handlePlayerError = useCallback((error: MediaError | null) => {
     const errorMessage = error?.message || 'Unknown error';
-    console.error('Player error:', errorMessage);
     // 에러가 발생해도 바로 상태를 업데이트하지 않음
     // 폴백이 진행 중일 수 있으므로 재시도 기회를 줌
     setTimeout(() => {
@@ -146,9 +139,7 @@ export default function PlayerPage() {
 
   // 비디오 종료 시 자동으로 다음 파일 재생
   const handleVideoEnded = useCallback(() => {
-    console.log('Video ended. Auto-play next:', autoPlayNext);
     if (autoPlayNext && nextFile) {
-      console.log('Playing next file:', nextFile.name);
       navigate(`/player/${nextFile.id}`);
     }
   }, [autoPlayNext, nextFile, navigate]);

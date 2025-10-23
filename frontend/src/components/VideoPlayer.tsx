@@ -25,8 +25,6 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
       return;
     }
 
-    console.log('VideoPlayer: Initializing player');
-
     // Video.js 플레이어 생성
     const videoElement = document.createElement('video-js');
     videoElement.classList.add('vjs-big-play-centered');
@@ -50,18 +48,16 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
         },
       },
       () => {
-        // 플레이어 준비 완료
-        console.log('Video.js player ready');
-
         // HLS 요청에 쿠키 포함 (쿠키 기반 인증용)
-        const tech = player.tech({ IWillNotUseThisInPlugins: true }) as any;
+        const tech = player.tech({ IWillNotUseThisInPlugins: true }) as {
+          vhs?: { xhr?: { beforeRequest?: (options: { withCredentials?: boolean }) => { withCredentials?: boolean } } };
+        };
         if (tech?.vhs) {
           const vhs = tech.vhs;
-          if (vhs && typeof vhs.xhr === 'object') {
-            vhs.xhr.beforeRequest = (options: any) => {
+          if (vhs && vhs.xhr && typeof vhs.xhr === 'object') {
+            vhs.xhr.beforeRequest = (options: { withCredentials?: boolean }) => {
               // XMLHttpRequest에 withCredentials 설정하여 쿠키 포함
               options.withCredentials = true;
-              console.log('Video.js XHR request:', options.uri);
               return options;
             };
           }
@@ -73,36 +69,17 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
       }
     );
 
-    // 디버깅을 위한 이벤트 리스너
-    player.on('loadstart', () => console.log('Video.js: loadstart'));
-    player.on('loadedmetadata', () => console.log('Video.js: loadedmetadata'));
-    player.on('canplay', () => console.log('Video.js: canplay'));
-    player.on('playing', () => console.log('Video.js: playing'));
-    player.on('waiting', () => console.log('Video.js: waiting'));
-    player.on('stalled', () => console.log('Video.js: stalled'));
-
-    // HLS 관련 이벤트 리스너
-    const tech = player.tech({ IWillNotUseThisInPlugins: true }) as any;
-    if (tech?.vhs) {
-      tech.vhs.on('loadedplaylist', () => {
-        console.log('VHS: loadedplaylist');
-      });
-      tech.vhs.on('error', (event: any) => {
-        console.error('VHS error:', event);
-      });
-    }
-
     playerRef.current = player;
 
     // cleanup: 컴포넌트 언마운트 시에만 플레이어 정리
     return () => {
-      console.log('VideoPlayer cleanup: disposing player');
       if (playerRef.current && !playerRef.current.isDisposed()) {
         playerRef.current.dispose();
         playerRef.current = null;
       }
     };
-  }, []); // 의존성 없음 - 한 번만 실행
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 의존성 없음 - 한 번만 실행 (onReady는 의도적으로 제외)
 
   // src 변경 감지 및 동적 업데이트 (플레이어 재생성 없이)
   useEffect(() => {
@@ -113,7 +90,6 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
 
     // 미디어가 실제로 변경되었을 때만 src 업데이트
     if (prevMediaIdRef.current !== mediaId) {
-      console.log(`VideoPlayer: Changing source to mediaId ${mediaId}`);
       prevMediaIdRef.current = mediaId;
 
       // 기존 소스와 다르면 새 소스로 변경
@@ -124,12 +100,7 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
 
       // 자동 재생 (소스 변경 후)
       player.ready(() => {
-        const playPromise = player.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.warn('Auto-play prevented:', error);
-          });
-        }
+        player.play();
       });
     }
   }, [src, mediaId]);
@@ -152,7 +123,6 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
     if (onError) {
       player.on('error', () => {
         const error = player.error();
-        console.error('Video.js player error:', error);
         onError(error);
       });
     }

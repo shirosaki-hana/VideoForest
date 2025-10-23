@@ -47,21 +47,27 @@ export async function waitForPlaylist(mediaId: string, maxWaitMs: number = 30000
 
       // 202 응답 (트랜스코딩 진행 중)은 계속 대기
       if (response.status === 202) {
-        console.log('Transcoding in progress...');
         await new Promise(resolve => setTimeout(resolve, pollInterval));
         continue;
       }
 
       // 200 응답이면 준비 완료
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // 요청이 취소된 경우 즉시 종료
-      if (error?.code === 'ERR_CANCELED') {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ERR_CANCELED') {
         return false;
       }
       // 500 에러 (트랜스코딩 실패)는 즉시 실패 처리
-      if (error.response?.status === 500) {
-        console.error('Transcoding failed:', error.response?.data);
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'status' in error.response &&
+        error.response.status === 500
+      ) {
         return false;
       }
 
