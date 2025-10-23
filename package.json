@@ -19,7 +19,13 @@
     "format": "pnpm -r run format",
     "format:check": "pnpm -r run format:check",
     "start": "pnpm --filter backend run start",
-    "clean": "pnpm --filter backend run clean && pnpm --filter frontend run clean && pnpm --filter types run clean"
+    "clean": "pnpm --filter backend run clean && pnpm --filter frontend run clean && pnpm --filter types run clean",
+    "db:status": "pnpm --filter backend db:status",
+    "db:dev": "pnpm --filter backend db:dev",
+    "db:deploy": "pnpm --filter backend db:deploy",
+    "db:generate": "pnpm --filter backend db:generate",
+    "db:studio": "pnpm --filter backend db:studio",
+    "db:reset": "pnpm --filter backend db:reset"
   },
   "dependencies": {
     "zod": "^4.1.5"
