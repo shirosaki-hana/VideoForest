@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import compress from '@fastify/compress';
-import helmet from '@fastify/helmet';
+//import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import staticFiles from '@fastify/static';
 import apiRoutes from './api/index.js';
@@ -20,10 +20,10 @@ const corsConfig = {
   origin: isDevelopment ? true : env.FRONTEND_URL,
   credentials: true,
 };
-const helmetConfig = {
-  contentSecurityPolicy: isProduction ? undefined : false,
-  crossOriginEmbedderPolicy: false,
-};
+//const helmetConfig = {
+//  contentSecurityPolicy: isProduction ? undefined : false,
+//  crossOriginEmbedderPolicy: false,
+//};
 const rateLimitConfig = {
   max: env.RATELIMIT_MAX,
   timeWindow: ms(env.RATELIMIT_WINDOWMS),
@@ -40,7 +40,7 @@ const staticFilesConfig = {
 // Fastify 서버 생성
 async function createFastifyApp() {
   const fastify = Fastify(fastifyConfig);
-  await fastify.register(helmet, helmetConfig);
+  //await fastify.register(helmet, helmetConfig);
   await fastify.register(rateLimit, rateLimitConfig);
   await fastify.register(compress);
   await fastify.register(cors, corsConfig);
