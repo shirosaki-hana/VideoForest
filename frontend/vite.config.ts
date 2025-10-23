@@ -14,7 +14,8 @@ export default defineConfig({
     }),
   ],
   build: {
-    target: 'es2022',
+    target: 'es2023',
+    chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
         manualChunks: id => {
@@ -25,6 +26,9 @@ export default defineConfig({
             if (id.includes('@mui')) {
               return 'vendor';
             }
+            if (id.includes('video.js')) {
+              return 'player';
+            }
           }
         },
       },
@@ -32,11 +36,6 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/auth': {
-        target: 'http://localhost:4001',
-        changeOrigin: true,
-        secure: false,
-      },
       '/api': {
         target: 'http://localhost:4001',
         changeOrigin: true,
