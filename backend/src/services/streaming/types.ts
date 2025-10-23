@@ -2,9 +2,9 @@ import type { ChildProcess } from 'child_process';
 //------------------------------------------------------------------------------//
 
 /**
- * 트랜스코딩 방식
+ * 트랜스코딩 방식 (CPU만 지원)
  */
-export type TranscodeMethod = 'cpu' | 'nvenc' | 'qsv';
+export type TranscodeMethod = 'cpu';
 
 /**
  * 비디오 품질 프로파일 (단일 품질)

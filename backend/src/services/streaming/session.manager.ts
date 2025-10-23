@@ -333,7 +333,9 @@ export class SessionManager {
    */
   isRecentlyStopped(mediaId: string): boolean {
     const ts = this.stoppedTombstones.get(mediaId);
-    if (!ts) return false;
+    if (!ts) {
+      return false;
+    }
     const now = Date.now();
     if (now - ts <= this.stoppedTombstoneTtl) {
       return true;

@@ -41,7 +41,7 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
       }
 
       // 플레이리스트 파일 대기 (최대 2초)
-      let resolved = playlistPath;
+      const resolved = playlistPath;
       const start = Date.now();
       while (!existsSync(resolved) && Date.now() - start < 2000) {
         await new Promise(resolve => setTimeout(resolve, 100));

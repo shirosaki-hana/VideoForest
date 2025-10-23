@@ -3,18 +3,18 @@ import path from 'path';
 import { logger, getFFmpegPath } from '../../../utils/index.js';
 import { buildVideoEncoderArgs, buildAudioEncoderArgs, buildVideoFilter, getErrorResilienceArgs, getInputArgs } from './encoder.options.js';
 import { HLS_CONFIG } from './ffmpeg.config.js';
-import type { TranscodeMethod, QualityProfile, FFmpegProcessResult, MediaAnalysis } from '../types.js';
+import type { QualityProfile, FFmpegProcessResult, MediaAnalysis } from '../types.js';
 //------------------------------------------------------------------------------//
 
 /**
  * 단일 품질 HLS 트랜스코딩 시작
  *
  * ABR 제거하고 단순하지만 강력한 단일 품질 트랜스코딩
+ * CPU 트랜스코딩만 지원합니다.
  *
  * @param mediaPath 원본 미디어 파일 경로
  * @param outputDir 출력 디렉터리
  * @param profile 품질 프로파일
- * @param transcodeMethod 트랜스코딩 방식 (cpu/nvenc/qsv)
  * @param analysis 미디어 분석 결과
  * @returns FFmpeg 프로세스 및 플레이리스트 경로
  */
@@ -22,17 +22,16 @@ export async function startTranscoding(
   mediaPath: string,
   outputDir: string,
   profile: QualityProfile,
-  transcodeMethod: TranscodeMethod,
   analysis: MediaAnalysis
 ): Promise<FFmpegProcessResult | null> {
   const playlistPath = path.join(outputDir, 'playlist.m3u8');
 
-  logger.info(`Starting HLS transcoding with ${transcodeMethod.toUpperCase()} encoder`);
+  logger.info(`Starting HLS transcoding with CPU encoder`);
   logger.info(`Quality: ${profile.name} (${profile.width}x${profile.height})`);
   logger.info(`Input codec: ${analysis.inputFormat.videoCodec}, Audio: ${analysis.inputFormat.audioCodec || 'none'}`);
 
   // FFmpeg 명령어 구성
-  const ffmpegArgs = buildFFmpegArgs(mediaPath, outputDir, profile, transcodeMethod, analysis);
+  const ffmpegArgs = buildFFmpegArgs(mediaPath, outputDir, profile, analysis);
 
   // FFmpeg 경로 가져오기 (시스템 FFmpeg 우선)
   const ffmpegPath = getFFmpegPath();
@@ -45,8 +44,7 @@ export async function startTranscoding(
     stdio: ['ignore', 'pipe', 'pipe'], // stdin 무시, stdout/stderr 파이프
   });
 
-  // GPU 인코더 실패 감지
-  let encoderInitFailed = false;
+  // FFmpeg 출력 캡처
   let ffmpegOutput = '';
   const MAX_OUTPUT_SIZE = 50000; // 최대 50KB까지만 저장 (메모리 누수 방지)
 
@@ -59,12 +57,6 @@ export async function startTranscoding(
     } else if (ffmpegOutput.length < MAX_OUTPUT_SIZE + 1000) {
       // 한 번만 경고
       ffmpegOutput += '\n... (output truncated to prevent memory overflow) ...';
-    }
-
-    // GPU 인코더 초기화 실패 감지
-    if (isEncoderInitializationError(message, transcodeMethod)) {
-      encoderInitFailed = true;
-      logger.error(`Encoder initialization failed: ${message.trim()}`);
     }
 
     // 에러 메시지 로깅 (심각한 것만)
@@ -87,22 +79,8 @@ export async function startTranscoding(
     }
   });
 
-  // 프로세스 시작 대기 (GPU는 초기화 시간 필요)
-  const waitTime = transcodeMethod === 'cpu' ? 1000 : 1500;
-  await new Promise(resolve => setTimeout(resolve, waitTime));
-
-  // GPU 인코더 실패 확인
-  if (encoderInitFailed) {
-    logger.error(`${transcodeMethod.toUpperCase()} encoder initialization failed. GPU encoding is not available.`);
-    logger.error(`Please verify GPU drivers and hardware support for ${transcodeMethod.toUpperCase()}`);
-    try {
-      ffmpegProcess.kill('SIGKILL');
-    } catch {
-      // 이미 종료된 경우 무시
-    }
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return null;
-  }
+  // 프로세스 시작 대기
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
   // 프로세스가 즉시 종료되었는지 확인
   if (ffmpegProcess.exitCode !== null) {
@@ -160,13 +138,7 @@ export async function startTranscoding(
  *
  * 메타데이터 기반 최적화된 커맨드 빌드
  */
-function buildFFmpegArgs(
-  mediaPath: string,
-  outputDir: string,
-  profile: QualityProfile,
-  transcodeMethod: TranscodeMethod,
-  analysis: MediaAnalysis
-): string[] {
+function buildFFmpegArgs(mediaPath: string, outputDir: string, profile: QualityProfile, analysis: MediaAnalysis): string[] {
   const args: string[] = [];
 
   // 1. 입력 옵션 (안정적인 디코딩)
@@ -201,7 +173,7 @@ function buildFFmpegArgs(
   if (videoFilter !== 'null') {
     args.push('-vf', videoFilter);
   }
-  args.push(...buildVideoEncoderArgs(transcodeMethod, profile, analysis));
+  args.push(...buildVideoEncoderArgs(profile, analysis));
 
   // 7. 오디오 인코딩 옵션
   const audioArgs = buildAudioEncoderArgs(profile, analysis);
@@ -243,32 +215,6 @@ function buildFFmpegArgs(
 function normalizePathForFFmpeg(filePath: string): string {
   // Windows 경로를 Unix 스타일로 변환 (FFmpeg는 둘 다 인식)
   return filePath.replace(/\\/g, '/');
-}
-
-/**
- * 인코더 초기화 에러 감지
- */
-function isEncoderInitializationError(message: string, transcodeMethod: TranscodeMethod): boolean {
-  if (transcodeMethod === 'cpu') {
-    return false; // CPU는 항상 작동
-  }
-
-  const errorPatterns = [
-    'Cannot load',
-    'No capable devices found',
-    'not available',
-    'Failed to',
-    'Unable to parse option',
-    'Error setting option',
-    'Error initializing',
-    'unknown encoder',
-    'does not support',
-    'No NVENC capable devices found',
-    'cannot open the link',
-    'Failed to query',
-  ];
-
-  return errorPatterns.some(pattern => message.includes(pattern));
 }
 
 /**

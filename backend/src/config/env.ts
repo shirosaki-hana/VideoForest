@@ -42,11 +42,6 @@ const envSchema = z.object({
         .filter(p => p.length > 0)
     )
     .pipe(z.array(z.string()).min(1)),
-  // 트랜스코딩 방식 설정
-  // cpu: 소프트웨어 인코딩 (libx264) - 품질 우수, 느림
-  // nvenc: NVIDIA GPU 가속 (h264_nvenc) - 빠름, NVIDIA GPU 필요
-  // qsv: Intel Quick Sync Video (h264_qsv) - 빠름, Intel GPU 필요
-  TRANSCODE_METHOD: z.enum(['cpu', 'nvenc', 'qsv']).default('cpu'),
 });
 
 // 출력

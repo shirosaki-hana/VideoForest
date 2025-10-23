@@ -1,4 +1,4 @@
-import type { TranscodeMethod, QualityProfile, MediaAnalysis } from '../types.js';
+import type { QualityProfile, MediaAnalysis } from '../types.js';
 import { getGOPSize, getKeyframeExpression } from './ffmpeg.config.js';
 //------------------------------------------------------------------------------//
 
@@ -6,23 +6,15 @@ import { getGOPSize, getKeyframeExpression } from './ffmpeg.config.js';
  * 메타데이터 기반 동적 비디오 인코더 옵션 빌더
  *
  * 원본 비디오 정보를 분석하여 최적의 FFmpeg 옵션을 생성합니다.
+ * CPU 트랜스코딩만 지원합니다.
  */
-export function buildVideoEncoderArgs(transcodeMethod: TranscodeMethod, profile: QualityProfile, analysis: MediaAnalysis): string[] {
+export function buildVideoEncoderArgs(profile: QualityProfile, analysis: MediaAnalysis): string[] {
   const fps = analysis.inputFormat.fps || 24;
   const segmentTime = analysis.segmentTime;
   const gopSize = getGOPSize(fps, segmentTime);
   const keyframeExpr = getKeyframeExpression(segmentTime);
 
-  switch (transcodeMethod) {
-    case 'cpu':
-      return buildCPUVideoArgs(profile, gopSize, keyframeExpr);
-    case 'nvenc':
-      return buildNVENCVideoArgs(profile, gopSize, keyframeExpr);
-    case 'qsv':
-      return buildQSVVideoArgs(profile, gopSize, keyframeExpr);
-    default:
-      throw new Error(`Unknown transcode method: ${transcodeMethod}`);
-  }
+  return buildCPUVideoArgs(profile, gopSize, keyframeExpr);
 }
 
 /**
@@ -58,116 +50,6 @@ function buildCPUVideoArgs(profile: QualityProfile, gopSize: number, keyframeExp
     gopSize.toString(),
     '-force_key_frames',
     keyframeExpr,
-  ];
-}
-
-/**
- * NVIDIA NVENC 인코더 옵션
- *
- * GPU 가속으로 빠른 인코딩
- * 구버전 FFmpeg 호환성을 위해 레거시 모드 지원
- */
-function buildNVENCVideoArgs(profile: QualityProfile, gopSize: number, keyframeExpr: string): string[] {
-  // 레거시 모드: 구버전 FFmpeg (2018년 이전)와 호환되는 기본 옵션만 사용
-  // 최신 옵션(-rc, -cq, -tune, -spatial_aq 등)은 FFmpeg 4.0+ 필요
-  const useLegacyMode = true; // TODO: FFmpeg 버전 감지 후 자동 설정
-
-  if (useLegacyMode) {
-    // 구버전 호환 옵션 (FFmpeg 3.x 이하)
-    return [
-      '-c:v',
-      'h264_nvenc',
-      '-preset',
-      'slow', // slow/medium/fast만 지원
-      '-b:v',
-      profile.videoBitrate, // 목표 비트레이트
-      '-maxrate',
-      profile.maxrate,
-      '-bufsize',
-      profile.bufsize,
-      '-profile:v',
-      'high',
-      '-pix_fmt',
-      'yuv420p',
-      '-g',
-      gopSize.toString(),
-      '-keyint_min',
-      gopSize.toString(),
-      '-force_key_frames',
-      keyframeExpr, // 정확한 키프레임 위치
-    ];
-  }
-
-  // 최신 옵션 (FFmpeg 4.0+)
-  return [
-    '-c:v',
-    'h264_nvenc',
-    '-preset',
-    'slow', // NVENC 프리셋 (구형 호환: slow/medium/fast)
-    '-tune',
-    'hq', // 고품질 튜닝
-    '-rc',
-    'vbr', // 가변 비트레이트
-    '-cq',
-    '23', // 일정 품질
-    '-b:v',
-    profile.videoBitrate, // 목표 비트레이트
-    '-maxrate',
-    profile.maxrate,
-    '-bufsize',
-    profile.bufsize,
-    '-profile:v',
-    'high',
-    '-pix_fmt',
-    'yuv420p',
-    '-g',
-    gopSize.toString(),
-    '-keyint_min',
-    gopSize.toString(),
-    '-forced-idr',
-    '1', // IDR 프레임 강제
-    '-force_key_frames',
-    keyframeExpr, // 정확한 키프레임 위치
-    '-spatial_aq',
-    '1', // Spatial AQ 활성화
-    '-temporal_aq',
-    '1', // Temporal AQ 활성화
-  ];
-}
-
-/**
- * Intel QSV 인코더 옵션
- *
- * Intel GPU 가속
- */
-function buildQSVVideoArgs(profile: QualityProfile, gopSize: number, keyframeExpr: string): string[] {
-  return [
-    '-c:v',
-    'h264_qsv',
-    '-preset',
-    'medium',
-    '-global_quality',
-    '23',
-    '-b:v',
-    profile.videoBitrate,
-    '-maxrate',
-    profile.maxrate,
-    '-bufsize',
-    profile.bufsize,
-    '-profile:v',
-    'high',
-    '-level',
-    '4.1',
-    '-pix_fmt',
-    'nv12', // QSV 최적화 포맷
-    '-g',
-    gopSize.toString(),
-    '-keyint_min',
-    gopSize.toString(),
-    '-force_key_frames',
-    keyframeExpr, // 정확한 키프레임 위치
-    '-look_ahead',
-    '1',
   ];
 }
 

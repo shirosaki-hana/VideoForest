@@ -137,33 +137,6 @@ export const HLS_CONFIG = {
 } as const;
 
 /**
- * 최적 세그먼트 시간 계산
- *
- * FPS와 인코더 제약을 고려하여 최적의 HLS 세그먼트 길이를 결정합니다.
- * GOP 크기가 하드웨어 제한(400)을 초과하지 않도록 조정합니다.
- *
- * @param fps 프레임레이트
- * @param transcodeMethod 인코더 방식 (NVENC/QSV는 GOP 제한 있음)
- * @returns 최적 세그먼트 시간 (초)
- */
-export function calculateOptimalSegmentTime(fps: number = 24, transcodeMethod?: string): number {
-  const MAX_GOP_SIZE = 400; // NVENC/QSV 하드웨어 제한
-  const DEFAULT_SEGMENT_TIME = HLS_CONFIG.segmentTime; // 6초
-
-  // GPU 인코더의 경우 GOP 크기 제한 고려
-  if (transcodeMethod === 'nvenc' || transcodeMethod === 'qsv') {
-    const maxSegmentTime = Math.floor(MAX_GOP_SIZE / fps);
-    // 최소 3초는 보장 (너무 짧은 세그먼트 방지)
-    const clampedSegmentTime = Math.max(3, Math.min(DEFAULT_SEGMENT_TIME, maxSegmentTime));
-    return clampedSegmentTime;
-  }
-
-  // CPU 인코더는 GOP 제한 없음
-  // 고프레임(60fps+)에서도 기본 6초 유지 가능
-  return DEFAULT_SEGMENT_TIME;
-}
-
-/**
  * GOP (Group of Pictures) 크기 계산
  *
  * 세그먼트 시간과 정확히 일치하도록 GOP 크기를 계산합니다.
