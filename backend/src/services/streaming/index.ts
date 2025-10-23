@@ -248,6 +248,7 @@ export async function startStreaming(mediaId: string): Promise<string | null> {
  * - 요청된 품질이 이미 실행 중이면 바로 반환
  * - 없으면 on-demand로 트랜스코딩 시작
  * - 세션이 없으면 전체 스트리밍 시작
+ * - 동시 요청 시 중복 트랜스코딩 방지 (CPU 절약)
  */
 export async function getVariantPlaylistPath(mediaId: string, quality: string): Promise<string | null> {
   // 1. 세션 확인
@@ -281,67 +282,92 @@ export async function getVariantPlaylistPath(mediaId: string, quality: string): 
     return existingVariant.playlistPath;
   }
 
-  // 4. On-demand variant 시작
-  logger.info(`Starting on-demand variant ${quality} for ${mediaId}`);
-
-  const profile = session.availableProfiles.find(p => p.name === quality);
-  if (!profile) {
-    logger.error(`Profile ${quality} not found in available profiles`);
-    return null;
+  // 4. Variant 시작 중인지 확인 (중복 시작 방지)
+  const inProgress = sessionManager.getStartingVariant(mediaId, quality);
+  if (inProgress) {
+    logger.info(`Variant ${quality} start already in progress for ${mediaId}, waiting...`);
+    return await inProgress;
   }
 
-  // 미디어 경로 조회
-  const mediaData = await getMediaInfo(mediaId);
-  if (!mediaData || !existsSync(mediaData.path)) {
-    logger.error(`Media file not found for on-demand variant: ${mediaId}`);
-    return null;
-  }
+  // 5. On-demand variant 시작 (프라미스로 감싸서 중복 방지)
+  const startPromise = (async (): Promise<string | null> => {
+    // 더블 체크: 기다리는 사이 variant가 생겼을 수 있음
+    const recheck = sessionManager.getVariant(mediaId, quality);
+    if (recheck) {
+      logger.info(`Variant ${quality} was created while waiting, reusing it`);
+      return recheck.playlistPath;
+    }
 
-  // Variant 출력 디렉터리 생성
-  const variantOutputDir = path.join(session.outputDir, quality);
-  const variantDirCreated = await createOutputDir(variantOutputDir);
-  if (!variantDirCreated) {
-    logger.error(`Failed to create variant output directory for ${quality}`);
-    return null;
-  }
+    logger.info(`Starting on-demand variant ${quality} for ${mediaId}`);
 
-  // Variant 트랜스코딩 시작
-  const result = await startVariantTranscoding(mediaData.path, variantOutputDir, profile, session.analysis);
-
-  if (!result) {
-    logger.error(`Failed to start on-demand variant ${quality}`);
-    return null;
-  }
-
-  // Variant 세션 등록
-  const variantSession: VariantSession = {
-    profile,
-    process: result.process,
-    outputDir: variantOutputDir,
-    playlistPath: result.playlistPath,
-    isReady: false,
-    segmentCount: 0,
-    lastSegmentTime: Date.now(),
-  };
-
-  sessionManager.addVariant(mediaId, quality, variantSession);
-
-  // 첫 세그먼트 대기
-  const processCompleted = result.process.exitCode === 0;
-
-  if (!processCompleted) {
-    const firstSegmentReady = await waitForFirstSegment(variantOutputDir, 20000);
-    if (!firstSegmentReady) {
-      logger.error(`First segment timeout for on-demand variant ${quality}`);
-      // variant만 제거하면 됨 (세션 전체는 유지)
+    const profile = session!.availableProfiles.find(p => p.name === quality);
+    if (!profile) {
+      logger.error(`Profile ${quality} not found in available profiles`);
       return null;
     }
+
+    // 미디어 경로 조회
+    const mediaData = await getMediaInfo(mediaId);
+    if (!mediaData || !existsSync(mediaData.path)) {
+      logger.error(`Media file not found for on-demand variant: ${mediaId}`);
+      return null;
+    }
+
+    // Variant 출력 디렉터리 생성
+    const variantOutputDir = path.join(session!.outputDir, quality);
+    const variantDirCreated = await createOutputDir(variantOutputDir);
+    if (!variantDirCreated) {
+      logger.error(`Failed to create variant output directory for ${quality}`);
+      return null;
+    }
+
+    // Variant 트랜스코딩 시작
+    const result = await startVariantTranscoding(mediaData.path, variantOutputDir, profile, session!.analysis);
+
+    if (!result) {
+      logger.error(`Failed to start on-demand variant ${quality}`);
+      return null;
+    }
+
+    // Variant 세션 등록
+    const variantSession: VariantSession = {
+      profile,
+      process: result.process,
+      outputDir: variantOutputDir,
+      playlistPath: result.playlistPath,
+      isReady: false,
+      segmentCount: 0,
+      lastSegmentTime: Date.now(),
+    };
+
+    sessionManager.addVariant(mediaId, quality, variantSession);
+
+    // 첫 세그먼트 대기
+    const processCompleted = result.process.exitCode === 0;
+
+    if (!processCompleted) {
+      const firstSegmentReady = await waitForFirstSegment(variantOutputDir, 20000);
+      if (!firstSegmentReady) {
+        logger.error(`First segment timeout for on-demand variant ${quality}`);
+        // variant만 제거하면 됨 (세션 전체는 유지)
+        return null;
+      }
+    }
+
+    variantSession.isReady = true;
+    logger.success(`On-demand variant ${quality} ready for ${mediaId}`);
+
+    return result.playlistPath;
+  })();
+
+  // Starting 등록 (동시 시작 방지)
+  sessionManager.setStartingVariant(mediaId, quality, startPromise);
+
+  try {
+    return await startPromise;
+  } finally {
+    sessionManager.clearStartingVariant(mediaId, quality);
   }
-
-  variantSession.isReady = true;
-  logger.success(`On-demand variant ${quality} ready for ${mediaId}`);
-
-  return result.playlistPath;
 }
 
 /**

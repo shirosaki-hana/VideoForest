@@ -16,6 +16,7 @@ export class SessionManager {
   private failures = new Map<string, TranscodingFailure>();
   private starting = new Map<string, Promise<HLSSession | null>>(); // 생성 중인 세션 프라미스
   private stoppedTombstones = new Map<string, number>(); // 최근 중지된 세션 마커
+  private startingVariants = new Map<string, Promise<string | null>>(); // 생성 중인 variant 프라미스 (key: "mediaId:quality")
   private readonly sessionTimeout: number;
   private readonly variantTimeout: number;
   private readonly failureTimeout: number;
@@ -67,8 +68,14 @@ export class SessionManager {
   getVariant(mediaId: string, quality: string): import('./types.js').VariantSession | undefined {
     const session = this.sessions.get(mediaId);
     if (session) {
-      session.lastAccess = Date.now();
-      return session.variants.get(quality);
+      const now = Date.now();
+      session.lastAccess = now;
+      const variant = session.variants.get(quality);
+      // variant가 활성적으로 사용되고 있으므로 lastSegmentTime도 업데이트
+      if (variant) {
+        variant.lastSegmentTime = now;
+      }
+      return variant;
     }
     return undefined;
   }
@@ -115,6 +122,25 @@ export class SessionManager {
 
   clearStarting(mediaId: string): void {
     this.starting.delete(mediaId);
+  }
+
+  /**
+   * Variant 생성 프라미스 조회/설정/해제
+   */
+  private getVariantKey(mediaId: string, quality: string): string {
+    return `${mediaId}:${quality}`;
+  }
+
+  getStartingVariant(mediaId: string, quality: string): Promise<string | null> | undefined {
+    return this.startingVariants.get(this.getVariantKey(mediaId, quality));
+  }
+
+  setStartingVariant(mediaId: string, quality: string, promise: Promise<string | null>): void {
+    this.startingVariants.set(this.getVariantKey(mediaId, quality), promise);
+  }
+
+  clearStartingVariant(mediaId: string, quality: string): void {
+    this.startingVariants.delete(this.getVariantKey(mediaId, quality));
   }
 
   /**
@@ -176,6 +202,14 @@ export class SessionManager {
     logger.info(`Removing session for media ${mediaId}`);
 
     try {
+      // 진행 중인 variant 시작 프라미스 정리
+      const startingVariantKeys = Array.from(this.startingVariants.keys())
+        .filter(key => key.startsWith(`${mediaId}:`));
+      for (const key of startingVariantKeys) {
+        this.startingVariants.delete(key);
+        logger.info(`Cancelled starting variant: ${key}`);
+      }
+
       // 모든 variant의 FFmpeg 프로세스 종료
       const variantKillPromises = Array.from(session.variants.values()).map(async variant => {
         try {
@@ -300,7 +334,10 @@ export class SessionManager {
       return;
     }
 
-    // 10분마다 세션 정리
+    // 5분마다 세션 정리 (더 빠른 리소스 회수)
+    // Variant 타임아웃: 10분
+    // 세션 타임아웃: 30분
+    // Cleanup 주기: 5분 -> 최대 15분 내 variant 정리, 최대 35분 내 세션 정리
     this.cleanupInterval = setInterval(
       () => {
         this.cleanupTimeoutSessions().catch(error => {
@@ -309,10 +346,10 @@ export class SessionManager {
         // tombstone도 함께 정리
         this.cleanupExpiredTombstones();
       },
-      10 * 60 * 1000
+      5 * 60 * 1000
     );
 
-    logger.info('Session cleanup task started');
+    logger.info('Session cleanup task started (every 5 minutes)');
   }
 
   /**
