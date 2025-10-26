@@ -86,6 +86,6 @@ export interface TranscodingJob {
   mediaId: string;
   quality: string;
   segmentNumber: number;
-  promise: Promise<string>; // 세그먼트 파일 경로 반환
+  promise: Promise<string | null>; // 세그먼트 파일 경로 반환 (실패 시 null)
   startTime: number;
 }

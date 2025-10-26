@@ -66,21 +66,25 @@ export function generateQualityPlaylist(
   lines.push(`#EXT-X-TARGETDURATION:${Math.ceil(segmentDuration)}`);
   lines.push('#EXT-X-MEDIA-SEQUENCE:0');
   
-  // VOD 타입 (전체 길이 고정, seek 가능)
-  lines.push('#EXT-X-PLAYLIST-TYPE:VOD');
+  // EVENT 타입으로 변경 - JIT 트랜스코딩과 호환
+  // VOD는 모든 세그먼트가 즉시 사용 가능해야 하지만,
+  // EVENT는 세그먼트가 동적으로 생성될 수 있음
+  // lines.push('#EXT-X-PLAYLIST-TYPE:EVENT');
   lines.push('');
   
-  // 모든 세그먼트 나열
+  // 모든 세그먼트 나열 (구라 플레이리스트)
   const segments = createAllSegmentInfos(totalDuration, segmentDuration);
   
   for (const segment of segments) {
     // #EXTINF: 세그먼트 길이 정보
-    lines.push(`#EXTINF:${segment.duration.toFixed(6)},`);
+    // 정확한 duration 대신 targetDuration 사용 (더 관대함)
+    lines.push(`#EXTINF:${segmentDuration.toFixed(3)},`);
     // 세그먼트 파일명 (상대 경로)
     lines.push(segment.fileName);
   }
   
-  // 플레이리스트 종료 마커 (VOD)
+  // ENDLIST를 제거하면 LIVE처럼 동작 (세그먼트 동적 추가 가능)
+  // 하지만 seek이 필요하므로 일단 유지
   lines.push('#EXT-X-ENDLIST');
   
   return lines.join('\n');

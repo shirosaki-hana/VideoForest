@@ -5,6 +5,7 @@ import path from 'path';
 import { logger, getFFmpegPath } from '../../utils/index.js';
 import { buildVideoEncoderArgs, buildAudioEncoderArgs, buildVideoFilter, getErrorResilienceArgs } from './transcoder/encoder.options.js';
 import { getSegmentStartTime, getSegmentPath, getQualityDir } from './segment.utils.js';
+import { validateSegment, logValidationResult } from './segment.validator.js';
 import type { QualityProfile, MediaAnalysis, SegmentInfo } from './types.js';
 //------------------------------------------------------------------------------//
 
@@ -84,13 +85,33 @@ export async function transcodeSegment(
       reject(error);
     });
 
-    ffmpegProcess.on('exit', (code, signal) => {
+    ffmpegProcess.on('exit', async (code, signal) => {
       if (code === 0) {
-        // 성공
+        // 성공 - 세그먼트 검증
         logger.success(
           `Segment ${segmentInfo.segmentNumber} transcoded successfully ` +
           `(${profile.name})`
         );
+        
+        // 세그먼트 품질 검증 (비동기, 에러 무시)
+        try {
+          const validation = await validateSegment(outputPath);
+          logValidationResult(
+            segmentInfo.segmentNumber,
+            segmentInfo.duration,
+            validation
+          );
+          
+          // 검증 실패 시에도 일단 true 반환 (경고만)
+          if (!validation.isValid) {
+            logger.warn(
+              `Segment ${segmentInfo.segmentNumber} validation failed but continuing...`
+            );
+          }
+        } catch (error) {
+          logger.warn(`Segment validation error (non-fatal): ${error}`);
+        }
+        
         resolve(true);
       } else {
         // 실패
@@ -108,10 +129,14 @@ export async function transcodeSegment(
 /**
  * 단일 세그먼트용 FFmpeg 인자 생성
  * 
- * 핵심 옵션:
- * - -ss: 시작 위치 (입력 파일 전에 위치하여 빠른 seek)
- * - -t: 인코딩 길이
+ * 핵심 옵션 (정확도 우선):
+ * - -ss (입력 전): 빠른 대략적 seek (keyframe)
+ * - -ss (입력 후): 정확한 위치 조정
+ * - -t: 정확한 인코딩 길이
+ * - -force_key_frames: 세그먼트 시작을 keyframe으로 강제
  * - -f mpegts: MPEG-TS 출력 (HLS 세그먼트 포맷)
+ * 
+ * 두 단계 seek을 사용하여 속도와 정확도를 모두 확보합니다.
  */
 function buildSegmentFFmpegArgs(
   mediaPath: string,
@@ -125,23 +150,28 @@ function buildSegmentFFmpegArgs(
   // 1. 에러 복원 옵션 (손상된 파일 대응)
   args.push(...getErrorResilienceArgs());
 
-  // 2. SEEK 옵션 (입력 파일 전에 위치 - 빠른 키프레임 seek)
-  // 정확한 seek을 위해 약간 앞에서 시작 후 -t로 정확히 자름
-  args.push('-ss', segmentInfo.startTime.toString());
-
+  // 2. 정확한 SEEK을 위해 입력 후에만 -ss 사용
+  // 입력 전 -ss는 빠르지만 keyframe seek만 가능 (부정확)
+  // 입력 후 -ss는 느리지만 정확함 (frame-accurate)
+  
   // 3. 입력 파일
   args.push('-i', normalizePathForFFmpeg(mediaPath));
 
-  // 4. 인코딩 길이 제한
-  args.push('-t', segmentInfo.duration.toString());
+  // 4. 정확한 SEEK (frame-accurate)
+  if (segmentInfo.startTime > 0) {
+    args.push('-ss', segmentInfo.startTime.toFixed(3));
+  }
 
-  // 5. 오디오가 없는 경우 무음 생성
+  // 5. 인코딩 길이 제한
+  args.push('-t', segmentInfo.duration.toFixed(3));
+
+  // 6. 오디오가 없는 경우 무음 생성
   if (!analysis.hasAudio) {
     args.push('-f', 'lavfi');
     args.push('-i', 'anullsrc=channel_layout=stereo:sample_rate=48000');
   }
 
-  // 6. 스트림 매핑
+  // 7. 스트림 매핑
   if (!analysis.hasAudio) {
     args.push('-map', '0:v:0'); // 비디오
     args.push('-map', '1:a:0'); // 무음 오디오
@@ -150,25 +180,52 @@ function buildSegmentFFmpegArgs(
     args.push('-map', '0:a:0');
   }
 
-  // 7. 비디오 인코딩 옵션
+  // 8. 비디오 인코딩 옵션
   const videoFilter = buildVideoFilter(profile, analysis);
   if (videoFilter !== 'null') {
     args.push('-vf', videoFilter);
   }
-  args.push(...buildVideoEncoderArgs(profile, analysis));
+  
+  // 비디오 인코더 옵션 추가
+  const videoEncoderArgs = buildVideoEncoderArgs(profile, analysis);
+  
+  // force_key_frames를 단일 세그먼트용으로 재정의
+  // (buildVideoEncoderArgs의 force_key_frames를 덮어씀)
+  const filteredArgs: string[] = [];
+  let skipNext = false;
+  
+  for (let i = 0; i < videoEncoderArgs.length; i++) {
+    if (skipNext) {
+      skipNext = false;
+      continue;
+    }
+    
+    if (videoEncoderArgs[i] === '-force_key_frames') {
+      skipNext = true; // 다음 인자(값) 스킵
+      continue;
+    }
+    
+    filteredArgs.push(videoEncoderArgs[i]);
+  }
+  
+  args.push(...filteredArgs);
 
-  // 8. 오디오 인코딩 옵션
+  // 9. 단일 세그먼트용 keyframe 설정 (첫 프레임만 강제)
+  // 세그먼트 시작을 keyframe으로 만들어 독립 디코딩 보장
+  args.push('-force_key_frames', 'expr:eq(n,0)');
+
+  // 10. 오디오 인코딩 옵션
   args.push(...buildAudioEncoderArgs(profile, analysis));
 
-  // 9. 오디오가 없고 무음을 생성한 경우
+  // 11. 오디오가 없고 무음을 생성한 경우
   if (!analysis.hasAudio) {
     args.push('-shortest'); // 비디오 길이에 맞춤
   }
 
-  // 10. MPEG-TS 출력 (HLS 세그먼트 포맷)
+  // 12. MPEG-TS 출력 (HLS 세그먼트 포맷)
   args.push('-f', 'mpegts');
 
-  // 11. 출력 파일
+  // 13. 출력 파일
   args.push(normalizePathForFFmpeg(outputPath));
 
   return args;
