@@ -3,6 +3,7 @@ import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import path from 'path';
 import { logger, getFFmpegPath } from '../../utils/index.js';
+import { env } from '../../config/index.js';
 import { buildVideoEncoderArgs, buildAudioEncoderArgs, buildVideoFilter, getErrorResilienceArgs } from './transcoder/encoder.options.js';
 import { getSegmentStartTime, getSegmentPath, getQualityDir } from './segment.utils.js';
 import { validateSegment, logValidationResult } from './segment.validator.js';
@@ -154,9 +155,21 @@ function buildSegmentFFmpegArgs(
   outputPath: string
 ): string[] {
   const args: string[] = [];
+  const SPEED_MODE = env.VIDEOFOREST_SPEED_MODE;
 
   // 1. 에러 복원 옵션 (손상된 파일 대응)
   args.push(...getErrorResilienceArgs());
+
+  // 1.5. 전역 빠른 플래그 (로그/배너/통계 최소화, 타임아웃/프로브 축소)
+  args.unshift('-y');
+  args.unshift('-nostats');
+  args.unshift('-hide_banner');
+  args.unshift('-loglevel', 'error');
+  if (SPEED_MODE) {
+    // 표준 컨테이너/코덱 가정 하에 스타트업 오버헤드 감소
+    args.push('-analyzeduration', '0');
+    args.push('-probesize', '32k');
+  }
 
   // 2. 🚀 초고속 SEEK (입력 전 -ss)
   // keyframe-aligned 세그먼트를 사용하므로 keyframe seek로 충분
@@ -189,6 +202,9 @@ function buildSegmentFFmpegArgs(
   // 7. 비디오 인코딩 옵션
   const videoFilter = buildVideoFilter(profile, analysis);
   if (videoFilter !== 'null') {
+    if (SPEED_MODE) {
+      args.push('-sws_flags', 'fast_bilinear');
+    }
     args.push('-vf', videoFilter);
   }
   

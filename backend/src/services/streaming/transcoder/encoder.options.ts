@@ -1,5 +1,6 @@
 import type { QualityProfile, MediaAnalysis } from '../types.js';
 import { getGOPSize, getKeyframeExpression } from './ffmpeg.config.js';
+import { env } from '../../../config/index.js';
 //------------------------------------------------------------------------------//
 
 /**
@@ -27,40 +28,76 @@ export function buildVideoEncoderArgs(profile: QualityProfile, analysis: MediaAn
  * - 단순 비트레이트 모드: CRF 제거로 예측 가능한 성능
  */
 function buildCPUVideoArgs(profile: QualityProfile, gopSize: number, keyframeExpr: string): string[] {
+  const SPEED_MODE = env.VIDEOFOREST_SPEED_MODE;
+
+  if (SPEED_MODE) {
+    return [
+      '-c:v',
+      'libx264',
+      '-preset',
+      'ultrafast',
+      '-tune',
+      'zerolatency,fastdecode',
+      '-threads',
+      '0',
+      '-bf',
+      '0',
+      '-b:v',
+      profile.videoBitrate,
+      '-maxrate',
+      profile.maxrate,
+      '-bufsize',
+      profile.bufsize,
+      '-profile:v',
+      'high',
+      '-level',
+      '4.1',
+      '-pix_fmt',
+      'yuv420p',
+      '-sc_threshold',
+      '0',
+      '-g',
+      gopSize.toString(),
+      '-keyint_min',
+      gopSize.toString(),
+      '-force_key_frames',
+      keyframeExpr,
+      '-x264-params',
+      'sliced-threads=1:sync-lookahead=0:b-adapt=0:ref=1:rc-lookahead=0',
+    ];
+  }
+
   return [
     '-c:v',
     'libx264',
     '-preset',
-    'veryfast', // 🚀 고속 인코딩 (medium -> veryfast)
+    'veryfast',
     '-tune',
-    'zerolatency', // 🎯 스트리밍 최적화
+    'zerolatency',
     '-threads',
-    '0', // 💪 모든 CPU 코어 사용
+    '0',
     '-b:v',
-    profile.videoBitrate, // 목표 비트레이트
+    profile.videoBitrate,
     '-maxrate',
-    profile.maxrate, // 최대 비트레이트 제한
+    profile.maxrate,
     '-bufsize',
-    profile.bufsize, // 버퍼 크기
+    profile.bufsize,
     '-profile:v',
-    'high', // H.264 프로파일
+    'high',
     '-level',
-    '4.1', // 대부분 기기 호환
+    '4.1',
     '-pix_fmt',
-    'yuv420p', // 범용 픽셀 포맷
-    '-movflags',
-    '+faststart', // 빠른 시작
+    'yuv420p',
     '-sc_threshold',
-    '0', // 장면 전환 감지 비활성화
+    '0',
     '-g',
-    gopSize.toString(), // GOP 크기
+    gopSize.toString(),
     '-keyint_min',
     gopSize.toString(),
     '-force_key_frames',
     keyframeExpr,
-    // 추가 성능 최적화
     '-x264-params',
-    'sliced-threads=1:sync-lookahead=0', // ⚡ 병렬 처리 강화
+    'sliced-threads=1:sync-lookahead=0',
   ];
 }
 
@@ -70,8 +107,11 @@ function buildCPUVideoArgs(profile: QualityProfile, gopSize: number, keyframeExp
  * 원본 오디오 정보를 기반으로 최적의 옵션 선택
  */
 export function buildAudioEncoderArgs(profile: QualityProfile, analysis: MediaAnalysis): string[] {
+  const SPEED_MODE = env.VIDEOFOREST_SPEED_MODE;
   if (!analysis.hasAudio) {
-    // 오디오 없음 - 무음 오디오 인코더 설정만 (입력은 buildFFmpegArgs에서 처리)
+    if (SPEED_MODE) {
+      return ['-c:a', 'aac', '-b:a', '64k', '-ar', '44100', '-ac', '1'];
+    }
     return ['-c:a', 'aac', '-b:a', '64k', '-ar', '48000', '-ac', '2'];
   }
 
@@ -81,16 +121,11 @@ export function buildAudioEncoderArgs(profile: QualityProfile, analysis: MediaAn
   }
 
   // 일반적인 AAC 트랜스코딩
-  return [
-    '-c:a',
-    'aac',
-    '-b:a',
-    profile.audioBitrate,
-    '-ar',
-    '48000', // 48kHz 샘플레이트
-    '-ac',
-    '2', // 스테레오
-  ];
+  if (SPEED_MODE) {
+    return ['-c:a', 'aac', '-b:a', '64k', '-ar', '44100', '-ac', '1'];
+  }
+
+  return ['-c:a', 'aac', '-b:a', profile.audioBitrate, '-ar', '48000', '-ac', '2'];
 }
 
 /**
