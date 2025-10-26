@@ -29,14 +29,14 @@
     "i18next": "^25.6.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-i18next": "^16.1.5",
+    "react-i18next": "^16.2.0",
     "react-router-dom": "^7.8.2",
-    "video.js": "8.4.0",
+    "video.js": "^8.23.4",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@types/video.js": "^7.3.58",
-    "@vitejs/plugin-react": "^5.0.1",
+    "@vitejs/plugin-react": "^5.1.0",
     "rollup-plugin-visualizer": "^6.0.5",
     "vite": "^7.1.12"
   }

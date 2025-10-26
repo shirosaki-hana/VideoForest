@@ -16,7 +16,7 @@ import {
   Divider,
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, SkipNext as SkipNextIcon, SkipPrevious as SkipPreviousIcon } from '@mui/icons-material';
-import VideoPlayer from '../components/VideoPlayer';
+import VideoPlayer, { type PlayerError } from '../components/VideoPlayer';
 import { getMediaInfo, getHLSPlaylistUrl, waitForPlaylist } from '../api/streaming';
 import { formatDuration, formatFileSize } from '../utils/format';
 import { useMediaStore } from '../stores/mediaStore';
@@ -116,7 +116,7 @@ export default function PlayerPage() {
   };
 
   // useCallback으로 메모이제이션하여 리렌더링 시 재생성 방지
-  const handlePlayerError = useCallback((error: MediaError | null) => {
+  const handlePlayerError = useCallback((error: PlayerError) => {
     const errorMessage = error?.message || 'Unknown error';
     // 에러가 발생해도 바로 상태를 업데이트하지 않음
     // 폴백이 진행 중일 수 있으므로 재시도 기회를 줌

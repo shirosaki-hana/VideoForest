@@ -2,7 +2,7 @@
 // JIT 트랜스코딩 + 영구 캐싱 아키텍처
 //
 // 핵심 개념:
-// 1. 미디어 duration 기반으로 구라 플레이리스트 사전 생성
+// 1. 미디어 duration 기반으로 플레이리스트 사전 생성
 // 2. 세그먼트 요청 시: 캐시 확인 → 없으면 JIT 트랜스코딩
 // 3. 트랜스코딩된 세그먼트는 영구 보관 (사용자가 수동 정리)
 // 4. Back-seek, 화질 전환 자동 지원
@@ -129,3 +129,4 @@ export interface TranscodingJob {
   promise: Promise<string | null>; // 세그먼트 파일 경로 반환 (실패 시 null)
   startTime: number;
 }
+
