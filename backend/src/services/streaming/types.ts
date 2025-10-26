@@ -1,13 +1,15 @@
-import type { ChildProcess } from 'child_process';
+//------------------------------------------------------------------------------//
+// JIT 트랜스코딩 + 영구 캐싱 아키텍처
+//
+// 핵심 개념:
+// 1. 미디어 duration 기반으로 구라 플레이리스트 사전 생성
+// 2. 세그먼트 요청 시: 캐시 확인 → 없으면 JIT 트랜스코딩
+// 3. 트랜스코딩된 세그먼트는 영구 보관 (사용자가 수동 정리)
+// 4. Back-seek, 화질 전환 자동 지원
 //------------------------------------------------------------------------------//
 
 /**
- * 트랜스코딩 방식 (CPU만 지원)
- */
-export type TranscodeMethod = 'cpu';
-
-/**
- * 비디오 품질 프로파일 (단일 품질)
+ * 비디오 품질 프로파일
  */
 export interface QualityProfile {
   name: string; // 예: '720p'
@@ -25,7 +27,7 @@ export interface QualityProfile {
 export interface MediaInfo {
   width: number | null;
   height: number | null;
-  duration: number | null;
+  duration: number | null; // 초 단위 (JIT 트랜스코딩의 핵심)
   codec: string | null;
   audioCodec: string | null;
   fps: number | null;
@@ -36,13 +38,14 @@ export interface MediaInfo {
  * 미디어 분석 결과
  */
 export interface MediaAnalysis {
-  canDirectCopy: boolean; // 트랜스코딩 없이 복사 가능한지
-  needsVideoTranscode: boolean; // 비디오 트랜스코딩 필요 여부
-  needsAudioTranscode: boolean; // 오디오 트랜스코딩 필요 여부
-  hasAudio: boolean; // 오디오 스트림 존재 여부
-  compatibilityIssues: string[]; // 호환성 문제 목록
-  recommendedProfile: QualityProfile; // 추천 품질 프로파일
-  segmentTime: number; // HLS 세그먼트 길이 (초) - FPS와 인코더 제약 기반
+  canDirectCopy: boolean;
+  needsVideoTranscode: boolean;
+  needsAudioTranscode: boolean;
+  hasAudio: boolean;
+  compatibilityIssues: string[];
+  recommendedProfile: QualityProfile;
+  segmentDuration: number; // HLS 세그먼트 길이 (초)
+  totalSegments: number; // 전체 세그먼트 개수
   inputFormat: {
     videoCodec: string;
     audioCodec: string | null;
@@ -53,49 +56,36 @@ export interface MediaAnalysis {
 }
 
 /**
- * FFmpeg 프로세스 결과
+ * 세그먼트 정보
  */
-export interface FFmpegProcessResult {
-  process: ChildProcess;
-  playlistPath: string;
-  profile: QualityProfile;
+export interface SegmentInfo {
+  segmentNumber: number; // 세그먼트 번호 (0부터 시작)
+  startTime: number; // 시작 시간 (초)
+  duration: number; // 세그먼트 길이 (초)
+  fileName: string; // segment_000.ts
 }
 
 /**
- * 단일 품질 variant 세션
+ * 미디어 메타데이터 (플레이리스트 생성용)
  */
-export interface VariantSession {
-  profile: QualityProfile;
-  process: ChildProcess;
-  outputDir: string;
-  playlistPath: string;
-  isReady: boolean; // 첫 세그먼트 생성 완료 여부
-  segmentCount: number; // 생성된 세그먼트 수
-  lastSegmentTime: number; // 마지막 세그먼트 생성 시간
-}
-
-/**
- * HLS 다중 품질 ABR 세션
- */
-export interface HLSSession {
+export interface MediaMetadata {
   mediaId: string;
-  outputDir: string; // 루트 출력 디렉터리
-  lastAccess: number;
+  mediaPath: string; // 원본 파일 경로
+  duration: number; // 전체 재생 시간 (초)
+  segmentDuration: number; // 세그먼트 길이 (초)
+  totalSegments: number; // 전체 세그먼트 개수
+  availableProfiles: QualityProfile[]; // 지원 화질 목록
   analysis: MediaAnalysis;
-  variants: Map<string, VariantSession>; // 품질 이름 -> variant 세션
-  masterPlaylistPath: string; // master.m3u8 경로
-  availableProfiles: QualityProfile[]; // 사용 가능한 모든 품질 프로파일
 }
 
 /**
- * 트랜스코딩 실패 정보
+ * JIT 트랜스코딩 진행 중 추적
+ * (동시 요청 방지용 - 같은 세그먼트를 여러 클라이언트가 요청할 수 있음)
  */
-export interface TranscodingFailure {
+export interface TranscodingJob {
   mediaId: string;
-  error: string;
-  ffmpegCommand?: string;
-  ffmpegOutput?: string;
-  timestamp: number;
-  attemptCount: number;
-  analysis?: MediaAnalysis;
+  quality: string;
+  segmentNumber: number;
+  promise: Promise<string>; // 세그먼트 파일 경로 반환
+  startTime: number;
 }

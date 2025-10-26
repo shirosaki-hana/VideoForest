@@ -70,16 +70,20 @@ export function analyzeMedia(mediaInfo: MediaInfo): MediaAnalysis {
   }
 
   // 5. HLS 세그먼트 시간 설정
-  const segmentTime = HLS_CONFIG.segmentTime;
+  const segmentDuration = HLS_CONFIG.segmentTime;
 
-  // 6. 직접 복사 가능 여부 (향후 최적화를 위해)
+  // 6. 전체 세그먼트 개수 계산
+  const duration = mediaInfo.duration || 0;
+  const totalSegments = duration > 0 ? Math.ceil(duration / segmentDuration) : 0;
+
+  // 7. 직접 복사 가능 여부 (향후 최적화를 위해)
   const canDirectCopy =
     videoCodec === 'h264' && (!hasAudio || audioCodec === 'aac') && mediaInfo.width !== null && mediaInfo.height !== null;
 
-  // 7. 품질 프로파일 선택
+  // 8. 품질 프로파일 선택
   const recommendedProfile = selectOptimalProfile(mediaInfo);
 
-  // 8. 입력 포맷 정보
+  // 9. 입력 포맷 정보
   const inputFormat = {
     videoCodec: mediaInfo.codec || 'unknown',
     audioCodec: mediaInfo.audioCodec || null,
@@ -95,7 +99,8 @@ export function analyzeMedia(mediaInfo: MediaInfo): MediaAnalysis {
     hasAudio,
     compatibilityIssues: issues,
     recommendedProfile,
-    segmentTime, // 계산된 최적 세그먼트 시간
+    segmentDuration, // 계산된 최적 세그먼트 시간
+    totalSegments, // 전체 세그먼트 개수
     inputFormat,
   };
 
@@ -107,7 +112,7 @@ export function analyzeMedia(mediaInfo: MediaInfo): MediaAnalysis {
     logger.info('Media is fully compatible');
   }
 
-  logger.info(`Optimal segment time: ${segmentTime}s (GOP size: ${Math.round(fps * segmentTime)} frames)`);
+  logger.info(`Segment duration: ${segmentDuration}s, Total segments: ${totalSegments} (GOP size: ${Math.round(fps * segmentDuration)} frames)`);
 
   return analysis;
 }

@@ -10,9 +10,9 @@ import { getGOPSize, getKeyframeExpression } from './ffmpeg.config.js';
  */
 export function buildVideoEncoderArgs(profile: QualityProfile, analysis: MediaAnalysis): string[] {
   const fps = analysis.inputFormat.fps || 24;
-  const segmentTime = analysis.segmentTime;
-  const gopSize = getGOPSize(fps, segmentTime);
-  const keyframeExpr = getKeyframeExpression(segmentTime);
+  const segmentDuration = analysis.segmentDuration;
+  const gopSize = getGOPSize(fps, segmentDuration);
+  const keyframeExpr = getKeyframeExpression(segmentDuration);
 
   return buildCPUVideoArgs(profile, gopSize, keyframeExpr);
 }
