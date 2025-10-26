@@ -136,6 +136,8 @@ export class HardwareAccelerationDetector {
           // 에러 메시지에서 유용한 정보 추출
           if (stderr.includes('No NVENC capable devices found')) {
             logger.debug?.('NVENC unavailable: No NVIDIA GPU found');
+          } else if (stderr.includes('unsupported device')) {
+            logger.debug?.('NVENC unavailable: GPU does not support NVENC (common on entry-level/mobile GPUs)');
           } else if (stderr.includes('Cannot load')) {
             logger.debug?.('NVENC unavailable: Driver or library issue');
           } else if (stderr.includes('Unknown encoder')) {

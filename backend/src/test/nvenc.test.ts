@@ -199,9 +199,11 @@ function printResult(nvencWorks: boolean, errorMessage: string) {
       console.log('');
       console.log('Error details:');
       
-      if (errorMessage.includes('No NVENC capable devices found')) {
-        console.log('  - No NVIDIA GPU found or GPU is not NVENC-capable');
-        console.log('  - Check: nvidia-smi to verify GPU is detected');
+      if (errorMessage.includes('No NVENC capable devices found') || errorMessage.includes('unsupported device')) {
+        console.log('  - GPU detected but does not support NVENC hardware encoding');
+        console.log('  - Check: nvidia-smi to verify GPU model');
+        console.log('  - Note: Some mobile/entry-level GPUs lack NVENC support');
+        console.log('    (e.g. some GeForce MX series, GT 1030, etc.)');
       } else if (errorMessage.includes('Cannot load')) {
         console.log('  - NVENC library cannot be loaded');
         console.log('  - Try: Reinstall NVIDIA driver');
