@@ -111,15 +111,18 @@ export function logValidationResult(
       ? Math.abs(validation.actualDuration - expectedDuration)
       : 0;
     
-    if (durationDiff > 0.5) {
+    // HLS 스펙: 실제 duration이 예상보다 약간 길 수 있음 (GOP 경계)
+    // 플레이리스트에 +0.05초 안전 마진이 추가되어 있으므로
+    // 0.1초 이상 차이나면 경고
+    if (durationDiff > 0.1) {
       logger.warn(
         `Segment ${segmentNumber}: Duration mismatch! ` +
-        `Expected ${expectedDuration}s, got ${validation.actualDuration}s (diff: ${durationDiff.toFixed(2)}s)`
+        `Expected ${expectedDuration}s, got ${validation.actualDuration}s (diff: ${durationDiff.toFixed(3)}s)`
       );
     } else {
       logger.debug?.(
-        `Segment ${segmentNumber} validated: ${validation.actualDuration?.toFixed(2)}s, ` +
-        `${(validation.fileSize / 1024).toFixed(2)}KB`
+        `Segment ${segmentNumber} validated: ${validation.actualDuration?.toFixed(3)}s, ` +
+        `${(validation.fileSize / 1024).toFixed(3)}KB`
       );
     }
   } else {

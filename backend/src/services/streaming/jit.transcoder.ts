@@ -42,12 +42,13 @@ export async function transcodeSegment(
   const endTime = isAccurate 
     ? (segmentInfo as AccurateSegmentInfo).endTime 
     : segmentInfo.startTime + segmentInfo.duration;
+  const duration = endTime - segmentInfo.startTime;
   
   logger.info(
     `JIT transcoding: segment ${segmentInfo.segmentNumber} ` +
     `(${segmentInfo.startTime.toFixed(3)}s ~ ${endTime.toFixed(3)}s) ` +
-    `to ${profile.name}` +
-    (isAccurate ? ' [keyframe-aligned]' : '')
+    `duration ${duration.toFixed(3)}s ` +
+    `to ${profile.name}`
   );
 
   // FFmpeg 명령어 구성
@@ -136,13 +137,14 @@ export async function transcodeSegment(
 /**
  * 단일 세그먼트용 FFmpeg 인자 생성
  * 
- * 핵심 옵션 (정확도 우선):
- * - -ss (입력 후): 정확한 키프레임 위치로 seek
+ * 핵심 옵션 (속도 최적화):
+ * - -ss (입력 전): 초고속 keyframe seek (keyframe-aligned 세그먼트 사용 시 정확함)
  * - -t: 정확한 인코딩 길이
  * - -force_key_frames: 세그먼트 시작을 keyframe으로 강제
  * - -f mpegts: MPEG-TS 출력 (HLS 세그먼트 포맷)
  * 
- * AccurateSegmentInfo를 사용하면 키프레임 경계에서 정확히 자릅니다.
+ * AccurateSegmentInfo를 사용하므로 입력 전 -ss로도 정확합니다.
+ * (keyframe 경계에서 잘리기 때문에 keyframe seek = frame-accurate seek)
  */
 function buildSegmentFFmpegArgs(
   mediaPath: string,
@@ -156,28 +158,26 @@ function buildSegmentFFmpegArgs(
   // 1. 에러 복원 옵션 (손상된 파일 대응)
   args.push(...getErrorResilienceArgs());
 
-  // 2. 정확한 SEEK을 위해 입력 후에만 -ss 사용
-  // 입력 전 -ss는 빠르지만 keyframe seek만 가능 (부정확)
-  // 입력 후 -ss는 느리지만 정확함 (frame-accurate)
+  // 2. 🚀 초고속 SEEK (입력 전 -ss)
+  // keyframe-aligned 세그먼트를 사용하므로 keyframe seek로 충분
+  // 입력 후 -ss 대비 10~100배 빠름!
+  if (segmentInfo.startTime > 0) {
+    args.push('-ss', segmentInfo.startTime.toFixed(3));
+  }
   
   // 3. 입력 파일
   args.push('-i', normalizePathForFFmpeg(mediaPath));
 
-  // 4. 정확한 SEEK (frame-accurate)
-  if (segmentInfo.startTime > 0) {
-    args.push('-ss', segmentInfo.startTime.toFixed(3));
-  }
-
-  // 5. 인코딩 길이 제한
+  // 4. 인코딩 길이 제한
   args.push('-t', segmentInfo.duration.toFixed(3));
 
-  // 6. 오디오가 없는 경우 무음 생성
+  // 5. 오디오가 없는 경우 무음 생성
   if (!analysis.hasAudio) {
     args.push('-f', 'lavfi');
     args.push('-i', 'anullsrc=channel_layout=stereo:sample_rate=48000');
   }
 
-  // 7. 스트림 매핑
+  // 6. 스트림 매핑
   if (!analysis.hasAudio) {
     args.push('-map', '0:v:0'); // 비디오
     args.push('-map', '1:a:0'); // 무음 오디오
@@ -186,7 +186,7 @@ function buildSegmentFFmpegArgs(
     args.push('-map', '0:a:0');
   }
 
-  // 8. 비디오 인코딩 옵션
+  // 7. 비디오 인코딩 옵션
   const videoFilter = buildVideoFilter(profile, analysis);
   if (videoFilter !== 'null') {
     args.push('-vf', videoFilter);
@@ -216,17 +216,28 @@ function buildSegmentFFmpegArgs(
   
   args.push(...filteredArgs);
 
-  // 9. 단일 세그먼트용 keyframe 설정 (첫 프레임만 강제)
+  // 8. 단일 세그먼트용 keyframe 설정 (첫 프레임만 강제)
   // 세그먼트 시작을 keyframe으로 만들어 독립 디코딩 보장
   args.push('-force_key_frames', 'expr:eq(n,0)');
 
-  // 10. 오디오 인코딩 옵션
+  // 9. 오디오 인코딩 옵션
   args.push(...buildAudioEncoderArgs(profile, analysis));
 
-  // 11. 오디오가 없고 무음을 생성한 경우
+  // 10. 오디오가 없고 무음을 생성한 경우
   if (!analysis.hasAudio) {
     args.push('-shortest'); // 비디오 길이에 맞춤
   }
+
+  // 11. MPEG-TS 타임스탬프 정규화 (HLS 필수!)
+  // HLS 스펙: 각 세그먼트의 PTS/DTS는 0부터 시작해야 함
+  // -ss로 seek한 경우에도 출력 타임스탬프를 0으로 리셋
+  args.push('-avoid_negative_ts', 'make_zero'); // PTS/DTS를 0 기준으로 조정
+  args.push('-start_at_zero'); // 출력을 0부터 시작
+  args.push('-output_ts_offset', '0'); // 출력 타임스탬프 오프셋 명시적으로 0
+  // 세그먼트 경계에서의 복호 안정성을 위해 TS 플래그/뮤텍서 지연 최소화
+  args.push('-mpegts_flags', '+resend_headers+initial_discontinuity');
+  args.push('-muxpreload', '0');
+  args.push('-muxdelay', '0');
 
   // 12. MPEG-TS 출력 (HLS 세그먼트 포맷)
   args.push('-f', 'mpegts');

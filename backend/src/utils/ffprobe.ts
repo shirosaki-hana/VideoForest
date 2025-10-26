@@ -333,36 +333,51 @@ export async function probeSegment(segmentPath: string): Promise<{
 
     const normalizedPath = path.resolve(segmentPath);
 
-    // 세그먼트 정보 추출 (첫 패킷 포함)
-    const { stdout } = await executeFFprobe(
+    // 1) 전체 메타데이터로 duration/스트림 정확히 확인
+    const { stdout: metaOut } = await executeFFprobe(
       [
         '-v', 'error',
-        '-show_entries', 'stream=codec_type:format=duration:packet=flags,pts_time',
-        '-select_streams', 'v:0',
-        '-read_intervals', '%+#1', // 첫 패킷만
+        '-show_entries', 'format=duration:stream=codec_type',
         '-of', 'json',
         normalizedPath,
       ],
       {
-        timeout: 10000, // 10초 타임아웃
-        maxBuffer: 512 * 1024, // 512KB 버퍼
+        timeout: 10000,
+        maxBuffer: 512 * 1024,
       }
     );
 
-    const result = JSON.parse(stdout);
-
-    // Duration 추출
-    const duration = result.format?.duration ? parseFloat(result.format.duration) : null;
-
-    // 스트림 확인
-    const streams = result.streams || [];
+    const meta = JSON.parse(metaOut);
+    const duration = meta.format?.duration ? parseFloat(meta.format.duration) : null;
+    const streams = meta.streams || [];
     const hasVideo = streams.some((s: any) => s.codec_type === 'video');
     const hasAudio = streams.some((s: any) => s.codec_type === 'audio');
 
-    // 첫 패킷이 keyframe인지 확인
-    const packets = result.packets || [];
-    const firstPacket = packets[0];
-    const startsWithKeyframe = firstPacket?.flags?.includes('K') || false;
+    // 2) 첫 비디오 패킷만 스캔하여 keyframe 여부 확인
+    let startsWithKeyframe = true; // 기본값은 true로 관대하게
+    try {
+      const { stdout: pktOut } = await executeFFprobe(
+        [
+          '-v', 'error',
+          '-select_streams', 'v:0',
+          '-show_entries', 'packet=flags,pts_time',
+          '-read_intervals', '%+#1',
+          '-of', 'json',
+          normalizedPath,
+        ],
+        {
+          timeout: 5000,
+          maxBuffer: 256 * 1024,
+        }
+      );
+      const pkt = JSON.parse(pktOut);
+      const firstPacket = (pkt.packets || [])[0];
+      if (firstPacket) {
+        startsWithKeyframe = !!firstPacket.flags?.includes('K');
+      }
+    } catch (err) {
+      logger.debug?.(`Packet scan failed for ${segmentPath}: ${err}`);
+    }
 
     return {
       duration,

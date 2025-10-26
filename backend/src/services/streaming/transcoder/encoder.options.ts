@@ -20,16 +20,24 @@ export function buildVideoEncoderArgs(profile: QualityProfile, analysis: MediaAn
 /**
  * CPU (libx264) 인코더 옵션
  *
- * 가장 호환성이 좋고 안정적인 옵션
+ * JIT 스트리밍에 최적화된 고속 인코딩 설정:
+ * - veryfast preset: 속도 우선 (medium 대비 ~5-10배 빠름)
+ * - threads 0: 모든 CPU 코어 활용
+ * - tune zerolatency: 스트리밍 지연 최소화
+ * - 단순 비트레이트 모드: CRF 제거로 예측 가능한 성능
  */
 function buildCPUVideoArgs(profile: QualityProfile, gopSize: number, keyframeExpr: string): string[] {
   return [
     '-c:v',
     'libx264',
     '-preset',
-    'medium', // 속도와 품질 균형
-    '-crf',
-    '23', // 일정 품질 (낮을수록 고품질)
+    'veryfast', // 🚀 고속 인코딩 (medium -> veryfast)
+    '-tune',
+    'zerolatency', // 🎯 스트리밍 최적화
+    '-threads',
+    '0', // 💪 모든 CPU 코어 사용
+    '-b:v',
+    profile.videoBitrate, // 목표 비트레이트
     '-maxrate',
     profile.maxrate, // 최대 비트레이트 제한
     '-bufsize',
@@ -50,6 +58,9 @@ function buildCPUVideoArgs(profile: QualityProfile, gopSize: number, keyframeExp
     gopSize.toString(),
     '-force_key_frames',
     keyframeExpr,
+    // 추가 성능 최적화
+    '-x264-params',
+    'sliced-threads=1:sync-lookahead=0', // ⚡ 병렬 처리 강화
   ];
 }
 

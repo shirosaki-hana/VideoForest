@@ -181,7 +181,7 @@ export async function initializeStreaming(mediaId: string): Promise<string | nul
 
   logger.success(
     `Streaming initialized for ${mediaId} ` +
-    `(${analysis.totalSegments} segments, ${availableProfiles.length} qualities)`
+    `(${metadata.totalSegments} segments, ${availableProfiles.length} qualities)`
   );
 
   return masterPlaylistPath;
