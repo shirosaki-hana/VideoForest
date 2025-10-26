@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, SkipNext as SkipNextIcon, SkipPrevious as SkipPreviousIcon } from '@mui/icons-material';
 import VideoPlayer from '../components/VideoPlayer';
-import { getMediaInfo, getHLSPlaylistUrl, stopStreaming, waitForPlaylist } from '../api/streaming';
+import { getMediaInfo, getHLSPlaylistUrl, waitForPlaylist } from '../api/streaming';
 import { formatDuration, formatFileSize } from '../utils/format';
 import { useMediaStore } from '../stores/mediaStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -110,18 +110,6 @@ export default function PlayerPage() {
     setNextFile(next);
     setPrevFile(prev);
   }, [mediaId, mediaTree]);
-
-  // 페이지 이탈 시 스트리밍 세션 종료
-  // mediaId 변경 시 이전 세션 정리
-  useEffect(() => {
-    const currentMediaId = mediaId;
-
-    return () => {
-      if (currentMediaId) {
-        stopStreaming(currentMediaId);
-      }
-    };
-  }, [mediaId]);
 
   const handleBack = () => {
     navigate('/');

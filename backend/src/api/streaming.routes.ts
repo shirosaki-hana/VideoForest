@@ -4,10 +4,6 @@ import {
   getMasterPlaylistPath, 
   getQualityPlaylistPath, 
   getSegment,
-  getTranscodingStats,
-  getMetadata,
-  getAllMetadata,
-  clearMetadataCache,
 } from '../services/index.js';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
@@ -193,117 +189,6 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
     } catch (error) {
       logger.error(`Failed to get media info for ${mediaId}:`, error);
       return reply.code(500).send({ error: 'Failed to get media info' });
-    }
-  });
-
-  /**
-   * 메타데이터 조회 (디버깅용)
-   * GET /hls/:mediaId/metadata
-   */
-  fastify.get<{ Params: { mediaId: string } }>('/hls/:mediaId/metadata', async (request, reply) => {
-    const { mediaId } = request.params;
-
-    try {
-      const metadata = getMetadata(mediaId);
-
-      if (!metadata) {
-        return reply.code(404).send({ error: 'Metadata not found' });
-      }
-
-      return reply.code(200).send({
-        success: true,
-        metadata: {
-          mediaId: metadata.mediaId,
-          duration: metadata.duration,
-          segmentDuration: metadata.segmentDuration,
-          totalSegments: metadata.totalSegments,
-          availableProfiles: metadata.availableProfiles,
-          analysis: metadata.analysis,
-        },
-      });
-    } catch (error) {
-      logger.error(`Failed to get metadata for ${mediaId}:`, error);
-      return reply.code(500).send({ error: 'Failed to get metadata' });
-    }
-  });
-
-  /**
-   * 모든 메타데이터 조회 (디버깅용)
-   * GET /hls/metadata
-   */
-  fastify.get('/hls/metadata', async (request, reply) => {
-    try {
-      const allMetadata = getAllMetadata();
-
-      return reply.code(200).send({
-        success: true,
-        count: allMetadata.length,
-        metadata: allMetadata.map(m => ({
-          mediaId: m.mediaId,
-          duration: m.duration,
-          totalSegments: m.totalSegments,
-          qualities: m.availableProfiles.map(p => p.name),
-        })),
-      });
-    } catch (error) {
-      logger.error('Failed to get all metadata:', error);
-      return reply.code(500).send({ error: 'Failed to get metadata' });
-    }
-  });
-
-  /**
-   * 진행 중인 트랜스코딩 작업 통계 (디버깅용)
-   * GET /hls/stats
-   */
-  fastify.get('/hls/stats', async (request, reply) => {
-    try {
-      const stats = getTranscodingStats();
-
-      return reply.code(200).send({
-        success: true,
-        ...stats,
-      });
-    } catch (error) {
-      logger.error('Failed to get transcoding stats:', error);
-      return reply.code(500).send({ error: 'Failed to get stats' });
-    }
-  });
-
-  /**
-   * 메타데이터 캐시 정리 (메모리 관리용)
-   * DELETE /hls/:mediaId/cache
-   */
-  fastify.delete<{ Params: { mediaId: string } }>('/hls/:mediaId/cache', async (request, reply) => {
-    const { mediaId } = request.params;
-
-    try {
-      clearMetadataCache(mediaId);
-
-      return reply.code(200).send({
-        success: true,
-        message: 'Metadata cache cleared',
-      });
-    } catch (error) {
-      logger.error(`Failed to clear cache for ${mediaId}:`, error);
-      return reply.code(500).send({ error: 'Failed to clear cache' });
-    }
-  });
-
-  /**
-   * 모든 메타데이터 캐시 정리
-   * DELETE /hls/cache
-   */
-  fastify.delete('/hls/cache', async (request, reply) => {
-    try {
-      clearMetadataCache();
-
-      return reply.code(200).send({
-        success: true,
-        message: 'All metadata cache cleared',
-      });
-    } catch (error) {
-      logger.error('Failed to clear all cache:', error);
-      return reply.code(500).send({ error: 'Failed to clear cache' });
     }
   });
 };

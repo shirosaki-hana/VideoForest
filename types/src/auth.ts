@@ -41,10 +41,6 @@ export const AuthStatusResponseSchema = z.object({
 });
 export type AuthStatusResponse = z.infer<typeof AuthStatusResponseSchema>;
 
-// 보호된 테스트 응답
-export const ProtectedPingResponseSchema = z.object({ pong: z.literal(true) });
-export type ProtectedPingResponse = z.infer<typeof ProtectedPingResponseSchema>;
-
 // 에러 응답
 export const ErrorResponseSchema = z.object({
   error: z.string(),
