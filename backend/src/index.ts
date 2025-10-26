@@ -9,7 +9,7 @@ import apiRoutes from './api/index.js';
 import path from 'path';
 
 import ms from 'ms';
-import { logger, projectRoot, detectFFmpeg, detectFFprobe } from './utils/index.js';
+import { logger, projectRoot, detectFFmpeg } from './utils/index.js';
 import { env, isProduction, isDevelopment } from './config/index.js';
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
 //------------------------------------------------------------------------------//
@@ -94,9 +94,8 @@ async function startServer(port: number) {
   const fastify = await createFastifyApp();
   await checkDatabaseConnection();
 
-  // FFmpeg/FFprobe 감지 및 기능 확인
+  // FFmpeg 감지 및 기능 확인
   await detectFFmpeg();
-  await detectFFprobe();
 
   await fastify.listen({ port, host: env.HOST });
   logger.info(`Environment: ${env.NODE_ENV}`);
@@ -112,8 +111,9 @@ startServer(env.PORT)
       logger.warn(`Received ${signal}: shutting down server...`);
 
       try {
-        // 새로운 아키텍처: 세션 관리 없음, 캐시는 영구 보관
-        // 진행 중인 트랜스코딩 작업은 자연스럽게 종료됨
+        // 스트리밍 세션 종료
+        const { stopAllStreaming } = await import('./services/index.js');
+        await stopAllStreaming();
 
         // Fastify 서버 종료
         await fastify.close();

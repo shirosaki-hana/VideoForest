@@ -1,5 +1,6 @@
 import { type FastifyPluginAsync } from 'fastify';
 import {
+  ProtectedPingResponseSchema,
   RefreshMediaResponseSchema,
   ListMediaResponseSchema,
   MediaTreeResponseSchema,
@@ -30,6 +31,11 @@ function formatMediaForResponse(media: MediaFromDatabase) {
 
 export const v1ApiRoutes: FastifyPluginAsync = async fastify => {
   fastify.addHook('preHandler', requireAuth);
+
+  // 테스트 엔드포인트
+  fastify.get('/ping', async (_request, reply) => {
+    return reply.send(ProtectedPingResponseSchema.parse({ pong: true }));
+  });
 
   // 미디어 라이브러리 새로고침
   fastify.get('/refresh', async (_request, reply) => {

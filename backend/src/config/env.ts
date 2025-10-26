@@ -42,11 +42,6 @@ const envSchema = z.object({
         .filter(p => p.length > 0)
     )
     .pipe(z.array(z.string()).min(1)),
-  // 속도 모드 토글: '1' | '0' | 'true' | 'false'
-  VIDEOFOREST_SPEED_MODE: z
-    .string()
-    .default('0')
-    .transform(v => v === '1' || v.toLowerCase() === 'true'),
 });
 
 // 출력

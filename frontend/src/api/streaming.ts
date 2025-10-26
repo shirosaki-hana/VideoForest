@@ -28,6 +28,13 @@ export function getHLSPlaylistUrl(mediaId: string): string {
 }
 
 /**
+ * 스트리밍 세션 종료
+ */
+export async function stopStreaming(mediaId: string): Promise<void> {
+  await apiClient.delete(`/stream/hls/${mediaId}`);
+}
+
+/**
  * Master Playlist가 준비될 때까지 폴링
  */
 export async function waitForPlaylist(mediaId: string, maxWaitMs: number = 30000, signal?: AbortSignal): Promise<boolean> {

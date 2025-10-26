@@ -15,4 +15,3 @@ node_modules/
 # media
 backend/media/
 backend/temp/
-backend/src/test/output
