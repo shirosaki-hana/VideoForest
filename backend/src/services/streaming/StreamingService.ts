@@ -50,11 +50,11 @@ export class StreamingService {
   async initializeStreaming(mediaId: string): Promise<string | null> {
     // 1. 캐시 확인
     if (this.metadataCache.has(mediaId)) {
-      logger.info(`Using cached metadata for ${mediaId}`);
+      logger.debug(`Using cached metadata for ${mediaId}`);
       return SegmentUtils.getPlaylistPath(mediaId, 'master');
     }
 
-    logger.info(`Initializing streaming for ${mediaId}`);
+    logger.debug(`Initializing streaming for ${mediaId}`);
 
     // 2. 미디어 정보 조회
     const mediaData = await this.getMediaInfo(mediaId);
@@ -77,7 +77,7 @@ export class StreamingService {
     }
 
     // 3. 미디어 분석
-    logger.info(`Analyzing media ${mediaId}...`);
+    logger.debug(`Analyzing media ${mediaId}...`);
     const analysis = MediaAnalyzer.analyze(info);
 
     if (analysis.totalSegments === 0) {
@@ -104,7 +104,7 @@ export class StreamingService {
 
       accurateSegments = segmentCalculation.segments;
 
-      logger.info(
+      logger.debug(
         `Keyframe-based segmentation: ${accurateSegments.length} segments ` +
           `(avg: ${segmentCalculation.averageSegmentDuration.toFixed(2)}s)`
       );
@@ -116,7 +116,7 @@ export class StreamingService {
 
     // 5. ABR 프로파일 생성
     const availableProfiles = generateABRProfiles(info);
-    logger.info(`Available qualities: ${availableProfiles.map(p => p.name).join(', ')}`);
+    logger.debug(`Available qualities: ${availableProfiles.map(p => p.name).join(', ')}`);
 
     // 6. 출력 디렉터리 생성
     const mediaDir = SegmentUtils.getMediaDir(mediaId);
@@ -177,7 +177,7 @@ export class StreamingService {
     // 1. 메타데이터 확인
     let metadata = this.metadataCache.get(mediaId);
     if (!metadata) {
-      logger.info(`Metadata not cached for ${mediaId}, initializing...`);
+      logger.debug(`Metadata not cached for ${mediaId}, initializing...`);
       const masterPath = await this.initializeStreaming(mediaId);
       if (!masterPath) {
         return null;
@@ -218,7 +218,7 @@ export class StreamingService {
     // 4. JIT 트랜스코딩 (중복 요청 방지)
     const existingJob = this.transcodingJobs.get(mediaId, quality, segmentNumber);
     if (existingJob) {
-      logger.info(`Transcoding already in progress for ${mediaId}:${quality}:${segmentNumber}, waiting...`);
+      logger.debug(`Transcoding already in progress for ${mediaId}:${quality}:${segmentNumber}, waiting...`);
       return await existingJob.promise;
     }
 
@@ -269,7 +269,7 @@ export class StreamingService {
     // 출력 경로
     const outputPath = SegmentUtils.getPath(mediaId, quality, segmentNumber);
 
-    logger.info(`Starting JIT transcoding: ${mediaId} / ${quality} / segment ${segmentNumber}`);
+    logger.debug(`Starting JIT transcoding: ${mediaId} / ${quality} / segment ${segmentNumber}`);
 
     // 트랜스코딩 실행
     const success = await transcodeSegment(mediaPath, segmentInfo, profile, analysis, outputPath);
@@ -329,9 +329,9 @@ export class StreamingService {
   clearMetadataCache(mediaId?: string): void {
     this.metadataCache.delete(mediaId);
     if (mediaId) {
-      logger.info(`Cleared metadata cache for ${mediaId}`);
+      logger.debug(`Cleared metadata cache for ${mediaId}`);
     } else {
-      logger.info('Cleared all metadata cache');
+      logger.debug('Cleared all metadata cache');
     }
   }
 

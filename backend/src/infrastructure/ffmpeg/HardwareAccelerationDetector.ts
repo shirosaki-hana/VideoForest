@@ -41,7 +41,7 @@ export class HardwareAccelerationDetector {
       }
     }
 
-    logger.info('Detecting hardware acceleration support...');
+    logger.debug('Detecting hardware acceleration support...');
 
     const result: HWAccelDetectionResult = {
       available: ['libx264'], // CPU는 항상 사용 가능
@@ -56,9 +56,9 @@ export class HardwareAccelerationDetector {
       result.available.unshift('h264_nvenc'); // 맨 앞에 추가 (우선순위)
       result.preferred = 'h264_nvenc';
       result.nvencAvailable = true;
-      logger.success('✓ NVENC (NVIDIA GPU) available - will be used for encoding');
+      logger.debug('✓ NVENC (NVIDIA GPU) available - will be used for encoding');
     } else {
-      logger.info('✗ NVENC not available - falling back to CPU (libx264)');
+      logger.debug('✗ NVENC not available - falling back to CPU (libx264)');
     }
 
     // 캐시 저장

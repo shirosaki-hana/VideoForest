@@ -1,4 +1,5 @@
 import ansi from 'ansi-colors';
+import { isDevelopment } from '../config/env.js';
 //------------------------------------------------------------------------------//
 // 시간 포맷팅 함수
 const getTimestamp = (): string => {
@@ -36,6 +37,9 @@ export const logger = {
   error: (...args: unknown[]) => formatMessage('ERROR', ...args),
   warn: (...args: unknown[]) => formatMessage('WARN', ...args),
   info: (...args: unknown[]) => formatMessage('INFO', ...args),
-  debug: (...args: unknown[]) => formatMessage('DEBUG', ...args),
+  debug: (...args: unknown[]) => {
+    if (!isDevelopment) return;
+    formatMessage('DEBUG', ...args);
+  },
   success: (...args: unknown[]) => formatMessage('SUCCESS', ...args),
 };

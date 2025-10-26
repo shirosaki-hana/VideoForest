@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import compress from '@fastify/compress';
-//import helmet from '@fastify/helmet';
+import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import staticFiles from '@fastify/static';
 import apiRoutes from './api/index.js';
@@ -20,10 +20,10 @@ const corsConfig = {
   origin: isDevelopment ? true : env.FRONTEND_URL,
   credentials: true,
 };
-//const helmetConfig = {
-//  contentSecurityPolicy: isProduction ? undefined : false,
-//  crossOriginEmbedderPolicy: false,
-//};
+const helmetConfig = {
+  contentSecurityPolicy: isProduction ? undefined : false,
+  crossOriginEmbedderPolicy: false,
+};
 const rateLimitConfig = {
   max: env.RATELIMIT_MAX,
   timeWindow: ms(env.RATELIMIT_WINDOWMS),
@@ -40,7 +40,7 @@ const staticFilesConfig = {
 // Fastify 서버 생성
 async function createFastifyApp() {
   const fastify = Fastify(fastifyConfig);
-  //await fastify.register(helmet, helmetConfig);
+  await fastify.register(helmet, helmetConfig);
   await fastify.register(rateLimit, rateLimitConfig);
   await fastify.register(compress);
   await fastify.register(cors, corsConfig);
@@ -112,8 +112,6 @@ startServer(env.PORT)
       logger.warn(`Received ${signal}: shutting down server...`);
 
       try {
-        // 새로운 아키텍처: 세션 관리 없음, 캐시는 영구 보관
-        // 진행 중인 트랜스코딩 작업은 자연스럽게 종료됨
 
         // Fastify 서버 종료
         await fastify.close();
@@ -131,8 +129,20 @@ startServer(env.PORT)
       }
     };
 
-    process.on('SIGINT', () => void gracefulShutdown('SIGINT'));
-    process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => {
+      gracefulShutdown('SIGINT').catch(error => {
+        logger.error('Error in SIGINT handler:', error);
+    // eslint-disable-next-line no-process-exit        
+        process.exit(1);
+      });
+    });
+    process.on('SIGTERM', () => {
+      gracefulShutdown('SIGTERM').catch(error => {
+        logger.error('Error in SIGTERM handler:', error);
+     // eslint-disable-next-line no-process-exit       
+        process.exit(1);
+      });
+    });
   })
   .catch(async error => {
     logger.error('Failed to start server:', error);

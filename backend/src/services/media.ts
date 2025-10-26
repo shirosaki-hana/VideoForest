@@ -78,7 +78,7 @@ async function getFileSize(filePath: string): Promise<number | null> {
  * 환경 변수에 설정된 모든 미디어 디렉터리를 스캔하고 DB를 갱신합니다.
  */
 export async function refreshMediaLibrary() {
-  logger.info('Starting media library refresh...');
+  logger.debug('Starting media library refresh...');
 
   // 환경 변수에서 미디어 경로 가져오기
   const mediaPaths = env.MEDIA_PATHS.map(p => {
@@ -86,7 +86,7 @@ export async function refreshMediaLibrary() {
     return path.isAbsolute(p) ? p : path.resolve(backendRoot, p);
   });
 
-  logger.info(`Scanning directories: ${mediaPaths.join(', ')}`);
+  logger.debug(`Scanning directories: ${mediaPaths.join(', ')}`);
 
   // 모든 디렉터리 스캔
   const allMediaFiles: string[] = [];
@@ -101,7 +101,7 @@ export async function refreshMediaLibrary() {
     }
   }
 
-  logger.info(`Found ${allMediaFiles.length} media files`);
+  logger.debug(`Found ${allMediaFiles.length} media files`);
 
   // DB의 기존 미디어 목록 가져오기
   const existingMedia = await database.media.findMany();
@@ -112,7 +112,7 @@ export async function refreshMediaLibrary() {
     return !existingPaths.has(filePath);
   });
 
-  logger.info(`Processing ${mediaToProcess.length} new media files...`);
+  logger.debug(`Processing ${mediaToProcess.length} new media files...`);
 
   // 각 파일의 메타데이터 추출 및 DB 저장
   let successCount = 0;
@@ -138,7 +138,7 @@ export async function refreshMediaLibrary() {
       });
 
       successCount++;
-      logger.info(`[${successCount}/${mediaToProcess.length}] Added: ${filename}`);
+      logger.debug(`[${successCount}/${mediaToProcess.length}] Added: ${filename}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error(`Failed to process ${filePath}:`, errorMessage);
@@ -150,10 +150,10 @@ export async function refreshMediaLibrary() {
   const filesToDelete = existingMedia.filter(m => !allMediaPathsSet.has(m.filePath));
 
   if (filesToDelete.length > 0) {
-    logger.info(`Removing ${filesToDelete.length} deleted files from database...`);
+    logger.debug(`Removing ${filesToDelete.length} deleted files from database...`);
     for (const media of filesToDelete) {
       await database.media.delete({ where: { id: media.id } });
-      logger.info(`Removed: ${media.name}`);
+      logger.debug(`Removed: ${media.name}`);
     }
   }
 
