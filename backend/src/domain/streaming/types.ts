@@ -67,7 +67,7 @@ export interface SegmentInfo {
 
 /**
  * 정확한 세그먼트 정보 (키프레임 기반)
- * 
+ *
  * keyframe.analyzer와 segment.calculator에서 사용
  */
 export interface AccurateSegmentInfo {
@@ -112,7 +112,7 @@ export interface MediaMetadata {
   totalSegments: number; // 전체 세그먼트 개수
   availableProfiles: QualityProfile[]; // 지원 화질 목록
   analysis: MediaAnalysis;
-  
+
   // 키프레임 기반 정확한 세그먼트 (옵션)
   keyframeAnalysis?: KeyframeAnalysis;
   accurateSegments?: AccurateSegmentInfo[];
@@ -129,4 +129,3 @@ export interface TranscodingJob {
   promise: Promise<string | null>; // 세그먼트 파일 경로 반환 (실패 시 null)
   startTime: number;
 }
-

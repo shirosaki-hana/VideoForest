@@ -16,16 +16,11 @@ import {
   type AccurateSegmentInfo,
   type TranscodingJob,
 } from '../../domain/streaming/index.js';
-import { 
-  analyzeKeyframes, 
-  validateKeyframeStructure,
-  transcodeSegment,
-  checkSegmentCache,
-} from '../../infrastructure/ffmpeg/index.js';
+import { analyzeKeyframes, validateKeyframeStructure, transcodeSegment, checkSegmentCache } from '../../infrastructure/ffmpeg/index.js';
 
 /**
  * 스트리밍 서비스
- * 
+ *
  * 책임:
  * - 미디어 스트리밍 초기화 및 관리
  * - 세그먼트 요청 처리
@@ -43,7 +38,7 @@ export class StreamingService {
 
   /**
    * 스트리밍 초기화 - Master Playlist 생성
-   * 
+   *
    * 플로우:
    * 1. 미디어 정보 조회 (DB)
    * 2. 미디어 분석 (호환성, 세그먼트 개수 등)
@@ -93,25 +88,25 @@ export class StreamingService {
     // 4. 키프레임 분석 (정확한 세그먼트 생성)
     let accurateSegments: AccurateSegmentInfo[] | undefined;
     let keyframeAnalysis: any;
-    
+
     try {
       keyframeAnalysis = await analyzeKeyframes(mediaData.path);
-      
+
       // 키프레임 구조 검증
       validateKeyframeStructure(keyframeAnalysis);
-      
+
       // 키프레임 기반으로 정확한 세그먼트 계산
       const segmentCalculation = SegmentCalculator.calculateAccurateSegments(
         keyframeAnalysis.keyframes,
         analysis.segmentDuration,
         info.duration
       );
-      
+
       accurateSegments = segmentCalculation.segments;
-      
+
       logger.info(
         `Keyframe-based segmentation: ${accurateSegments.length} segments ` +
-        `(avg: ${segmentCalculation.averageSegmentDuration.toFixed(2)}s)`
+          `(avg: ${segmentCalculation.averageSegmentDuration.toFixed(2)}s)`
       );
     } catch (error) {
       logger.warn(`Keyframe analysis failed, using approximate segmentation: ${error}`);
@@ -144,11 +139,7 @@ export class StreamingService {
       await mkdir(qualityDir, { recursive: true });
 
       const qualityPlaylistPath = SegmentUtils.getPlaylistPath(mediaId, profile.name);
-      const qualityPlaylistContent = PlaylistGenerator.generateQuality(
-        info.duration,
-        analysis.segmentDuration,
-        accurateSegments
-      );
+      const qualityPlaylistContent = PlaylistGenerator.generateQuality(info.duration, analysis.segmentDuration, accurateSegments);
 
       try {
         writeFileSync(qualityPlaylistPath, qualityPlaylistContent);
@@ -174,10 +165,7 @@ export class StreamingService {
 
     this.metadataCache.set(mediaId, metadata);
 
-    logger.success(
-      `Streaming initialized for ${mediaId} ` +
-      `(${metadata.totalSegments} segments, ${availableProfiles.length} qualities)`
-    );
+    logger.success(`Streaming initialized for ${mediaId} ` + `(${metadata.totalSegments} segments, ${availableProfiles.length} qualities)`);
 
     return masterPlaylistPath;
   }
@@ -185,11 +173,7 @@ export class StreamingService {
   /**
    * 세그먼트 요청 처리 - 캐시 확인 → JIT 트랜스코딩
    */
-  async getSegment(
-    mediaId: string,
-    quality: string,
-    segmentFileName: string
-  ): Promise<string | null> {
+  async getSegment(mediaId: string, quality: string, segmentFileName: string): Promise<string | null> {
     // 1. 메타데이터 확인
     let metadata = this.metadataCache.get(mediaId);
     if (!metadata) {
@@ -214,9 +198,7 @@ export class StreamingService {
 
     // 범위 체크
     if (segmentNumber < 0 || segmentNumber >= metadata.totalSegments) {
-      logger.error(
-        `Segment ${segmentNumber} out of range (0-${metadata.totalSegments - 1})`
-      );
+      logger.error(`Segment ${segmentNumber} out of range (0-${metadata.totalSegments - 1})`);
       return null;
     }
 
@@ -287,18 +269,10 @@ export class StreamingService {
     // 출력 경로
     const outputPath = SegmentUtils.getPath(mediaId, quality, segmentNumber);
 
-    logger.info(
-      `Starting JIT transcoding: ${mediaId} / ${quality} / segment ${segmentNumber}`
-    );
+    logger.info(`Starting JIT transcoding: ${mediaId} / ${quality} / segment ${segmentNumber}`);
 
     // 트랜스코딩 실행
-    const success = await transcodeSegment(
-      mediaPath,
-      segmentInfo,
-      profile,
-      analysis,
-      outputPath
-    );
+    const success = await transcodeSegment(mediaPath, segmentInfo, profile, analysis, outputPath);
 
     if (!success) {
       logger.error(`JIT transcoding failed for segment ${segmentNumber}`);
@@ -408,4 +382,3 @@ export class StreamingService {
     };
   }
 }
-

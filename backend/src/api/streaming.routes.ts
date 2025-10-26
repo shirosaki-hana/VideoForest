@@ -1,10 +1,6 @@
 import { type FastifyPluginAsync } from 'fastify';
 import { requireAuth } from '../middleware/auth.js';
-import { 
-  getMasterPlaylistPath, 
-  getQualityPlaylistPath, 
-  getSegment,
-} from '../services/index.js';
+import { getMasterPlaylistPath, getQualityPlaylistPath, getSegment } from '../services/index.js';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { logger } from '../utils/index.js';
@@ -114,45 +110,48 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
    * 핵심! JIT 트랜스코딩 수행
    * - 캐시에 있으면 즉시 반환
    * - 없으면 JIT 트랜스코딩 후 반환
-   * 
+   *
    * 예: /hls/abc123/720p/segment_050.ts
    */
-  fastify.get<{ Params: { mediaId: string; quality: string; segmentName: string } }>('/hls/:mediaId/:quality/:segmentName', async (request, reply) => {
-    const { mediaId, quality, segmentName } = request.params;
+  fastify.get<{ Params: { mediaId: string; quality: string; segmentName: string } }>(
+    '/hls/:mediaId/:quality/:segmentName',
+    async (request, reply) => {
+      const { mediaId, quality, segmentName } = request.params;
 
-    // 세그먼트 파일명 검증 (보안)
-    if (!/^segment_\d{3}\.ts$/.test(segmentName)) {
-      return reply.code(400).send({ error: 'Invalid segment name' });
-    }
-
-    try {
-      // JIT 트랜스코딩 수행 (캐시 확인 → 없으면 트랜스코딩)
-      const segmentPath = await getSegment(mediaId, quality, segmentName);
-
-      if (!segmentPath) {
-        logger.error(`Failed to get segment: ${mediaId} / ${quality} / ${segmentName}`);
-        return reply.code(500).send({ error: 'Segment transcoding failed' });
+      // 세그먼트 파일명 검증 (보안)
+      if (!/^segment_\d{3}\.ts$/.test(segmentName)) {
+        return reply.code(400).send({ error: 'Invalid segment name' });
       }
 
-      // 세그먼트 파일이 있는지 최종 확인
-      if (!existsSync(segmentPath)) {
-        logger.error(`Segment file not found after transcoding: ${segmentPath}`);
-        return reply.code(500).send({ error: 'Segment file not found' });
+      try {
+        // JIT 트랜스코딩 수행 (캐시 확인 → 없으면 트랜스코딩)
+        const segmentPath = await getSegment(mediaId, quality, segmentName);
+
+        if (!segmentPath) {
+          logger.error(`Failed to get segment: ${mediaId} / ${quality} / ${segmentName}`);
+          return reply.code(500).send({ error: 'Segment transcoding failed' });
+        }
+
+        // 세그먼트 파일이 있는지 최종 확인
+        if (!existsSync(segmentPath)) {
+          logger.error(`Segment file not found after transcoding: ${segmentPath}`);
+          return reply.code(500).send({ error: 'Segment file not found' });
+        }
+
+        // 세그먼트 파일 스트림으로 전송
+        const stream = (await import('fs')).createReadStream(segmentPath);
+
+        return reply
+          .code(200)
+          .header('Content-Type', 'video/mp2t')
+          .header('Cache-Control', 'public, max-age=31536000, immutable') // 영구 캐시
+          .send(stream);
+      } catch (error) {
+        logger.error(`Failed to serve segment ${quality}/${segmentName} for ${mediaId}:`, error);
+        return reply.code(500).send({ error: 'Failed to serve segment' });
       }
-
-      // 세그먼트 파일 스트림으로 전송
-      const stream = (await import('fs')).createReadStream(segmentPath);
-
-      return reply
-        .code(200)
-        .header('Content-Type', 'video/mp2t')
-        .header('Cache-Control', 'public, max-age=31536000, immutable') // 영구 캐시
-        .send(stream);
-    } catch (error) {
-      logger.error(`Failed to serve segment ${quality}/${segmentName} for ${mediaId}:`, error);
-      return reply.code(500).send({ error: 'Failed to serve segment' });
     }
-  });
+  );
 
   /**
    * 미디어 정보 조회 (재생용)
@@ -192,4 +191,3 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
     }
   });
 };
-

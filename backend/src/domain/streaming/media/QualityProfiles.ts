@@ -2,7 +2,7 @@ import type { QualityProfile, MediaInfo } from '../types.js';
 
 /**
  * 표준 품질 프로파일 정의
- * 
+ *
  * ABR을 위한 다양한 품질 레벨
  */
 export const QUALITY_PROFILES: Record<string, QualityProfile> = {
@@ -46,7 +46,7 @@ export const QUALITY_PROFILES: Record<string, QualityProfile> = {
 
 /**
  * HLS 공통 설정
- * 
+ *
  * 최적화된 설정:
  * - 6초 세그먼트: 버퍼링 감소, 탐색 정확도 개선
  * - 독립 세그먼트: 각 세그먼트가 독립적으로 디코딩 가능
@@ -67,7 +67,7 @@ export const HLS_CONFIG = {
 export class QualityProfileSelector {
   /**
    * 원본 해상도를 기반으로 최적의 단일 품질 프로파일 선택
-   * 
+   *
    * 전략:
    * - 원본 해상도보다 낮거나 같은 최대 품질 선택
    * - 업스케일링 방지
@@ -143,12 +143,12 @@ export class QualityProfileSelector {
 
   /**
    * 원본 해상도에 적합한 모든 ABR 품질 프로파일 생성
-   * 
+   *
    * Lazy ABR 전략:
    * - 원본보다 높은 해상도는 제외 (업스케일링 방지)
    * - 최소 2개, 최대 4개 품질 제공
    * - 대역폭 범위를 최대한 커버
-   * 
+   *
    * @returns 사용 가능한 품질 프로파일 배열 (높은 품질 -> 낮은 품질 순서)
    */
   static generateABR(mediaInfo: MediaInfo): QualityProfile[] {
@@ -188,7 +188,7 @@ export class QualityProfileSelector {
 
   /**
    * 기본(초기) 품질 선택
-   * 
+   *
    * Lazy ABR에서 처음에 트랜스코딩을 시작할 품질을 선택합니다.
    * 중간 품질을 선택하여 대부분의 네트워크 환경에 적합하도록 합니다.
    */
@@ -200,7 +200,7 @@ export class QualityProfileSelector {
 
   /**
    * GOP (Group of Pictures) 크기 계산
-   * 
+   *
    * 세그먼트 시간과 정확히 일치하도록 GOP 크기를 계산합니다.
    */
   static getGOPSize(fps: number, segmentTime: number): number {
@@ -209,7 +209,7 @@ export class QualityProfileSelector {
 
   /**
    * 키프레임 간격 표현식
-   * 
+   *
    * FFmpeg의 force_key_frames에 사용되며, 정확한 시간 간격으로 키프레임을 강제합니다.
    */
   static getKeyframeExpression(segmentTime: number): string {
@@ -224,4 +224,3 @@ export const generateABRProfiles = QualityProfileSelector.generateABR.bind(Quali
 export const selectDefaultProfile = QualityProfileSelector.selectDefault.bind(QualityProfileSelector);
 export const getGOPSize = QualityProfileSelector.getGOPSize.bind(QualityProfileSelector);
 export const getKeyframeExpression = QualityProfileSelector.getKeyframeExpression.bind(QualityProfileSelector);
-

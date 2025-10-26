@@ -15,12 +15,12 @@ import { SegmentValidator } from './SegmentValidator.js';
 
 /**
  * FFmpeg 트랜스코더
- * 
+ *
  * 책임:
  * - FFmpeg 프로세스 실행
  * - 세그먼트 파일 생성
  * - 캐시 관리
- * 
+ *
  * Infrastructure Layer: 외부 도구(FFmpeg)에 대한 직접적인 의존성
  */
 export class FFmpegTranscoder {
@@ -34,7 +34,7 @@ export class FFmpegTranscoder {
 
   /**
    * 단일 세그먼트 JIT 트랜스코딩
-   * 
+   *
    * 핵심 아이디어:
    * - FFmpeg의 -ss 옵션으로 정확한 시작 위치로 seek
    * - -t 옵션으로 정확한 길이만큼만 인코딩
@@ -55,75 +55,59 @@ export class FFmpegTranscoder {
 
     // 정확한 세그먼트인지 확인
     const isAccurate = 'endTime' in segmentInfo;
-    const endTime = isAccurate 
-      ? (segmentInfo as AccurateSegmentInfo).endTime 
-      : segmentInfo.startTime + segmentInfo.duration;
+    const endTime = isAccurate ? (segmentInfo as AccurateSegmentInfo).endTime : segmentInfo.startTime + segmentInfo.duration;
     const duration = endTime - segmentInfo.startTime;
-    
+
     logger.info(
       `JIT transcoding: segment ${segmentInfo.segmentNumber} ` +
-      `(${segmentInfo.startTime.toFixed(3)}s ~ ${endTime.toFixed(3)}s) ` +
-      `duration ${duration.toFixed(3)}s ` +
-      `to ${profile.name}`
+        `(${segmentInfo.startTime.toFixed(3)}s ~ ${endTime.toFixed(3)}s) ` +
+        `duration ${duration.toFixed(3)}s ` +
+        `to ${profile.name}`
     );
 
     // FFmpeg 명령어 구성
-    const ffmpegArgs = this.buildFFmpegArgs(
-      mediaPath,
-      segmentInfo,
-      profile,
-      analysis,
-      outputPath
-    );
+    const ffmpegArgs = this.buildFFmpegArgs(mediaPath, segmentInfo, profile, analysis, outputPath);
 
     // FFmpeg 프로세스 실행 (동기적으로 완료 대기)
-    return new Promise<boolean>((resolve) => {
+    return new Promise<boolean>(resolve => {
       const ffmpegProcess = spawn(this.ffmpegPath, ffmpegArgs, {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
       let stderr = '';
 
-      ffmpegProcess.stderr?.on('data', (data) => {
+      ffmpegProcess.stderr?.on('data', data => {
         stderr += data.toString();
       });
 
-      ffmpegProcess.on('error', (error) => {
+      ffmpegProcess.on('error', error => {
         logger.error(`FFmpeg process error: ${error.message}`);
         resolve(false);
       });
 
-      ffmpegProcess.on('exit', async (code) => {
+      ffmpegProcess.on('exit', async code => {
         if (code === 0) {
           // 성공 - 세그먼트 검증
-          logger.success(
-            `Segment ${segmentInfo.segmentNumber} transcoded successfully ` +
-            `(${profile.name})`
-          );
-          
+          logger.success(`Segment ${segmentInfo.segmentNumber} transcoded successfully ` + `(${profile.name})`);
+
           // 세그먼트 품질 검증 (비동기, 에러 무시)
           try {
             const validator = new SegmentValidator();
             const validation = await validator.validate(outputPath);
             validator.logResult(segmentInfo.segmentNumber, segmentInfo.duration, validation);
-            
+
             // 검증 실패 시에도 일단 true 반환 (경고만)
             if (!validation.isValid) {
-              logger.warn(
-                `Segment ${segmentInfo.segmentNumber} validation failed but continuing...`
-              );
+              logger.warn(`Segment ${segmentInfo.segmentNumber} validation failed but continuing...`);
             }
           } catch (error) {
             logger.warn(`Segment validation error (non-fatal): ${error}`);
           }
-          
+
           resolve(true);
         } else {
           // 실패
-          logger.error(
-            `Segment ${segmentInfo.segmentNumber} transcoding failed ` +
-            `(exit code: ${code})`
-          );
+          logger.error(`Segment ${segmentInfo.segmentNumber} transcoding failed ` + `(exit code: ${code})`);
           logger.error(`FFmpeg stderr:\n${stderr.slice(-1000)}`); // 마지막 1000자만
           resolve(false);
         }
@@ -133,7 +117,7 @@ export class FFmpegTranscoder {
 
   /**
    * 단일 세그먼트용 FFmpeg 인자 생성
-   * 
+   *
    * 핵심 옵션 (속도 최적화):
    * - -ss (입력 전): 초고속 keyframe seek (keyframe-aligned 세그먼트 사용 시 정확함)
    * - -t: 정확한 인코딩 길이
@@ -159,7 +143,7 @@ export class FFmpegTranscoder {
     if (segmentInfo.startTime > 0) {
       args.push('-ss', segmentInfo.startTime.toFixed(3));
     }
-    
+
     // 4. 입력 파일
     args.push('-i', this.normalizePathForFFmpeg(mediaPath));
 
@@ -189,28 +173,28 @@ export class FFmpegTranscoder {
       }
       args.push('-vf', videoFilter);
     }
-    
+
     // 비디오 인코더 옵션 추가
     const videoEncoderArgs = EncoderOptions.buildVideoArgs(profile, analysis, this.speedMode);
-    
+
     // force_key_frames를 단일 세그먼트용으로 재정의
     const filteredArgs: string[] = [];
     let skipNext = false;
-    
+
     for (let i = 0; i < videoEncoderArgs.length; i++) {
       if (skipNext) {
         skipNext = false;
         continue;
       }
-      
+
       if (videoEncoderArgs[i] === '-force_key_frames') {
         skipNext = true;
         continue;
       }
-      
+
       filteredArgs.push(videoEncoderArgs[i]);
     }
-    
+
     args.push(...filteredArgs);
 
     // 9. 단일 세그먼트용 keyframe 설정 (첫 프레임만 강제)
@@ -251,19 +235,14 @@ export class FFmpegTranscoder {
   /**
    * 세그먼트 캐시 확인
    */
-  static checkCache(
-    mediaId: string,
-    quality: string,
-    segmentNumber: number,
-    baseDir: string = 'temp/hls'
-  ): string | null {
+  static checkCache(mediaId: string, quality: string, segmentNumber: number, baseDir: string = 'temp/hls'): string | null {
     const segmentPath = SegmentUtils.getPath(mediaId, quality, segmentNumber, baseDir);
-    
+
     if (existsSync(segmentPath)) {
       logger.debug?.(`Cache hit: ${segmentPath}`);
       return segmentPath;
     }
-    
+
     logger.debug?.(`Cache miss: ${segmentPath}`);
     return null;
   }
@@ -271,12 +250,7 @@ export class FFmpegTranscoder {
   /**
    * 세그먼트 캐시 확인 (존재 여부만)
    */
-  static isCached(
-    mediaId: string,
-    quality: string,
-    segmentNumber: number,
-    baseDir: string = 'temp/hls'
-  ): boolean {
+  static isCached(mediaId: string, quality: string, segmentNumber: number, baseDir: string = 'temp/hls'): boolean {
     return this.checkCache(mediaId, quality, segmentNumber, baseDir) !== null;
   }
 }
@@ -295,4 +269,3 @@ export const transcodeSegment = async (
 
 export const checkSegmentCache = FFmpegTranscoder.checkCache;
 export const isSegmentCached = FFmpegTranscoder.isCached;
-

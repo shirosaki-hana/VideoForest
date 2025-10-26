@@ -250,9 +250,7 @@ export default function PlayerPage() {
                       {mediaInfo.codec && <Chip label={mediaInfo.codec.toUpperCase()} size='small' variant='outlined' />}
                       {mediaInfo.audioCodec && <Chip label={mediaInfo.audioCodec.toUpperCase()} size='small' variant='outlined' />}
                       {mediaInfo.fps && <Chip label={`${Math.round(mediaInfo.fps)} FPS`} size='small' variant='outlined' />}
-                      {mediaInfo.bitrate && (
-                        <Chip label={`${Math.round(mediaInfo.bitrate / 1000)} kbps`} size='small' variant='outlined' />
-                      )}
+                      {mediaInfo.bitrate && <Chip label={`${Math.round(mediaInfo.bitrate / 1000)} kbps`} size='small' variant='outlined' />}
                     </Stack>
                   </Paper>
                 )}
@@ -269,7 +267,17 @@ export default function PlayerPage() {
                       overflow: 'auto',
                     }}
                   >
-                    <Box sx={{ p: 2, position: 'sticky', top: 0, bgcolor: 'background.paper', zIndex: 1, borderBottom: 1, borderColor: 'divider' }}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        position: 'sticky',
+                        top: 0,
+                        bgcolor: 'background.paper',
+                        zIndex: 1,
+                        borderBottom: 1,
+                        borderColor: 'divider',
+                      }}
+                    >
                       <Typography variant='subtitle1' sx={{ fontWeight: 600 }}>
                         {t('player.playlist', { count: playlist.length })}
                       </Typography>

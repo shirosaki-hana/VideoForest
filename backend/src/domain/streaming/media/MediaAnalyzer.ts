@@ -3,7 +3,7 @@ import { HLS_CONFIG, QualityProfileSelector } from './QualityProfiles.js';
 
 /**
  * 미디어 분석 로직
- * 
+ *
  * 책임:
  * - 미디어 호환성 체크
  * - 트랜스코딩 전략 결정
@@ -12,7 +12,7 @@ import { HLS_CONFIG, QualityProfileSelector } from './QualityProfiles.js';
 export class MediaAnalyzer {
   /**
    * 미디어 분석 - 호환성 체크 및 트랜스코딩 전략 결정
-   * 
+   *
    * 핵심 로직: 메타데이터를 기반으로 최적의 트랜스코딩 전략을 결정합니다.
    */
   static analyze(mediaInfo: MediaInfo): MediaAnalysis {
@@ -108,4 +108,3 @@ export class MediaAnalyzer {
 
 // 하위 호환성을 위한 함수 export
 export const analyzeMedia = MediaAnalyzer.analyze.bind(MediaAnalyzer);
-

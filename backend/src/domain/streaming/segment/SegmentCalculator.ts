@@ -18,7 +18,7 @@ export interface SegmentCalculationResult {
 
 /**
  * 세그먼트 계산 로직
- * 
+ *
  * 책임:
  * - 키프레임 기반 세그먼트 경계 계산
  * - 세그먼트 연속성 검증
@@ -27,7 +27,7 @@ export interface SegmentCalculationResult {
 export class SegmentCalculator {
   /**
    * 키프레임 기반으로 세그먼트 경계 계산
-   * 
+   *
    * 핵심 아이디어:
    * - 목표 세그먼트 길이 (예: 6초) 근처의 키프레임을 찾아 경계로 사용
    * - 각 세그먼트는 반드시 키프레임으로 시작
@@ -52,15 +52,17 @@ export class SegmentCalculator {
 
       // 현재 위치에서 가장 가까운 시작 키프레임
       const startKeyframe = this.findKeyframeNear(keyframes, currentTime, 'after');
-      if (!startKeyframe) break;
+      if (!startKeyframe) {
+        break;
+      }
 
       // 목표 종료 시간에서 가장 가까운 키프레임
       const endKeyframe = this.findKeyframeNear(keyframes, targetEndTime, 'after');
-      
+
       // 마지막 세그먼트 처리
       let endTime: number;
       let endKeyframeIndex: number;
-      
+
       if (!endKeyframe || endKeyframe.index === startKeyframe.index) {
         // 마지막 세그먼트이거나 키프레임이 하나뿐인 경우
         endTime = totalDuration;
@@ -115,7 +117,9 @@ export class SegmentCalculator {
     targetTime: number,
     direction: 'before' | 'after' | 'nearest'
   ): KeyframeInfo | null {
-    if (keyframes.length === 0) return null;
+    if (keyframes.length === 0) {
+      return null;
+    }
 
     if (direction === 'before') {
       // 목표 시간 이전 또는 같은 시간의 키프레임 중 가장 가까운 것
@@ -125,8 +129,8 @@ export class SegmentCalculator {
         }
       }
       return null;
-    } 
-    
+    }
+
     if (direction === 'after') {
       // 목표 시간 이후 또는 같은 시간의 키프레임 중 가장 가까운 것
       for (let i = 0; i < keyframes.length; i++) {
@@ -136,11 +140,11 @@ export class SegmentCalculator {
       }
       return null;
     }
-    
+
     // nearest: 가장 가까운 키프레임
     let minDiff = Infinity;
     let nearest: KeyframeInfo | null = null;
-    
+
     for (const kf of keyframes) {
       const diff = Math.abs(kf.pts - targetTime);
       if (diff < minDiff) {
@@ -148,33 +152,27 @@ export class SegmentCalculator {
         nearest = kf;
       }
     }
-    
+
     return nearest;
   }
 
   /**
    * 세그먼트 번호로 정확한 세그먼트 정보 찾기
    */
-  static getSegmentByNumber(
-    segments: AccurateSegmentInfo[],
-    segmentNumber: number
-  ): AccurateSegmentInfo | null {
+  static getSegmentByNumber(segments: AccurateSegmentInfo[], segmentNumber: number): AccurateSegmentInfo | null {
     return segments.find(s => s.segmentNumber === segmentNumber) || null;
   }
 
   /**
    * 특정 시간이 속한 세그먼트 찾기
    */
-  static getSegmentAtTime(
-    segments: AccurateSegmentInfo[],
-    time: number
-  ): AccurateSegmentInfo | null {
+  static getSegmentAtTime(segments: AccurateSegmentInfo[], time: number): AccurateSegmentInfo | null {
     return segments.find(s => s.startTime <= time && time < s.endTime) || null;
   }
 
   /**
    * 세그먼트 범위 검증
-   * 
+   *
    * 겹침이나 간격이 있는지 확인
    */
   static validateContinuity(segments: AccurateSegmentInfo[]): {
@@ -189,19 +187,14 @@ export class SegmentCalculator {
 
       // 이전 세그먼트의 끝과 현재 세그먼트의 시작이 연속적인지 확인
       const gap = Math.abs(curr.startTime - prev.endTime);
-      
+
       if (gap > 0.1) {
-        errors.push(
-          `Gap detected between segment ${prev.segmentNumber} and ${curr.segmentNumber} ` +
-          `(${gap.toFixed(3)}s)`
-        );
+        errors.push(`Gap detected between segment ${prev.segmentNumber} and ${curr.segmentNumber} ` + `(${gap.toFixed(3)}s)`);
       }
 
       // 겹침 확인
       if (curr.startTime < prev.endTime - 0.01) {
-        errors.push(
-          `Overlap detected between segment ${prev.segmentNumber} and ${curr.segmentNumber}`
-        );
+        errors.push(`Overlap detected between segment ${prev.segmentNumber} and ${curr.segmentNumber}`);
       }
     }
 
@@ -229,4 +222,3 @@ export const getSegmentByNumber = SegmentCalculator.getSegmentByNumber.bind(Segm
 export const getSegmentAtTime = SegmentCalculator.getSegmentAtTime.bind(SegmentCalculator);
 export const validateSegmentContinuity = SegmentCalculator.validateContinuity.bind(SegmentCalculator);
 export const generateHLSSegmentEntries = SegmentCalculator.generateHLSEntries.bind(SegmentCalculator);
-

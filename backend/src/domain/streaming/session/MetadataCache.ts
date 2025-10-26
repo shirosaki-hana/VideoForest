@@ -2,7 +2,7 @@ import type { MediaMetadata } from '../types.js';
 
 /**
  * 미디어 메타데이터 캐시 관리
- * 
+ *
  * 책임:
  * - 메타데이터 저장/조회/삭제
  * - 메모리 기반 캐싱 (플레이리스트 생성 시 한 번만 분석, 이후 재사용)
@@ -57,4 +57,3 @@ export class MetadataCache {
     return this.cache.size;
   }
 }
-

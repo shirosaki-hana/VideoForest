@@ -24,11 +24,7 @@ export async function initializeStreaming(mediaId: string): Promise<string | nul
 /**
  * 세그먼트 요청 처리 - 캐시 확인 → JIT 트랜스코딩
  */
-export async function getSegment(
-  mediaId: string,
-  quality: string,
-  segmentFileName: string
-): Promise<string | null> {
+export async function getSegment(mediaId: string, quality: string, segmentFileName: string): Promise<string | null> {
   return streamingService.getSegment(mediaId, quality, segmentFileName);
 }
 
@@ -42,10 +38,7 @@ export async function getMasterPlaylistPath(mediaId: string): Promise<string | n
 /**
  * 화질별 Playlist 경로 조회
  */
-export async function getQualityPlaylistPath(
-  mediaId: string,
-  quality: string
-): Promise<string | null> {
+export async function getQualityPlaylistPath(mediaId: string, quality: string): Promise<string | null> {
   return streamingService.getQualityPlaylistPath(mediaId, quality);
 }
 
@@ -76,4 +69,3 @@ export function getMetadata(mediaId: string): MediaMetadata | undefined {
 export function getAllMetadata(): MediaMetadata[] {
   return streamingService.getAllMetadata();
 }
-

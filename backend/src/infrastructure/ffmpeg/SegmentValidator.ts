@@ -15,28 +15,28 @@ export interface SegmentValidation {
 
 /**
  * 세그먼트 검증기
- * 
+ *
  * 책임:
  * - 생성된 세그먼트 파일 검증
  * - FFprobe를 사용한 품질 체크
  * - 검증 결과 로깅
- * 
+ *
  * Infrastructure Layer: 외부 도구(FFprobe)에 대한 직접적인 의존성
  */
 export class SegmentValidator {
   /**
    * 생성된 세그먼트 파일 검증
-   * 
+   *
    * FFprobe를 사용하여 세그먼트의 실제 정보를 확인합니다.
    * 디버깅 및 품질 검증에 유용합니다.
    */
   async validate(segmentPath: string): Promise<SegmentValidation> {
     const errors: string[] = [];
-    
+
     try {
       const fs = await import('fs');
       const stats = fs.statSync(segmentPath);
-      
+
       if (!stats.isFile()) {
         errors.push('Not a file');
         return {
@@ -108,35 +108,25 @@ export class SegmentValidator {
   /**
    * 세그먼트 검증 결과 로깅
    */
-  logResult(
-    segmentNumber: number,
-    expectedDuration: number,
-    validation: SegmentValidation
-  ): void {
+  logResult(segmentNumber: number, expectedDuration: number, validation: SegmentValidation): void {
     if (validation.isValid) {
-      const durationDiff = validation.actualDuration 
-        ? Math.abs(validation.actualDuration - expectedDuration)
-        : 0;
-      
+      const durationDiff = validation.actualDuration ? Math.abs(validation.actualDuration - expectedDuration) : 0;
+
       // HLS 스펙: 실제 duration이 예상보다 약간 길 수 있음 (GOP 경계)
       // 플레이리스트에 +0.05초 안전 마진이 추가되어 있으므로
       // 0.1초 이상 차이나면 경고
       if (durationDiff > 0.1) {
         logger.warn(
           `Segment ${segmentNumber}: Duration mismatch! ` +
-          `Expected ${expectedDuration}s, got ${validation.actualDuration}s (diff: ${durationDiff.toFixed(3)}s)`
+            `Expected ${expectedDuration}s, got ${validation.actualDuration}s (diff: ${durationDiff.toFixed(3)}s)`
         );
       } else {
         logger.debug?.(
-          `Segment ${segmentNumber} validated: ${validation.actualDuration?.toFixed(3)}s, ` +
-          `${(validation.fileSize / 1024).toFixed(3)}KB`
+          `Segment ${segmentNumber} validated: ${validation.actualDuration?.toFixed(3)}s, ` + `${(validation.fileSize / 1024).toFixed(3)}KB`
         );
       }
     } else {
-      logger.error(
-        `Segment ${segmentNumber} validation FAILED:\n` +
-        validation.errors.map(e => `  - ${e}`).join('\n')
-      );
+      logger.error(`Segment ${segmentNumber} validation FAILED:\n` + validation.errors.map(e => `  - ${e}`).join('\n'));
     }
   }
 }
@@ -146,9 +136,5 @@ const validator = new SegmentValidator();
 
 export const validateSegment = (segmentPath: string) => validator.validate(segmentPath);
 
-export const logValidationResult = (
-  segmentNumber: number,
-  expectedDuration: number,
-  validation: SegmentValidation
-) => validator.logResult(segmentNumber, expectedDuration, validation);
-
+export const logValidationResult = (segmentNumber: number, expectedDuration: number, validation: SegmentValidation) =>
+  validator.logResult(segmentNumber, expectedDuration, validation);

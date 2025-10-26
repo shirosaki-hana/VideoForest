@@ -5,18 +5,18 @@ import type { KeyframeInfo, KeyframeAnalysis } from '../../domain/streaming/type
 
 /**
  * FFprobe 키프레임 분석기
- * 
+ *
  * 책임:
  * - FFprobe 실행
  * - 키프레임 타임스탬프 추출
  * - 키프레임 구조 검증
- * 
+ *
  * Infrastructure Layer: 외부 도구(FFprobe)에 대한 직접적인 의존성
  */
 export class FFprobeAnalyzer {
   /**
    * FFprobe로 모든 키프레임 타임스탬프 추출
-   * 
+   *
    * 핵심 아이디어:
    * - `-show_packets`로 모든 패킷 정보 가져오기
    * - `flags=K`인 패킷만 필터링 (키프레임)
@@ -29,11 +29,16 @@ export class FFprobeAnalyzer {
       // 1. FFprobe로 비디오 패킷 정보 추출 (키프레임만)
       const { stdout } = await executeFFprobe(
         [
-          '-v', 'error',
-          '-select_streams', 'v:0', // 첫 번째 비디오 스트림만
-          '-show_entries', 'packet=pts_time,flags', // 타임스탬프와 플래그
-          '-of', 'json', // JSON 출력
-          '-read_intervals', '%+#9999999', // 모든 패킷 읽기
+          '-v',
+          'error',
+          '-select_streams',
+          'v:0', // 첫 번째 비디오 스트림만
+          '-show_entries',
+          'packet=pts_time,flags', // 타임스탬프와 플래그
+          '-of',
+          'json', // JSON 출력
+          '-read_intervals',
+          '%+#9999999', // 모든 패킷 읽기
           path.resolve(mediaPath),
         ],
         {
@@ -71,19 +76,14 @@ export class FFprobeAnalyzer {
         gopDurations.push(keyframes[i].pts - keyframes[i - 1].pts);
       }
 
-      const averageGopDuration = gopDurations.length > 0
-        ? gopDurations.reduce((a, b) => a + b, 0) / gopDurations.length
-        : 0;
+      const averageGopDuration = gopDurations.length > 0 ? gopDurations.reduce((a, b) => a + b, 0) / gopDurations.length : 0;
 
       // FPS 추출 (별도 FFprobe 호출)
       const fps = await this.extractFPS(mediaPath);
 
       const averageGopSize = Math.round(averageGopDuration * fps);
 
-      logger.success(
-        `Found ${totalKeyframes} keyframes ` +
-        `(avg GOP: ${averageGopDuration.toFixed(2)}s / ${averageGopSize} frames)`
-      );
+      logger.success(`Found ${totalKeyframes} keyframes ` + `(avg GOP: ${averageGopDuration.toFixed(2)}s / ${averageGopSize} frames)`);
 
       return {
         keyframes,
@@ -105,13 +105,7 @@ export class FFprobeAnalyzer {
   private async extractFPS(mediaPath: string): Promise<number> {
     try {
       const { stdout } = await executeFFprobe(
-        [
-          '-v', 'error',
-          '-select_streams', 'v:0',
-          '-show_entries', 'stream=r_frame_rate',
-          '-of', 'json',
-          path.resolve(mediaPath),
-        ],
+        ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=r_frame_rate', '-of', 'json', path.resolve(mediaPath)],
         {
           timeout: 10000,
           maxBuffer: 512 * 1024,
@@ -120,7 +114,7 @@ export class FFprobeAnalyzer {
 
       const result = JSON.parse(stdout);
       const stream = result.streams?.[0];
-      
+
       if (stream?.r_frame_rate) {
         const [num, den] = stream.r_frame_rate.split('/').map(Number);
         if (den && den !== 0) {
@@ -144,7 +138,9 @@ export class FFprobeAnalyzer {
     targetTime: number,
     direction: 'before' | 'after' | 'nearest' = 'nearest'
   ): KeyframeInfo | null {
-    if (keyframes.length === 0) return null;
+    if (keyframes.length === 0) {
+      return null;
+    }
 
     if (direction === 'before') {
       // targetTime 이전의 가장 가까운 키프레임
@@ -183,7 +179,7 @@ export class FFprobeAnalyzer {
 
   /**
    * 키프레임 간격 검증
-   * 
+   *
    * GOP가 너무 크거나 불규칙하면 경고
    */
   validateStructure(analysis: KeyframeAnalysis): {
@@ -196,17 +192,14 @@ export class FFprobeAnalyzer {
     if (analysis.averageGopDuration > 10) {
       warnings.push(
         `GOP duration is very large (${analysis.averageGopDuration.toFixed(2)}s). ` +
-        `This may cause seek issues and increase JIT transcoding latency.`
+          `This may cause seek issues and increase JIT transcoding latency.`
       );
     }
 
     // 2. 키프레임이 너무 적으면 경고 (30초당 1개 미만)
     const keyframesPerMinute = (analysis.totalKeyframes / analysis.totalDuration) * 60;
     if (keyframesPerMinute < 2) {
-      warnings.push(
-        `Very few keyframes (${keyframesPerMinute.toFixed(1)}/min). ` +
-        `Seeking will be imprecise.`
-      );
+      warnings.push(`Very few keyframes (${keyframesPerMinute.toFixed(1)}/min). ` + `Seeking will be imprecise.`);
     }
 
     // 3. 첫 프레임이 키프레임이 아니면 경고
@@ -229,12 +222,7 @@ const analyzer = new FFprobeAnalyzer();
 
 export const analyzeKeyframes = (mediaPath: string) => analyzer.analyzeKeyframes(mediaPath);
 
-export const findKeyframeNear = (
-  keyframes: KeyframeInfo[],
-  targetTime: number,
-  direction: 'before' | 'after' | 'nearest' = 'nearest'
-) => analyzer.findKeyframeNear(keyframes, targetTime, direction);
+export const findKeyframeNear = (keyframes: KeyframeInfo[], targetTime: number, direction: 'before' | 'after' | 'nearest' = 'nearest') =>
+  analyzer.findKeyframeNear(keyframes, targetTime, direction);
 
-export const validateKeyframeStructure = (analysis: KeyframeAnalysis) => 
-  analyzer.validateStructure(analysis);
-
+export const validateKeyframeStructure = (analysis: KeyframeAnalysis) => analyzer.validateStructure(analysis);

@@ -2,7 +2,7 @@ import type { TranscodingJob } from '../types.js';
 
 /**
  * 진행 중인 트랜스코딩 작업 추적
- * 
+ *
  * 책임:
  * - 동시 요청 방지 (같은 세그먼트를 여러 클라이언트가 요청할 수 있음)
  * - 작업 상태 추적 및 통계 제공
@@ -78,4 +78,3 @@ export class TranscodingJobTracker {
     this.jobs.clear();
   }
 }
-

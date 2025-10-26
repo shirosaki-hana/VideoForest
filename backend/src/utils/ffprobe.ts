@@ -156,7 +156,7 @@ export interface MediaMetadata {
 
 /**
  * 저수준 FFprobe 실행 래퍼 (spawn 기반)
- * 
+ *
  * @param args FFprobe 인자 배열
  * @param options spawn 옵션
  * @returns stdout 내용
@@ -187,7 +187,7 @@ export function executeFFprobe(
       }, options.timeout);
     }
 
-    ffprobe.stdout?.on('data', (data) => {
+    ffprobe.stdout?.on('data', data => {
       stdout += data.toString();
       // 버퍼 크기 제한
       if (options?.maxBuffer && stdout.length > options.maxBuffer) {
@@ -196,26 +196,26 @@ export function executeFFprobe(
       }
     });
 
-    ffprobe.stderr?.on('data', (data) => {
+    ffprobe.stderr?.on('data', data => {
       stderr += data.toString();
     });
 
-    ffprobe.on('error', (error) => {
-      if (timeoutHandle) clearTimeout(timeoutHandle);
+    ffprobe.on('error', error => {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
       reject(error);
     });
 
     ffprobe.on('exit', (code, signal) => {
-      if (timeoutHandle) clearTimeout(timeoutHandle);
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
 
       if (code === 0) {
         resolve({ stdout, stderr });
       } else {
-        reject(
-          new Error(
-            `FFprobe exited with code ${code} (signal: ${signal})\nStderr: ${stderr}`
-          )
-        );
+        reject(new Error(`FFprobe exited with code ${code} (signal: ${signal})\nStderr: ${stderr}`));
       }
     });
   });
@@ -313,9 +313,9 @@ export async function extractMediaMetadata(filePath: string): Promise<MediaMetad
 
 /**
  * 세그먼트 검증용 FFprobe 실행
- * 
+ *
  * 세그먼트 파일의 정확한 duration, 스트림 정보, 키프레임 정보를 추출합니다.
- * 
+ *
  * @param segmentPath 세그먼트 파일 경로
  * @returns 세그먼트 정보
  */
@@ -335,12 +335,7 @@ export async function probeSegment(segmentPath: string): Promise<{
 
     // 1) 전체 메타데이터로 duration/스트림 정확히 확인
     const { stdout: metaOut } = await executeFFprobe(
-      [
-        '-v', 'error',
-        '-show_entries', 'format=duration:stream=codec_type',
-        '-of', 'json',
-        normalizedPath,
-      ],
+      ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type', '-of', 'json', normalizedPath],
       {
         timeout: 10000,
         maxBuffer: 512 * 1024,
@@ -358,11 +353,16 @@ export async function probeSegment(segmentPath: string): Promise<{
     try {
       const { stdout: pktOut } = await executeFFprobe(
         [
-          '-v', 'error',
-          '-select_streams', 'v:0',
-          '-show_entries', 'packet=flags,pts_time',
-          '-read_intervals', '%+#1',
-          '-of', 'json',
+          '-v',
+          'error',
+          '-select_streams',
+          'v:0',
+          '-show_entries',
+          'packet=flags,pts_time',
+          '-read_intervals',
+          '%+#1',
+          '-of',
+          'json',
           normalizedPath,
         ],
         {
@@ -387,7 +387,7 @@ export async function probeSegment(segmentPath: string): Promise<{
     };
   } catch (error) {
     logger.warn(`Failed to probe segment ${segmentPath}: ${error}`);
-    
+
     // 검증 실패 시 기본값 반환 (계속 진행)
     return {
       duration: null,

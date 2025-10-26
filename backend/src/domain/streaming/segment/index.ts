@@ -4,4 +4,3 @@ export { SegmentCalculator, type SegmentCalculationResult } from './SegmentCalcu
 // 하위 호환성을 위한 re-export
 export * from './SegmentUtils.js';
 export * from './SegmentCalculator.js';
-
