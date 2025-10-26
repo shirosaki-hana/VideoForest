@@ -2,12 +2,18 @@ import type { QualityProfile, MediaAnalysis } from '../types.js';
 import { QualityProfileSelector } from '../media/QualityProfiles.js';
 
 /**
+ * 지원하는 비디오 인코더 타입
+ */
+export type VideoEncoderType = 'h264_nvenc' | 'libx264';
+
+/**
  * FFmpeg 인코더 옵션 생성 로직
  *
  * 책임:
  * - 비디오/오디오 인코더 옵션 생성 (순수 로직)
  * - 프로파일 기반 최적화 전략 결정
  * - GOP 크기, 키프레임 설정 계산
+ * - GPU/CPU 인코더 옵션 관리
  *
  * Note: FFmpeg 실행은 infrastructure 레이어에서 담당
  */
@@ -15,13 +21,75 @@ export class EncoderOptions {
   /**
    * 메타데이터 기반 동적 비디오 인코더 옵션 빌더
    */
-  static buildVideoArgs(profile: QualityProfile, analysis: MediaAnalysis, speedMode: boolean = false): string[] {
+  static buildVideoArgs(
+    profile: QualityProfile,
+    analysis: MediaAnalysis,
+    speedMode: boolean = false,
+    encoderType: VideoEncoderType = 'libx264'
+  ): string[] {
     const fps = analysis.inputFormat.fps || 24;
     const segmentDuration = analysis.segmentDuration;
     const gopSize = QualityProfileSelector.getGOPSize(fps, segmentDuration);
     const keyframeExpr = QualityProfileSelector.getKeyframeExpression(segmentDuration);
 
-    return this.buildCPUVideoArgs(profile, gopSize, keyframeExpr, speedMode);
+    // 인코더 타입에 따라 적절한 옵션 생성
+    if (encoderType === 'h264_nvenc') {
+      return this.buildNVENCVideoArgs(profile, gopSize, keyframeExpr, speedMode);
+    } else {
+      return this.buildCPUVideoArgs(profile, gopSize, keyframeExpr, speedMode);
+    }
+  }
+
+  /**
+   * NVENC (NVIDIA GPU) 인코더 옵션
+   *
+   * GPU 가속 인코딩 설정:
+   * - preset: 구형 FFmpeg와 호환되는 프리셋 사용
+   *   - llhq (Low Latency High Quality): 스트리밍 최적화, 품질 우선
+   *   - llhp (Low Latency High Performance): 스트리밍 최적화, 속도 우선
+   * - rc vbr: Variable Bitrate (품질 우선)
+   * - 하드웨어 가속으로 CPU 대비 3~10배 빠름
+   */
+  private static buildNVENCVideoArgs(profile: QualityProfile, gopSize: number, keyframeExpr: string, speedMode: boolean): string[] {
+    // NVENC 프리셋 (구형/신형 FFmpeg 모두 호환)
+    // llhp: Low Latency High Performance (초고속)
+    // llhq: Low Latency High Quality (균형)
+    // ll: Low Latency (기본)
+    const preset = speedMode ? 'llhp' : 'llhq';
+
+    return [
+      '-c:v',
+      'h264_nvenc',
+      '-preset',
+      preset,
+      '-rc',
+      'vbr', // Variable Bitrate
+      '-b:v',
+      profile.videoBitrate,
+      '-maxrate',
+      profile.maxrate,
+      '-bufsize',
+      profile.bufsize,
+      '-g',
+      String(gopSize),
+      '-keyint_min',
+      String(gopSize),
+      '-force_key_frames',
+      keyframeExpr,
+      '-profile:v',
+      'main',
+      '-level',
+      '4.0',
+      '-pix_fmt',
+      'yuv420p',
+      // NVENC 특화 옵션 (구형 FFmpeg 호환)
+      '-spatial-aq',
+      '1', // Spatial Adaptive Quantization (품질 향상)
+      '-temporal-aq',
+      '1', // Temporal AQ (시간적 품질 향상)
+      '-rc-lookahead',
+      '20', // Rate Control Lookahead
+    ];
   }
 
   /**

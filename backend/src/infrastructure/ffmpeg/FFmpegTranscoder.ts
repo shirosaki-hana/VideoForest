@@ -10,8 +10,10 @@ import {
   type MediaAnalysis,
   type SegmentInfo,
   type AccurateSegmentInfo,
+  type VideoEncoderType,
 } from '../../domain/streaming/index.js';
 import { SegmentValidator } from './SegmentValidator.js';
+import { HardwareAccelerationDetector } from './HardwareAccelerationDetector.js';
 
 /**
  * FFmpeg 트랜스코더
@@ -20,12 +22,14 @@ import { SegmentValidator } from './SegmentValidator.js';
  * - FFmpeg 프로세스 실행
  * - 세그먼트 파일 생성
  * - 캐시 관리
+ * - GPU 가속 자동 감지 및 폴백
  *
  * Infrastructure Layer: 외부 도구(FFmpeg)에 대한 직접적인 의존성
  */
 export class FFmpegTranscoder {
   private ffmpegPath: string;
   private speedMode: boolean;
+  private preferredEncoder: VideoEncoderType | null = null;
 
   constructor(speedMode: boolean = false) {
     this.ffmpegPath = getFFmpegPath();
@@ -33,12 +37,27 @@ export class FFmpegTranscoder {
   }
 
   /**
-   * 단일 세그먼트 JIT 트랜스코딩
+   * 하드웨어 가속 초기화 (한 번만 실행)
+   */
+  private async initializeHardwareAcceleration(): Promise<VideoEncoderType> {
+    if (this.preferredEncoder) {
+      return this.preferredEncoder;
+    }
+
+    const detection = await HardwareAccelerationDetector.detect();
+    this.preferredEncoder = detection.preferred;
+
+    return this.preferredEncoder;
+  }
+
+  /**
+   * 단일 세그먼트 JIT 트랜스코딩 (GPU 가속 자동 감지 + 폴백)
    *
    * 핵심 아이디어:
    * - FFmpeg의 -ss 옵션으로 정확한 시작 위치로 seek
    * - -t 옵션으로 정확한 길이만큼만 인코딩
    * - 완성된 세그먼트 파일을 디스크에 저장 (영구 캐싱)
+   * - GPU 인코딩 실패 시 자동으로 CPU로 폴백
    */
   async transcodeSegment(
     mediaPath: string,
@@ -65,8 +84,42 @@ export class FFmpegTranscoder {
         `to ${profile.name}`
     );
 
+    // 하드웨어 가속 초기화
+    const preferredEncoder = await this.initializeHardwareAcceleration();
+
+    // 우선 인코더로 시도
+    const success = await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, preferredEncoder);
+
+    if (success) {
+      return true;
+    }
+
+    // GPU 인코딩 실패 시 CPU로 폴백
+    if (preferredEncoder === 'h264_nvenc') {
+      logger.warn(`NVENC encoding failed for segment ${segmentInfo.segmentNumber}, falling back to CPU...`);
+      return await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'libx264');
+    }
+
+    return false;
+  }
+
+  /**
+   * 특정 인코더로 트랜스코딩 시도
+   */
+  private async tryTranscode(
+    mediaPath: string,
+    segmentInfo: SegmentInfo | AccurateSegmentInfo,
+    profile: QualityProfile,
+    analysis: MediaAnalysis,
+    outputPath: string,
+    encoderType: VideoEncoderType
+  ): Promise<boolean> {
     // FFmpeg 명령어 구성
-    const ffmpegArgs = this.buildFFmpegArgs(mediaPath, segmentInfo, profile, analysis, outputPath);
+    const ffmpegArgs = this.buildFFmpegArgs(mediaPath, segmentInfo, profile, analysis, outputPath, encoderType);
+
+    // 인코더 정보 로그
+    const encoderName = encoderType === 'h264_nvenc' ? 'NVENC (GPU)' : 'libx264 (CPU)';
+    logger.debug?.(`Using encoder: ${encoderName}`);
 
     // FFmpeg 프로세스 실행 (동기적으로 완료 대기)
     return new Promise<boolean>(resolve => {
@@ -88,7 +141,7 @@ export class FFmpegTranscoder {
       ffmpegProcess.on('exit', async code => {
         if (code === 0) {
           // 성공 - 세그먼트 검증
-          logger.success(`Segment ${segmentInfo.segmentNumber} transcoded successfully ` + `(${profile.name})`);
+          logger.success(`Segment ${segmentInfo.segmentNumber} transcoded successfully ` + `(${profile.name}, ${encoderName})`);
 
           // 세그먼트 품질 검증 (비동기, 에러 무시)
           try {
@@ -107,8 +160,20 @@ export class FFmpegTranscoder {
           resolve(true);
         } else {
           // 실패
-          logger.error(`Segment ${segmentInfo.segmentNumber} transcoding failed ` + `(exit code: ${code})`);
-          logger.error(`FFmpeg stderr:\n${stderr.slice(-1000)}`); // 마지막 1000자만
+          logger.error(`Segment ${segmentInfo.segmentNumber} transcoding failed with ${encoderName} ` + `(exit code: ${code})`);
+
+          // GPU 인코딩 실패 시 유용한 에러 정보 출력
+          if (encoderType === 'h264_nvenc') {
+            if (stderr.includes('No NVENC capable devices found')) {
+              logger.error('NVENC error: No NVIDIA GPU found');
+            } else if (stderr.includes('Cannot load')) {
+              logger.error('NVENC error: Driver or library issue');
+            } else if (stderr.includes('InitializeEncoder failed')) {
+              logger.error('NVENC error: Encoder initialization failed');
+            }
+          }
+
+          logger.debug?.(`FFmpeg stderr:\n${stderr.slice(-1000)}`); // 마지막 1000자만
           resolve(false);
         }
       });
@@ -123,13 +188,15 @@ export class FFmpegTranscoder {
    * - -t: 정확한 인코딩 길이
    * - -force_key_frames: 세그먼트 시작을 keyframe으로 강제
    * - -f mpegts: MPEG-TS 출력 (HLS 세그먼트 포맷)
+   * - encoderType: GPU/CPU 인코더 선택
    */
   private buildFFmpegArgs(
     mediaPath: string,
     segmentInfo: SegmentInfo | AccurateSegmentInfo,
     profile: QualityProfile,
     analysis: MediaAnalysis,
-    outputPath: string
+    outputPath: string,
+    encoderType: VideoEncoderType = 'libx264'
   ): string[] {
     const args: string[] = [];
 
@@ -174,8 +241,8 @@ export class FFmpegTranscoder {
       args.push('-vf', videoFilter);
     }
 
-    // 비디오 인코더 옵션 추가
-    const videoEncoderArgs = EncoderOptions.buildVideoArgs(profile, analysis, this.speedMode);
+    // 비디오 인코더 옵션 추가 (GPU/CPU 선택)
+    const videoEncoderArgs = EncoderOptions.buildVideoArgs(profile, analysis, this.speedMode, encoderType);
 
     // force_key_frames를 단일 세그먼트용으로 재정의
     const filteredArgs: string[] = [];
