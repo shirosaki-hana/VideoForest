@@ -55,7 +55,7 @@ VideoForest is designed to run on personal NAS or home servers with limited reso
 Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/VideoForest.git
+git clone https://github.com/shirosaki-hana/VideoForest.git
 cd VideoForest
 ```
 
