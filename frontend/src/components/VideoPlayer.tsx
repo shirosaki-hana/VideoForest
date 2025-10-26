@@ -3,7 +3,7 @@ import videojs from 'video.js';
 import 'video.js/dist/video-js.css';
 
 type Player = ReturnType<typeof videojs>;
-type PlayerError = ReturnType<Player['error']>;
+export type PlayerError = ReturnType<Player['error']>;
 
 interface VideoPlayerProps {
   src: string;
