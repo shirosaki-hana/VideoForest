@@ -16,6 +16,7 @@ import {
   Divider,
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, SkipNext as SkipNextIcon, SkipPrevious as SkipPreviousIcon } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import VideoPlayer, { type PlayerError } from '../components/VideoPlayer';
 import { getMediaInfo, getHLSPlaylistUrl, waitForPlaylist } from '../api/streaming';
 import { formatDuration, formatFileSize } from '../utils/format';
@@ -25,6 +26,7 @@ import { getNextFile, getPreviousFile, getSiblingFiles } from '../utils/mediaTre
 import type { MediaInfoResponse, MediaTreeNode } from '@videoforest/types';
 
 export default function PlayerPage() {
+  const { t } = useTranslation();
   const { mediaId } = useParams<{ mediaId: string }>();
   const navigate = useNavigate();
 
@@ -163,7 +165,7 @@ export default function PlayerPage() {
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8, gap: 2 }}>
           <CircularProgress size={60} />
           <Typography variant='body1' color='text.secondary'>
-            미디어 정보를 불러오는 중...
+            {t('player.loadingMedia')}
           </Typography>
         </Box>
       )}
@@ -173,10 +175,10 @@ export default function PlayerPage() {
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8, gap: 2 }}>
           <CircularProgress size={60} />
           <Typography variant='body1' color='text.secondary'>
-            스트리밍 준비 중...
+            {t('player.preparingStream')}
           </Typography>
           <Typography variant='caption' color='text.secondary'>
-            트랜스코딩이 진행 중입니다. 잠시만 기다려주세요.
+            {t('player.preparingStreamDesc')}
           </Typography>
         </Box>
       )}
@@ -216,7 +218,7 @@ export default function PlayerPage() {
                 </Box>
                 <FormControlLabel
                   control={<Switch checked={autoPlayNext} onChange={e => setAutoPlayNext(e.target.checked)} />}
-                  label='자동 연속 재생'
+                  label={t('settings.playback.autoPlayNext')}
                 />
               </Box>
             </CardContent>
@@ -227,7 +229,7 @@ export default function PlayerPage() {
             <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant='h6' gutterBottom>
-                  재생 목록 ({playlist.length}개)
+                  {t('player.playlist', { count: playlist.length })}
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
                 <Stack spacing={1}>
@@ -272,18 +274,18 @@ export default function PlayerPage() {
             <Card>
               <CardContent>
                 <Typography variant='h6' gutterBottom>
-                  미디어 정보
+                  {t('player.mediaInfo')}
                 </Typography>
                 <Stack direction='row' spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: 2 }}>
                   {mediaInfo.width && mediaInfo.height && (
-                    <Chip label={`해상도: ${mediaInfo.width}x${mediaInfo.height}`} variant='outlined' />
+                    <Chip label={`${t('player.resolution')}: ${mediaInfo.width}x${mediaInfo.height}`} variant='outlined' />
                   )}
-                  {mediaInfo.duration && <Chip label={`재생 시간: ${formatDuration(mediaInfo.duration)}`} variant='outlined' />}
-                  {mediaInfo.fileSize && <Chip label={`파일 크기: ${formatFileSize(mediaInfo.fileSize)}`} variant='outlined' />}
-                  {mediaInfo.codec && <Chip label={`비디오: ${mediaInfo.codec.toUpperCase()}`} variant='outlined' />}
-                  {mediaInfo.audioCodec && <Chip label={`오디오: ${mediaInfo.audioCodec.toUpperCase()}`} variant='outlined' />}
+                  {mediaInfo.duration && <Chip label={`${t('player.playTime')}: ${formatDuration(mediaInfo.duration)}`} variant='outlined' />}
+                  {mediaInfo.fileSize && <Chip label={`${t('player.fileSize')}: ${formatFileSize(mediaInfo.fileSize)}`} variant='outlined' />}
+                  {mediaInfo.codec && <Chip label={`${t('player.video')}: ${mediaInfo.codec.toUpperCase()}`} variant='outlined' />}
+                  {mediaInfo.audioCodec && <Chip label={`${t('player.audio')}: ${mediaInfo.audioCodec.toUpperCase()}`} variant='outlined' />}
                   {mediaInfo.fps && <Chip label={`${Math.round(mediaInfo.fps)} FPS`} variant='outlined' />}
-                  {mediaInfo.bitrate && <Chip label={`비트레이트: ${Math.round(mediaInfo.bitrate / 1000)} kbps`} variant='outlined' />}
+                  {mediaInfo.bitrate && <Chip label={`${t('player.bitrate')}: ${Math.round(mediaInfo.bitrate / 1000)} kbps`} variant='outlined' />}
                 </Stack>
               </CardContent>
             </Card>
