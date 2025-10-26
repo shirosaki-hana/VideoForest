@@ -56,7 +56,7 @@ export interface MediaAnalysis {
 }
 
 /**
- * 세그먼트 정보
+ * 세그먼트 정보 (기본 - 근사값)
  */
 export interface SegmentInfo {
   segmentNumber: number; // 세그먼트 번호 (0부터 시작)
@@ -66,16 +66,56 @@ export interface SegmentInfo {
 }
 
 /**
+ * 정확한 세그먼트 정보 (키프레임 기반)
+ * 
+ * keyframe.analyzer와 segment.calculator에서 사용
+ */
+export interface AccurateSegmentInfo {
+  segmentNumber: number;
+  startTime: number; // 정확한 시작 (키프레임 PTS)
+  endTime: number; // 정확한 종료 (다음 키프레임 PTS)
+  duration: number; // 실제 duration
+  startKeyframeIndex: number;
+  endKeyframeIndex: number;
+  fileName: string;
+}
+
+/**
+ * 키프레임 정보
+ */
+export interface KeyframeInfo {
+  index: number;
+  pts: number; // 타임스탬프 (초)
+  frameNumber: number;
+}
+
+/**
+ * 키프레임 분석 결과
+ */
+export interface KeyframeAnalysis {
+  keyframes: KeyframeInfo[];
+  averageGopSize: number;
+  averageGopDuration: number;
+  totalKeyframes: number;
+  totalDuration: number;
+  fps: number;
+}
+
+/**
  * 미디어 메타데이터 (플레이리스트 생성용)
  */
 export interface MediaMetadata {
   mediaId: string;
   mediaPath: string; // 원본 파일 경로
   duration: number; // 전체 재생 시간 (초)
-  segmentDuration: number; // 세그먼트 길이 (초)
+  segmentDuration: number; // 세그먼트 길이 (초, 목표값)
   totalSegments: number; // 전체 세그먼트 개수
   availableProfiles: QualityProfile[]; // 지원 화질 목록
   analysis: MediaAnalysis;
+  
+  // 키프레임 기반 정확한 세그먼트 (옵션)
+  keyframeAnalysis?: KeyframeAnalysis;
+  accurateSegments?: AccurateSegmentInfo[];
 }
 
 /**

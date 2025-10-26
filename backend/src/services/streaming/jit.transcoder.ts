@@ -6,7 +6,7 @@ import { logger, getFFmpegPath } from '../../utils/index.js';
 import { buildVideoEncoderArgs, buildAudioEncoderArgs, buildVideoFilter, getErrorResilienceArgs } from './transcoder/encoder.options.js';
 import { getSegmentStartTime, getSegmentPath, getQualityDir } from './segment.utils.js';
 import { validateSegment, logValidationResult } from './segment.validator.js';
-import type { QualityProfile, MediaAnalysis, SegmentInfo } from './types.js';
+import type { QualityProfile, MediaAnalysis, SegmentInfo, AccurateSegmentInfo } from './types.js';
 //------------------------------------------------------------------------------//
 
 /**
@@ -18,7 +18,7 @@ import type { QualityProfile, MediaAnalysis, SegmentInfo } from './types.js';
  * - 완성된 세그먼트 파일을 디스크에 저장 (영구 캐싱)
  * 
  * @param mediaPath 원본 미디어 파일 경로
- * @param segmentInfo 세그먼트 정보
+ * @param segmentInfo 세그먼트 정보 (기본 또는 정확한 세그먼트)
  * @param profile 화질 프로파일
  * @param analysis 미디어 분석 결과
  * @param outputPath 출력 파일 경로
@@ -26,7 +26,7 @@ import type { QualityProfile, MediaAnalysis, SegmentInfo } from './types.js';
  */
 export async function transcodeSegment(
   mediaPath: string,
-  segmentInfo: SegmentInfo,
+  segmentInfo: SegmentInfo | AccurateSegmentInfo,
   profile: QualityProfile,
   analysis: MediaAnalysis,
   outputPath: string
@@ -37,10 +37,17 @@ export async function transcodeSegment(
     await mkdir(outputDir, { recursive: true });
   }
 
+  // 정확한 세그먼트인지 확인
+  const isAccurate = 'endTime' in segmentInfo;
+  const endTime = isAccurate 
+    ? (segmentInfo as AccurateSegmentInfo).endTime 
+    : segmentInfo.startTime + segmentInfo.duration;
+  
   logger.info(
     `JIT transcoding: segment ${segmentInfo.segmentNumber} ` +
-    `(${segmentInfo.startTime}s ~ ${segmentInfo.startTime + segmentInfo.duration}s) ` +
-    `to ${profile.name}`
+    `(${segmentInfo.startTime.toFixed(3)}s ~ ${endTime.toFixed(3)}s) ` +
+    `to ${profile.name}` +
+    (isAccurate ? ' [keyframe-aligned]' : '')
   );
 
   // FFmpeg 명령어 구성
@@ -55,7 +62,7 @@ export async function transcodeSegment(
   const ffmpegPath = getFFmpegPath();
 
   // 디버그: 커맨드 로깅
-  logger.debug?.(`FFmpeg command: ${ffmpegPath} ${ffmpegArgs.join(' ')}`);
+  //logger.debug?.(`FFmpeg command: ${ffmpegPath} ${ffmpegArgs.join(' ')}`);
 
   // FFmpeg 프로세스 실행 (동기적으로 완료 대기)
   return new Promise<boolean>((resolve, reject) => {
@@ -71,9 +78,9 @@ export async function transcodeSegment(
       stderr += message;
 
       // 진행 상황 로깅
-      if (message.includes('time=') && message.includes('speed=')) {
-        logger.debug?.(message.trim());
-      }
+      //if (message.includes('time=') && message.includes('speed=')) {
+      //  logger.debug?.(message.trim());
+      //}
     });
 
     ffmpegProcess.stdout?.on('data', (data) => {
@@ -130,17 +137,16 @@ export async function transcodeSegment(
  * 단일 세그먼트용 FFmpeg 인자 생성
  * 
  * 핵심 옵션 (정확도 우선):
- * - -ss (입력 전): 빠른 대략적 seek (keyframe)
- * - -ss (입력 후): 정확한 위치 조정
+ * - -ss (입력 후): 정확한 키프레임 위치로 seek
  * - -t: 정확한 인코딩 길이
  * - -force_key_frames: 세그먼트 시작을 keyframe으로 강제
  * - -f mpegts: MPEG-TS 출력 (HLS 세그먼트 포맷)
  * 
- * 두 단계 seek을 사용하여 속도와 정확도를 모두 확보합니다.
+ * AccurateSegmentInfo를 사용하면 키프레임 경계에서 정확히 자릅니다.
  */
 function buildSegmentFFmpegArgs(
   mediaPath: string,
-  segmentInfo: SegmentInfo,
+  segmentInfo: SegmentInfo | AccurateSegmentInfo,
   profile: QualityProfile,
   analysis: MediaAnalysis,
   outputPath: string

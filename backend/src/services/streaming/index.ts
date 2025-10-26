@@ -6,6 +6,8 @@ import { getMediaInfo, analyzeMedia } from './media.analyzer.js';
 import { generateABRProfiles } from './transcoder/ffmpeg.config.js';
 import { generateMasterPlaylist, generateQualityPlaylist } from './playlist.generator.js';
 import { transcodeSegment, checkSegmentCache } from './jit.transcoder.js';
+import { analyzeKeyframes, validateKeyframeStructure } from './keyframe.analyzer.js';
+import { calculateAccurateSegments } from './segment.calculator.js';
 import { 
   getPlaylistPath, 
   getMediaDir, 
@@ -90,15 +92,45 @@ export async function initializeStreaming(mediaId: string): Promise<string | nul
     return null;
   }
 
-  // 4. ABR 프로파일 생성
+  // 4. 키프레임 분석 (정확한 세그먼트 생성)
+  let keyframeAnalysis: any = undefined;
+  let accurateSegments: any = undefined;
+  
+  try {
+    keyframeAnalysis = await analyzeKeyframes(mediaData.path);
+    
+    // 키프레임 구조 검증
+    validateKeyframeStructure(keyframeAnalysis);
+    
+    // 키프레임 기반으로 정확한 세그먼트 계산
+    const segmentCalculation = calculateAccurateSegments(
+      keyframeAnalysis.keyframes,
+      analysis.segmentDuration,
+      info.duration
+    );
+    
+    accurateSegments = segmentCalculation.segments;
+    
+    logger.info(
+      `Keyframe-based segmentation: ${accurateSegments.length} segments ` +
+      `(avg: ${segmentCalculation.averageSegmentDuration.toFixed(2)}s)`
+    );
+  } catch (error) {
+    logger.warn(`Keyframe analysis failed, using approximate segmentation: ${error}`);
+    // 키프레임 분석 실패 시 근사값 사용 (기존 방식)
+    keyframeAnalysis = undefined;
+    accurateSegments = undefined;
+  }
+
+  // 5. ABR 프로파일 생성
   const availableProfiles = generateABRProfiles(info);
   logger.info(`Available qualities: ${availableProfiles.map(p => p.name).join(', ')}`);
 
-  // 5. 출력 디렉터리 생성
+  // 6. 출력 디렉터리 생성
   const mediaDir = getMediaDir(mediaId);
   await mkdir(mediaDir, { recursive: true });
 
-  // 6. Master Playlist 생성
+  // 7. Master Playlist 생성
   const masterPlaylistPath = getPlaylistPath(mediaId, 'master');
   const masterPlaylistContent = generateMasterPlaylist(availableProfiles);
   try {
@@ -109,15 +141,18 @@ export async function initializeStreaming(mediaId: string): Promise<string | nul
     return null;
   }
 
-  // 7. 각 화질별 구라 Playlist 생성
+  // 8. 각 화질별 정확한 Playlist 생성
   for (const profile of availableProfiles) {
     const qualityDir = getQualityDir(mediaId, profile.name);
     await mkdir(qualityDir, { recursive: true });
 
     const qualityPlaylistPath = getPlaylistPath(mediaId, profile.name);
+    
+    // 키프레임 기반 정확한 세그먼트가 있으면 사용
     const qualityPlaylistContent = generateQualityPlaylist(
       info.duration,
-      analysis.segmentDuration
+      analysis.segmentDuration,
+      accurateSegments // 정확한 세그먼트 전달
     );
 
     try {
@@ -129,15 +164,17 @@ export async function initializeStreaming(mediaId: string): Promise<string | nul
     }
   }
 
-  // 8. 메타데이터 캐시 저장
+  // 9. 메타데이터 캐시 저장 (키프레임 분석 결과 포함)
   const metadata: MediaMetadata = {
     mediaId,
     mediaPath: mediaData.path,
     duration: info.duration,
     segmentDuration: analysis.segmentDuration,
-    totalSegments: analysis.totalSegments,
+    totalSegments: accurateSegments?.length || analysis.totalSegments,
     availableProfiles,
     analysis,
+    keyframeAnalysis, // 키프레임 분석 결과
+    accurateSegments, // 정확한 세그먼트 정보
   };
 
   metadataCache.set(mediaId, metadata);
@@ -264,10 +301,20 @@ async function performJITTranscoding(
   segmentNumber: number,
   profile: ReturnType<typeof generateABRProfiles>[0]
 ): Promise<string | null> {
-  const { mediaId, mediaPath, duration, segmentDuration, analysis } = metadata;
+  const { mediaId, mediaPath, duration, segmentDuration, analysis, accurateSegments } = metadata;
 
   // 세그먼트 정보 생성
-  const segmentInfo = createSegmentInfo(segmentNumber, segmentDuration, duration);
+  // 정확한 세그먼트가 있으면 사용, 없으면 근사값 사용
+  let segmentInfo;
+  if (accurateSegments && accurateSegments.length > 0) {
+    segmentInfo = accurateSegments.find(s => s.segmentNumber === segmentNumber);
+    if (!segmentInfo) {
+      logger.error(`Accurate segment ${segmentNumber} not found`);
+      return null;
+    }
+  } else {
+    segmentInfo = createSegmentInfo(segmentNumber, segmentDuration, duration);
+  }
 
   // 출력 경로
   const outputPath = getSegmentPath(mediaId, quality, segmentNumber);

@@ -1,4 +1,4 @@
-import type { QualityProfile, SegmentInfo } from './types.js';
+import type { QualityProfile, SegmentInfo, AccurateSegmentInfo } from './types.js';
 import { createAllSegmentInfos } from './segment.utils.js';
 //------------------------------------------------------------------------------//
 
@@ -47,44 +47,57 @@ export function generateMasterPlaylist(profiles: QualityProfile[]): string {
 /**
  * 화질별 Playlist 생성 (세그먼트 나열)
  * 
- * 실제 세그먼트 파일이 없어도 duration 기반으로 "구라" 플레이리스트 생성
- * VOD 타입으로 생성하여 전체 길이를 미리 알림
+ * 키프레임 기반 정확한 세그먼트가 있으면 실제 duration 사용,
+ * 없으면 근사값 기반 플레이리스트 생성
  * 
  * @param totalDuration 전체 미디어 길이 (초)
- * @param segmentDuration 세그먼트 길이 (초)
+ * @param segmentDuration 세그먼트 길이 (초, 목표값)
+ * @param accurateSegments 키프레임 기반 정확한 세그먼트 (옵션)
  * @returns Playlist 내용
  */
 export function generateQualityPlaylist(
   totalDuration: number,
-  segmentDuration: number
+  segmentDuration: number,
+  accurateSegments?: AccurateSegmentInfo[]
 ): string {
   const lines: string[] = [];
+  
+  // 정확한 세그먼트가 있으면 사용, 없으면 근사값 사용
+  const useAccurateSegments = accurateSegments && accurateSegments.length > 0;
+  
+  // TARGETDURATION 계산 (최대 세그먼트 길이 올림)
+  let targetDuration: number;
+  if (useAccurateSegments) {
+    const maxDuration = Math.max(...accurateSegments!.map(s => s.duration));
+    targetDuration = Math.ceil(maxDuration);
+  } else {
+    targetDuration = Math.ceil(segmentDuration);
+  }
   
   // HLS 버전 및 설정
   lines.push('#EXTM3U');
   lines.push('#EXT-X-VERSION:3');
-  lines.push(`#EXT-X-TARGETDURATION:${Math.ceil(segmentDuration)}`);
+  lines.push(`#EXT-X-TARGETDURATION:${targetDuration}`);
   lines.push('#EXT-X-MEDIA-SEQUENCE:0');
-  
-  // EVENT 타입으로 변경 - JIT 트랜스코딩과 호환
-  // VOD는 모든 세그먼트가 즉시 사용 가능해야 하지만,
-  // EVENT는 세그먼트가 동적으로 생성될 수 있음
-  // lines.push('#EXT-X-PLAYLIST-TYPE:EVENT');
+  lines.push('#EXT-X-PLAYLIST-TYPE:VOD'); // VOD 타입 (전체 길이 고정)
   lines.push('');
   
-  // 모든 세그먼트 나열 (구라 플레이리스트)
-  const segments = createAllSegmentInfos(totalDuration, segmentDuration);
-  
-  for (const segment of segments) {
-    // #EXTINF: 세그먼트 길이 정보
-    // 정확한 duration 대신 targetDuration 사용 (더 관대함)
-    lines.push(`#EXTINF:${segmentDuration.toFixed(3)},`);
-    // 세그먼트 파일명 (상대 경로)
-    lines.push(segment.fileName);
+  // 세그먼트 나열
+  if (useAccurateSegments) {
+    // 정확한 duration 사용 (키프레임 기반)
+    for (const segment of accurateSegments!) {
+      lines.push(`#EXTINF:${segment.duration.toFixed(3)},`);
+      lines.push(segment.fileName);
+    }
+  } else {
+    // 근사값 사용 (구라 플레이리스트)
+    const segments = createAllSegmentInfos(totalDuration, segmentDuration);
+    for (const segment of segments) {
+      lines.push(`#EXTINF:${segmentDuration.toFixed(3)},`);
+      lines.push(segment.fileName);
+    }
   }
   
-  // ENDLIST를 제거하면 LIVE처럼 동작 (세그먼트 동적 추가 가능)
-  // 하지만 seek이 필요하므로 일단 유지
   lines.push('#EXT-X-ENDLIST');
   
   return lines.join('\n');
@@ -120,12 +133,12 @@ function parseBitrate(bitrate: string): number {
  * 세그먼트 정보 배열 → Playlist 내용 생성
  * (고급 사용: 일부 세그먼트만 포함하고 싶을 때)
  * 
- * @param segments 세그먼트 정보 배열
+ * @param segments 세그먼트 정보 배열 (기본 또는 정확한 세그먼트)
  * @param isVod VOD 타입 여부 (true면 #EXT-X-ENDLIST 추가)
  * @returns Playlist 내용
  */
 export function generatePlaylistFromSegments(
-  segments: SegmentInfo[],
+  segments: SegmentInfo[] | AccurateSegmentInfo[],
   isVod: boolean = true
 ): string {
   if (segments.length === 0) {
@@ -147,7 +160,8 @@ export function generatePlaylistFromSegments(
   lines.push('');
   
   for (const segment of segments) {
-    lines.push(`#EXTINF:${segment.duration.toFixed(6)},`);
+    // 실제 duration 사용 (소수점 3자리)
+    lines.push(`#EXTINF:${segment.duration.toFixed(3)},`);
     lines.push(segment.fileName);
   }
   
