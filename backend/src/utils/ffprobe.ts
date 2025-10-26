@@ -1,4 +1,4 @@
-import { execFile, spawn } from 'child_process';
+import { spawn } from 'child_process';
 import { promisify } from 'util';
 import { exec } from 'child_process';
 import ffprobeInstaller from '@ffprobe-installer/ffprobe';
@@ -6,7 +6,6 @@ import path from 'path';
 import { logger } from './log.js';
 //------------------------------------------------------------------------------//
 
-const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
 
 export interface FFprobeInfo {
@@ -342,11 +341,24 @@ export async function probeSegment(segmentPath: string): Promise<{
       }
     );
 
-    const meta = JSON.parse(metaOut);
-    const duration = meta.format?.duration ? parseFloat(meta.format.duration) : null;
+    interface ProbeStream {
+      codec_type?: string;
+    }
+
+    interface ProbeFormat {
+      duration?: string | number;
+    }
+
+    interface ProbeResult {
+      format?: ProbeFormat;
+      streams?: ProbeStream[];
+    }
+
+    const meta = JSON.parse(metaOut) as ProbeResult;
+    const duration = meta.format?.duration ? parseFloat(String(meta.format.duration)) : null;
     const streams = meta.streams || [];
-    const hasVideo = streams.some((s: any) => s.codec_type === 'video');
-    const hasAudio = streams.some((s: any) => s.codec_type === 'audio');
+    const hasVideo = streams.some((s: ProbeStream) => s.codec_type === 'video');
+    const hasAudio = streams.some((s: ProbeStream) => s.codec_type === 'audio');
 
     // 2) 첫 비디오 패킷만 스캔하여 keyframe 여부 확인
     let startsWithKeyframe = true; // 기본값은 true로 관대하게

@@ -87,7 +87,7 @@ export class StreamingService {
 
     // 4. 키프레임 분석 (정확한 세그먼트 생성)
     let accurateSegments: AccurateSegmentInfo[] | undefined;
-    let keyframeAnalysis: any;
+    let keyframeAnalysis: (ReturnType<typeof analyzeKeyframes> extends Promise<infer T> ? T : never) | undefined;
 
     try {
       keyframeAnalysis = await analyzeKeyframes(mediaData.path);

@@ -34,8 +34,8 @@ export class SegmentValidator {
     const errors: string[] = [];
 
     try {
-      const fs = await import('fs');
-      const stats = fs.statSync(segmentPath);
+      const { stat } = await import('fs/promises');
+      const stats = await stat(segmentPath);
 
       if (!stats.isFile()) {
         errors.push('Not a file');

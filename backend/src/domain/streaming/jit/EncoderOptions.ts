@@ -105,7 +105,7 @@ export class EncoderOptions {
   /**
    * 오디오 인코더 옵션
    */
-  static buildAudioArgs(profile: QualityProfile, analysis: MediaAnalysis): string[] {
+  static buildAudioArgs(profile: QualityProfile, _analysis: MediaAnalysis): string[] {
     return ['-c:a', 'aac', '-b:a', profile.audioBitrate, '-ar', '48000', '-ac', '2'];
   }
 

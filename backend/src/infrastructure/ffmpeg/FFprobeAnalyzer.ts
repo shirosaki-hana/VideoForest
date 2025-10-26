@@ -47,11 +47,16 @@ export class FFprobeAnalyzer {
         }
       );
 
+      interface FFprobePacket {
+        pts_time?: string;
+        flags?: string;
+      }
+
       const result = JSON.parse(stdout);
-      const packets = result.packets || [];
+      const packets = (result.packets as FFprobePacket[]) || [];
 
       // 2. 키프레임만 필터링 (flags에 'K' 포함)
-      const keyframePackets = packets.filter((pkt: any) => {
+      const keyframePackets = packets.filter((pkt: FFprobePacket) => {
         return pkt.flags && pkt.flags.includes('K');
       });
 
@@ -60,9 +65,9 @@ export class FFprobeAnalyzer {
       }
 
       // 3. 키프레임 정보 변환
-      const keyframes: KeyframeInfo[] = keyframePackets.map((pkt: any, index: number) => ({
+      const keyframes: KeyframeInfo[] = keyframePackets.map((pkt: FFprobePacket, index: number) => ({
         index,
-        pts: parseFloat(pkt.pts_time),
+        pts: parseFloat(pkt.pts_time || '0'),
         frameNumber: -1, // 프레임 번호는 별도 계산 필요 (선택사항)
       }));
 
