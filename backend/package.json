@@ -14,6 +14,7 @@
     "typecheck": "pnpm -w exec tsc --project backend/tsconfig.json --noEmit --pretty",
     "build": "pnpm clean && pnpm db:generate && pnpm run typecheck && node ./esbuild.config.mjs && cpy \"src/database/prismaclient/**\" \"dist/database/prismaclient/\"",
     "clean": "rimraf dist && rimraf src/database/prismaclient/",
+    "clean:cache": "rimraf temp",
     "lint": "pnpm -w exec eslint backend/",
     "lint:fix": "pnpm -w exec eslint backend/ --fix",
     "format": "pnpm -w exec prettier --write backend/",

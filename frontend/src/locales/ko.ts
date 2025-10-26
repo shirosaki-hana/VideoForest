@@ -99,6 +99,21 @@ export default {
       },
     },
 
+    // Player
+    player: {
+      loadingMedia: '미디어 정보를 불러오는 중...',
+      preparingStream: '스트리밍 준비 중...',
+      preparingStreamDesc: '트랜스코딩이 진행 중입니다. 잠시만 기다려주세요.',
+      playlist: '재생 목록 ({{count}}개)',
+      mediaInfo: '미디어 정보',
+      resolution: '해상도',
+      playTime: '재생 시간',
+      fileSize: '파일 크기',
+      video: '비디오',
+      audio: '오디오',
+      bitrate: '비트레이트',
+    },
+
     // Errors
     errors: {
       statusCheckFailed: '상태 확인에 실패했습니다',

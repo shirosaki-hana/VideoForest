@@ -99,6 +99,21 @@ export default {
       },
     },
 
+    // Player
+    player: {
+      loadingMedia: 'Loading media information...',
+      preparingStream: 'Preparing stream...',
+      preparingStreamDesc: 'Transcoding in progress. Please wait a moment.',
+      playlist: 'Playlist ({{count}} items)',
+      mediaInfo: 'Media Information',
+      resolution: 'Resolution',
+      playTime: 'Duration',
+      fileSize: 'File Size',
+      video: 'Video',
+      audio: 'Audio',
+      bitrate: 'Bitrate',
+    },
+
     // Errors
     errors: {
       statusCheckFailed: 'Failed to check status',

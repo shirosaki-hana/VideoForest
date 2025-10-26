@@ -16,7 +16,9 @@ export default defineConfig([
       '**/dist/**',
       '**/node_modules/**',
       '**/prisma/migrations/**',
-      '**/prismaclient**'
+      '**/prismaclient**',
+      '**/test/**',
+      '**/temp/**'
     ],
   },
   // Base recommended configs
