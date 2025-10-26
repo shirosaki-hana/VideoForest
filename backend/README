@@ -267,18 +267,3 @@ Common HTTP status codes:
 - `404` - Not Found (resource not found)
 - `500` - Internal Server Error
 
-## Security Features
-
-- Rate limiting on all endpoints
-- CORS protection
-- Helmet security headers
-- Content Security Policy for video streaming
-- Session-based authentication with HTTP-only cookies
-- Password hashing with bcrypt
-
-## Requirements
-
-- FFmpeg and FFprobe must be installed and available in PATH
-- PostgreSQL database connection
-- Node.js runtime environment
-
