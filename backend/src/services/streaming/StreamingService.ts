@@ -15,8 +15,8 @@ import {
   type QualityProfile,
   type AccurateSegmentInfo,
   type TranscodingJob,
-} from '../../domain/streaming/index.js';
-import { analyzeKeyframes, validateKeyframeStructure, transcodeSegment, checkSegmentCache } from '../../infrastructure/ffmpeg/index.js';
+} from '../../domain/index.js';
+import { analyzeKeyframes, validateKeyframeStructure, transcodeSegment, checkSegmentCache } from '../../infrastructure/index.js';
 //------------------------------------------------------------------------------//
 
 /**

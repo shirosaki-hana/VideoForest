@@ -1,4 +1,4 @@
-import { logger, probeSegment as probeSegmentInfo } from '../../utils/index.js';
+import { logger, probeSegment as probeSegmentInfo } from '../utils/index.js';
 //------------------------------------------------------------------------------//
 
 /**

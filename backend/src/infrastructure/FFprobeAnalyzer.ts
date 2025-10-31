@@ -1,7 +1,7 @@
-import { executeFFprobe } from '../../utils/index.js';
-import { logger } from '../../utils/index.js';
+import { executeFFprobe } from '../utils/index.js';
+import { logger } from '../utils/index.js';
 import path from 'path';
-import type { KeyframeInfo, KeyframeAnalysis } from '../../domain/streaming/types.js';
+import type { KeyframeInfo, KeyframeAnalysis } from '../domain/types.js';
 //------------------------------------------------------------------------------//
 
 /**

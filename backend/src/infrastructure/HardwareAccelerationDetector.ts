@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { logger, getFFmpegPath } from '../../utils/index.js';
+import { logger, getFFmpegPath } from '../utils/index.js';
 //------------------------------------------------------------------------------//
 
 /**

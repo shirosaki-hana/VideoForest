@@ -2,7 +2,7 @@ import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import path from 'path';
-import { logger, getFFmpegPath } from '../../utils/index.js';
+import { logger, getFFmpegPath } from '../utils/index.js';
 import {
   EncoderOptions,
   SegmentUtils,
@@ -11,7 +11,7 @@ import {
   type SegmentInfo,
   type AccurateSegmentInfo,
   type VideoEncoderType,
-} from '../../domain/streaming/index.js';
+} from '../domain/index.js';
 import { SegmentValidator } from './SegmentValidator.js';
 import { HardwareAccelerationDetector } from './HardwareAccelerationDetector.js';
 //------------------------------------------------------------------------------//

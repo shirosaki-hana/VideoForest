@@ -114,15 +114,6 @@ async function getFFmpegVersion(ffmpegPath: string): Promise<string | null> {
 }
 
 /**
- * 사용 가능한 트랜스코딩 방식 확인
- * CPU만 지원합니다.
- */
-export async function getAvailableTranscodeMethods(): Promise<string[]> {
-  await detectFFmpeg();
-  return ['cpu']; // CPU만 사용 가능
-}
-
-/**
  * 동기 버전: FFmpeg 경로 가져오기
  *
  * 주의: 첫 호출 시 detectFFmpeg()를 먼저 호출해야 함

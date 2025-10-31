@@ -1,5 +1,5 @@
 import { StreamingService } from './StreamingService.js';
-import type { MediaMetadata } from '../../domain/streaming/index.js';
+import type { MediaMetadata } from '../../domain/index.js';
 
 //------------------------------------------------------------------------------//
 // JIT 트랜스코딩 + 영구 캐싱 아키텍처
