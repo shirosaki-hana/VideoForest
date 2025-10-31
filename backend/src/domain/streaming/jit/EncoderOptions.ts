@@ -1,5 +1,6 @@
 import type { QualityProfile, MediaAnalysis } from '../types.js';
 import { QualityProfileSelector } from '../media/QualityProfiles.js';
+//------------------------------------------------------------------------------//
 
 /**
  * 지원하는 비디오 인코더 타입

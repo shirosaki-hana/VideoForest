@@ -1,5 +1,6 @@
 import type { MediaInfo, MediaAnalysis } from '../types.js';
 import { HLS_CONFIG, QualityProfileSelector } from './QualityProfiles.js';
+//------------------------------------------------------------------------------//
 
 /**
  * 미디어 분석 로직

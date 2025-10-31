@@ -17,6 +17,7 @@ import {
   type TranscodingJob,
 } from '../../domain/streaming/index.js';
 import { analyzeKeyframes, validateKeyframeStructure, transcodeSegment, checkSegmentCache } from '../../infrastructure/ffmpeg/index.js';
+//------------------------------------------------------------------------------//
 
 /**
  * 스트리밍 서비스

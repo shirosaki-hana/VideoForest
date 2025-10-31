@@ -38,7 +38,9 @@ export const logger = {
   warn: (...args: unknown[]) => formatMessage('WARN', ...args),
   info: (...args: unknown[]) => formatMessage('INFO', ...args),
   debug: (...args: unknown[]) => {
-    if (!isDevelopment) return;
+    if (!isDevelopment) {
+      return;
+    }
     formatMessage('DEBUG', ...args);
   },
   success: (...args: unknown[]) => formatMessage('SUCCESS', ...args),

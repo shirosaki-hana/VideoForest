@@ -1,4 +1,5 @@
 import { logger, probeSegment as probeSegmentInfo } from '../../utils/index.js';
+//------------------------------------------------------------------------------//
 
 /**
  * 세그먼트 검증 정보

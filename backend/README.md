@@ -15,9 +15,11 @@ Most endpoints require authentication via session cookie. The session cookie nam
 ### Authentication Routes (`/api/auth`)
 
 #### GET /api/auth/status
+
 Check authentication status and initial setup state.
 
 **Response:**
+
 ```json
 {
   "isSetup": boolean,
@@ -26,9 +28,11 @@ Check authentication status and initial setup state.
 ```
 
 #### POST /api/auth/setup
+
 Initial password setup (only available when password is not set).
 
 **Request Body:**
+
 ```json
 {
   "password": string
@@ -36,6 +40,7 @@ Initial password setup (only available when password is not set).
 ```
 
 **Response:**
+
 ```json
 {
   "success": true
@@ -43,9 +48,11 @@ Initial password setup (only available when password is not set).
 ```
 
 #### POST /api/auth/login
+
 Authenticate and receive session cookie.
 
 **Request Body:**
+
 ```json
 {
   "password": string
@@ -53,6 +60,7 @@ Authenticate and receive session cookie.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true
@@ -62,9 +70,11 @@ Authenticate and receive session cookie.
 Sets session cookie on success.
 
 #### POST /api/auth/logout
+
 Invalidate session and clear cookie.
 
 **Response:**
+
 ```json
 {
   "success": true
@@ -76,9 +86,11 @@ Invalidate session and clear cookie.
 All endpoints require authentication.
 
 #### GET /api/v1/refresh
+
 Scan media directory and refresh library database.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -104,9 +116,11 @@ Scan media directory and refresh library database.
 ```
 
 #### GET /api/v1/list
+
 Get all media items from the database.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -132,9 +146,11 @@ Get all media items from the database.
 ```
 
 #### GET /api/v1/tree
+
 Get media library as hierarchical tree structure.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -149,11 +165,13 @@ Get media library as hierarchical tree structure.
 ```
 
 #### GET /api/v1/scan
+
 Scan media library with real-time progress updates via Server-Sent Events.
 
 **Response:** Event stream with the following event types:
 
 Start event:
+
 ```json
 {
   "type": "start",
@@ -162,6 +180,7 @@ Start event:
 ```
 
 Progress event:
+
 ```json
 {
   "type": "progress",
@@ -172,6 +191,7 @@ Progress event:
 ```
 
 Complete event:
+
 ```json
 {
   "type": "complete",
@@ -182,6 +202,7 @@ Complete event:
 ```
 
 Error event:
+
 ```json
 {
   "type": "error",
@@ -194,9 +215,11 @@ Error event:
 All endpoints require authentication.
 
 #### GET /api/stream/hls/:mediaId/master.m3u8
+
 Get HLS master playlist for adaptive bitrate streaming.
 
 **Parameters:**
+
 - `mediaId` (path): Media item ID
 
 **Response:** HLS master playlist (application/vnd.apple.mpegurl)
@@ -204,18 +227,22 @@ Get HLS master playlist for adaptive bitrate streaming.
 Automatically initializes transcoding cache and generates quality playlists.
 
 #### GET /api/stream/hls/:mediaId/:quality/playlist.m3u8
+
 Get HLS variant playlist for specific quality.
 
 **Parameters:**
+
 - `mediaId` (path): Media item ID
 - `quality` (path): Quality level (e.g., "360p", "720p", "1080p")
 
 **Response:** HLS variant playlist (application/vnd.apple.mpegurl)
 
 #### GET /api/stream/hls/:mediaId/:quality/:segmentName
+
 Get HLS video segment with JIT transcoding.
 
 **Parameters:**
+
 - `mediaId` (path): Media item ID
 - `quality` (path): Quality level
 - `segmentName` (path): Segment filename (format: `segment_XXX.ts`)
@@ -225,12 +252,15 @@ Get HLS video segment with JIT transcoding.
 Segments are transcoded on-demand and cached permanently. Cached segments are served immediately.
 
 #### GET /api/stream/media/:mediaId
+
 Get media metadata for playback.
 
 **Parameters:**
+
 - `mediaId` (path): Media item ID
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -262,8 +292,8 @@ All endpoints may return error responses in the following format:
 ```
 
 Common HTTP status codes:
+
 - `400` - Bad Request (invalid parameters)
 - `401` - Unauthorized (authentication required)
 - `404` - Not Found (resource not found)
 - `500` - Internal Server Error
-

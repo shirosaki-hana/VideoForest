@@ -1,4 +1,5 @@
 import type { KeyframeInfo, AccurateSegmentInfo } from '../types.js';
+//------------------------------------------------------------------------------//
 
 /**
  * 세그먼트 계산 결과

@@ -2,6 +2,7 @@ import { executeFFprobe } from '../../utils/index.js';
 import { logger } from '../../utils/index.js';
 import path from 'path';
 import type { KeyframeInfo, KeyframeAnalysis } from '../../domain/streaming/types.js';
+//------------------------------------------------------------------------------//
 
 /**
  * FFprobe 키프레임 분석기

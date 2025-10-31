@@ -14,6 +14,7 @@ import {
 } from '../../domain/streaming/index.js';
 import { SegmentValidator } from './SegmentValidator.js';
 import { HardwareAccelerationDetector } from './HardwareAccelerationDetector.js';
+//------------------------------------------------------------------------------//
 
 /**
  * FFmpeg 트랜스코더

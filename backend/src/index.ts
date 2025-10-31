@@ -6,81 +6,22 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import staticFiles from '@fastify/static';
 import apiRoutes from './api/index.js';
-import path from 'path';
-
-import ms from 'ms';
-import { logger, projectRoot, detectFFmpeg, detectFFprobe } from './utils/index.js';
-import { env, isProduction, isDevelopment } from './config/index.js';
+import { logger, detectFFmpeg, detectFFprobe } from './utils/index.js';
+import { env, isDevelopment, fastifyConfig, helmetConfig, rateLimitConfig, corsConfig, staticFilesConfig } from './config/index.js';
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
 //------------------------------------------------------------------------------//
-
-// 서버 고정 설정
-const fastifyConfig = { bodyLimit: parseInt(env.REQUEST_BODY_LIMIT.replace('mb', '')) * 1024 * 1024 };
-const corsConfig = {
-  origin: isDevelopment ? true : env.FRONTEND_URL,
-  credentials: true,
-};
-const helmetConfig = {
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      // 비디오 스트리밍을 위한 설정 (blob URL, data URL 허용)
-      mediaSrc: ["'self'", 'blob:', 'data:'],
-      // HLS 세그먼트 fetch를 위한 설정
-      connectSrc: ["'self'", 'blob:', 'data:'],
-      // 스크립트 소스 (Video.js 등)
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      // 스타일 소스
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      // 이미지 소스 (썸네일 등)
-      imgSrc: ["'self'", 'blob:', 'data:', 'https:'],
-      // 웹 워커 (Video.js가 사용할 수 있음)
-      workerSrc: ["'self'", 'blob:'],
-      // 폰트
-      fontSrc: ["'self'", 'data:'],
-      // 객체 임베드 비활성화
-      objectSrc: ["'none'"],
-      // base 태그 제한
-      baseUri: ["'self'"],
-      // form action 제한
-      formAction: ["'self'"],
-      // frame ancestors 제한 (clickjacking 방지)
-      frameAncestors: ["'self'"],
-      // 업그레이드 안전하지 않은 요청 (프로덕션에서만)
-      ...(isProduction && { upgradeInsecureRequests: [] }),
-    },
-  },
-  crossOriginEmbedderPolicy: false,
-  // Cross-Origin-Resource-Policy 헤더 설정
-  crossOriginResourcePolicy: { policy: 'cross-origin' as const },
-};
-const rateLimitConfig = {
-  max: env.RATELIMIT_MAX,
-  timeWindow: ms(env.RATELIMIT_WINDOWMS),
-};
-const staticFilesConfig = {
-  root: path.join(projectRoot, 'frontend/dist'),
-  prefix: '/',
-  cacheControl: isProduction,
-  etag: true,
-  lastModified: true,
-  maxAge: isProduction ? ms('1d') : 0,
-};
 
 // Fastify 서버 생성
 async function createFastifyApp() {
   const fastify = Fastify(fastifyConfig);
+
   await fastify.register(helmet, helmetConfig);
   await fastify.register(rateLimit, rateLimitConfig);
   await fastify.register(compress);
   await fastify.register(cors, corsConfig);
   await fastify.register(cookie);
-
-  // API 라우트를 먼저 등록 (우선순위 높음)
-  await fastify.register(apiRoutes, { prefix: '/api' });
-
-  // 정적 파일 서빙
-  await fastify.register(staticFiles, staticFilesConfig);
+  await fastify.register(apiRoutes, { prefix: '/api' }); // API 라우트
+  await fastify.register(staticFiles, staticFilesConfig); // 정적 파일 서빙
 
   // SPA fallback: API가 아닌 모든 GET 요청을 index.html로 처리
   fastify.setNotFoundHandler(async (request, reply) => {
@@ -142,40 +83,24 @@ startServer(env.PORT)
       logger.warn(`Received ${signal}: shutting down server...`);
 
       try {
-
-        // Fastify 서버 종료
-        await fastify.close();
-
-        // 데이터베이스 연결 해제
-        await disconnectDatabase();
-
+        await fastify.close(); // Fastify 서버 종료
+        await disconnectDatabase(); // 데이터베이스 연결 해제
         logger.success('Server closed successfully');
-        // eslint-disable-next-line no-process-exit
-        process.exit(0);
       } catch (error) {
         logger.error('Error during graceful shutdown:', error);
-        // eslint-disable-next-line no-process-exit
-        process.exit(1);
+        throw error; // 예외를 던져서 프로세스 종료
       }
     };
 
     process.on('SIGINT', () => {
-      gracefulShutdown('SIGINT').catch(error => {
-        logger.error('Error in SIGINT handler:', error);
-    // eslint-disable-next-line no-process-exit        
-        process.exit(1);
-      });
+      gracefulShutdown('SIGINT');
     });
+
     process.on('SIGTERM', () => {
-      gracefulShutdown('SIGTERM').catch(error => {
-        logger.error('Error in SIGTERM handler:', error);
-     // eslint-disable-next-line no-process-exit       
-        process.exit(1);
-      });
+      gracefulShutdown('SIGTERM');
     });
   })
-  .catch(async error => {
+  .catch(error => {
     logger.error('Failed to start server:', error);
-    // eslint-disable-next-line no-process-exit
-    process.exit(1);
+    throw error; // 예외를 던져서 프로세스 종료
   });

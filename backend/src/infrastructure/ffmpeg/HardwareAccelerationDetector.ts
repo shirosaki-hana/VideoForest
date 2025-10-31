@@ -1,5 +1,6 @@
 import { spawn } from 'child_process';
 import { logger, getFFmpegPath } from '../../utils/index.js';
+//------------------------------------------------------------------------------//
 
 /**
  * 하드웨어 가속 인코더 타입

@@ -1,5 +1,6 @@
 import type { QualityProfile, SegmentInfo, AccurateSegmentInfo } from '../types.js';
 import { SegmentUtils } from '../segment/SegmentUtils.js';
+//------------------------------------------------------------------------------//
 
 /**
  * HLS 플레이리스트 생성 로직
