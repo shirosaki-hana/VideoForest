@@ -1,4 +1,1 @@
-export {
-  EncoderOptions,
-  type VideoEncoderType,
-} from './EncoderOptions.js';
+export { EncoderOptions, type VideoEncoderType } from './EncoderOptions.js';

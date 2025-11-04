@@ -276,7 +276,7 @@ export class FFmpegTranscoder {
       args.push('-shortest');
     }
 
-    // 12. MPEG-TS 타임스탬프 정규화 
+    // 12. MPEG-TS 타임스탬프 정규화
     args.push('-avoid_negative_ts', 'make_zero');
     args.push('-start_at_zero');
     args.push('-output_ts_offset', '0');

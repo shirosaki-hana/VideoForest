@@ -84,21 +84,29 @@ startServer(env.PORT)
         await fastify.close(); // Fastify 서버 종료
         await disconnectDatabase(); // 데이터베이스 연결 해제
         logger.success('Server closed successfully');
+        // 정상 종료: 이벤트 루프가 비워지면 Node.js가 자연스럽게 종료됨
       } catch (error) {
         logger.error('Error during graceful shutdown:', error);
+        process.exitCode = 1; // 종료 코드 설정
         throw error; // 예외를 던져서 프로세스 종료
       }
     };
 
+    // 시그널 핸들러: Promise를 제대로 처리
     process.on('SIGINT', () => {
-      gracefulShutdown('SIGINT');
+      gracefulShutdown('SIGINT').catch(() => {
+        // 에러는 이미 gracefulShutdown에서 로깅되고 exitCode도 설정됨
+      });
     });
 
     process.on('SIGTERM', () => {
-      gracefulShutdown('SIGTERM');
+      gracefulShutdown('SIGTERM').catch(() => {
+        // 에러는 이미 gracefulShutdown에서 로깅되고 exitCode도 설정됨
+      });
     });
   })
   .catch(error => {
     logger.error('Failed to start server:', error);
+    process.exitCode = 1;
     throw error; // 예외를 던져서 프로세스 종료
   });
