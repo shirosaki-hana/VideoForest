@@ -81,11 +81,11 @@ Invalidate session and clear cookie.
 }
 ```
 
-### Media Management Routes (`/api/v1`)
+### Media Management Routes (`/api/media`)
 
 All endpoints require authentication.
 
-#### GET /api/v1/refresh
+#### GET /api/media/refresh
 
 Scan media directory and refresh library database.
 
@@ -115,7 +115,7 @@ Scan media directory and refresh library database.
 }
 ```
 
-#### GET /api/v1/list
+#### GET /api/media/list
 
 Get all media items from the database.
 
@@ -145,7 +145,7 @@ Get all media items from the database.
 }
 ```
 
-#### GET /api/v1/tree
+#### GET /api/media/tree
 
 Get media library as hierarchical tree structure.
 
@@ -164,7 +164,7 @@ Get media library as hierarchical tree structure.
 }
 ```
 
-#### GET /api/v1/scan
+#### GET /api/media/scan
 
 Scan media library with real-time progress updates via Server-Sent Events.
 

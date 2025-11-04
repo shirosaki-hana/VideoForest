@@ -10,19 +10,19 @@ function validateResponse<T>(schema: z.ZodType<T>, data: unknown): T {
 
 // 미디어 목록 조회 (평면 리스트)
 export async function getMediaList(): Promise<ListMediaResponse> {
-  const response = await apiClient.get('/v1/list');
+  const response = await apiClient.get('/media/list');
   return validateResponse(ListMediaResponseSchema, response.data);
 }
 
 // 미디어 트리 구조 조회
 export async function getMediaTree(): Promise<MediaTreeResponse> {
-  const response = await apiClient.get('/v1/tree');
+  const response = await apiClient.get('/media/tree');
   return validateResponse(MediaTreeResponseSchema, response.data);
 }
 
 // 미디어 라이브러리 새로고침 (일반 HTTP)
 export async function refreshMediaLibrary(): Promise<RefreshMediaResponse> {
-  const response = await apiClient.get('/v1/refresh');
+  const response = await apiClient.get('/media/refresh');
   return validateResponse(RefreshMediaResponseSchema, response.data);
 }
 
@@ -32,7 +32,7 @@ export function scanMediaLibrary(
   onError?: (error: Error) => void,
   onComplete?: () => void
 ): () => void {
-  const eventSource = new EventSource('/api/v1/scan', {
+  const eventSource = new EventSource('/api/media/scan', {
     withCredentials: true,
   });
 

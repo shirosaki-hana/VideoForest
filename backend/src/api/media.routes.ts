@@ -28,7 +28,7 @@ function formatMediaForResponse(media: MediaFromDatabase) {
   };
 }
 
-export const v1ApiRoutes: FastifyPluginAsync = async fastify => {
+export const mediaRoutes: FastifyPluginAsync = async fastify => {
   fastify.addHook('preHandler', requireAuth);
 
   // 미디어 라이브러리 새로고침

@@ -64,12 +64,10 @@ async function createFastifyApp() {
 async function startServer(port: number) {
   const fastify = await createFastifyApp();
   await checkDatabaseConnection();
-
-  // FFmpeg/FFprobe 감지 및 기능 확인
   await detectFFmpeg();
   await detectFFprobe();
-
   await fastify.listen({ port, host: env.HOST });
+
   logger.info(`Environment: ${env.NODE_ENV}`);
   logger.success(`Server is running on http://${env.HOST}:${port}`);
 
