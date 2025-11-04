@@ -217,13 +217,3 @@ export class EncoderOptions {
     return args;
   }
 }
-
-// 하위 호환성을 위한 함수 export
-export const buildVideoEncoderArgs = (profile: QualityProfile, analysis: MediaAnalysis, speedMode?: boolean) =>
-  EncoderOptions.buildVideoArgs(profile, analysis, speedMode);
-
-export const buildAudioEncoderArgs = (profile: QualityProfile, analysis: MediaAnalysis) => EncoderOptions.buildAudioArgs(profile, analysis);
-
-export const buildVideoFilter = (profile: QualityProfile, analysis: MediaAnalysis) => EncoderOptions.buildVideoFilter(profile, analysis);
-
-export const getErrorResilienceArgs = () => EncoderOptions.getErrorResilienceArgs();

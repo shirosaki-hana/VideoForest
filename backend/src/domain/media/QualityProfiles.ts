@@ -217,11 +217,3 @@ export class QualityProfileSelector {
     return `expr:gte(t,n_forced*${segmentTime})`;
   }
 }
-
-// 하위 호환성을 위한 함수 export
-export const selectOptimalProfile = QualityProfileSelector.selectOptimal.bind(QualityProfileSelector);
-export const createCustomProfile = QualityProfileSelector.createCustom.bind(QualityProfileSelector);
-export const generateABRProfiles = QualityProfileSelector.generateABR.bind(QualityProfileSelector);
-export const selectDefaultProfile = QualityProfileSelector.selectDefault.bind(QualityProfileSelector);
-export const getGOPSize = QualityProfileSelector.getGOPSize.bind(QualityProfileSelector);
-export const getKeyframeExpression = QualityProfileSelector.getKeyframeExpression.bind(QualityProfileSelector);

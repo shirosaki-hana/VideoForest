@@ -207,7 +207,7 @@ export class FFmpegTranscoder {
     // 2. 에러 복원 옵션 (손상된 파일 대응)
     args.push(...EncoderOptions.getErrorResilienceArgs());
 
-    // 3. 🚀 초고속 SEEK (입력 전 -ss)
+    // 3. SEEK (입력 전 -ss)
     if (segmentInfo.startTime > 0) {
       args.push('-ss', segmentInfo.startTime.toFixed(3));
     }
@@ -276,7 +276,7 @@ export class FFmpegTranscoder {
       args.push('-shortest');
     }
 
-    // 12. MPEG-TS 타임스탬프 정규화 (HLS 필수!)
+    // 12. MPEG-TS 타임스탬프 정규화 
     args.push('-avoid_negative_ts', 'make_zero');
     args.push('-start_at_zero');
     args.push('-output_ts_offset', '0');
@@ -322,18 +322,3 @@ export class FFmpegTranscoder {
     return this.checkCache(mediaId, quality, segmentNumber, baseDir) !== null;
   }
 }
-
-// 하위 호환성을 위한 함수 export
-export const transcodeSegment = async (
-  mediaPath: string,
-  segmentInfo: SegmentInfo | AccurateSegmentInfo,
-  profile: QualityProfile,
-  analysis: MediaAnalysis,
-  outputPath: string
-): Promise<boolean> => {
-  const transcoder = new FFmpegTranscoder();
-  return transcoder.transcodeSegment(mediaPath, segmentInfo, profile, analysis, outputPath);
-};
-
-export const checkSegmentCache = FFmpegTranscoder.checkCache;
-export const isSegmentCached = FFmpegTranscoder.isCached;

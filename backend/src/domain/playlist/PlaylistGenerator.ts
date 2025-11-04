@@ -177,8 +177,3 @@ export class PlaylistGenerator {
     return value;
   }
 }
-
-// 하위 호환성을 위한 함수 export
-export const generateMasterPlaylist = PlaylistGenerator.generateMaster.bind(PlaylistGenerator);
-export const generateQualityPlaylist = PlaylistGenerator.generateQuality.bind(PlaylistGenerator);
-export const generatePlaylistFromSegments = PlaylistGenerator.generateFromSegments.bind(PlaylistGenerator);

@@ -222,13 +222,3 @@ export class FFprobeAnalyzer {
     return { isValid, warnings };
   }
 }
-
-// 하위 호환성을 위한 함수 export
-const analyzer = new FFprobeAnalyzer();
-
-export const analyzeKeyframes = (mediaPath: string) => analyzer.analyzeKeyframes(mediaPath);
-
-export const findKeyframeNear = (keyframes: KeyframeInfo[], targetTime: number, direction: 'before' | 'after' | 'nearest' = 'nearest') =>
-  analyzer.findKeyframeNear(keyframes, targetTime, direction);
-
-export const validateKeyframeStructure = (analysis: KeyframeAnalysis) => analyzer.validateStructure(analysis);

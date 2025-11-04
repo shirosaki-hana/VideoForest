@@ -216,10 +216,3 @@ export class SegmentCalculator {
     });
   }
 }
-
-// 하위 호환성을 위한 함수 export
-export const calculateAccurateSegments = SegmentCalculator.calculateAccurateSegments.bind(SegmentCalculator);
-export const getSegmentByNumber = SegmentCalculator.getSegmentByNumber.bind(SegmentCalculator);
-export const getSegmentAtTime = SegmentCalculator.getSegmentAtTime.bind(SegmentCalculator);
-export const validateSegmentContinuity = SegmentCalculator.validateContinuity.bind(SegmentCalculator);
-export const generateHLSSegmentEntries = SegmentCalculator.generateHLSEntries.bind(SegmentCalculator);

@@ -9,14 +9,15 @@ import {
   SegmentCalculator,
   MediaAnalyzer,
   PlaylistGenerator,
-  generateABRProfiles,
+  QualityProfileSelector,
   type MediaInfo,
   type MediaMetadata,
   type QualityProfile,
   type AccurateSegmentInfo,
   type TranscodingJob,
+  type KeyframeAnalysis,
 } from '../../domain/index.js';
-import { analyzeKeyframes, validateKeyframeStructure, transcodeSegment, checkSegmentCache } from '../../infrastructure/index.js';
+import { FFmpegTranscoder, FFprobeAnalyzer } from '../../infrastructure/index.js';
 //------------------------------------------------------------------------------//
 
 /**
@@ -88,13 +89,14 @@ export class StreamingService {
 
     // 4. 키프레임 분석 (정확한 세그먼트 생성)
     let accurateSegments: AccurateSegmentInfo[] | undefined;
-    let keyframeAnalysis: (ReturnType<typeof analyzeKeyframes> extends Promise<infer T> ? T : never) | undefined;
+    let keyframeAnalysis: KeyframeAnalysis | undefined;
 
     try {
-      keyframeAnalysis = await analyzeKeyframes(mediaData.path);
+      const analyzer = new FFprobeAnalyzer();
+      keyframeAnalysis = await analyzer.analyzeKeyframes(mediaData.path);
 
       // 키프레임 구조 검증
-      validateKeyframeStructure(keyframeAnalysis);
+      analyzer.validateStructure(keyframeAnalysis);
 
       // 키프레임 기반으로 정확한 세그먼트 계산
       const segmentCalculation = SegmentCalculator.calculateAccurateSegments(
@@ -116,7 +118,7 @@ export class StreamingService {
     }
 
     // 5. ABR 프로파일 생성
-    const availableProfiles = generateABRProfiles(info);
+    const availableProfiles = QualityProfileSelector.generateABR(info);
     logger.debug(`Available qualities: ${availableProfiles.map(p => p.name).join(', ')}`);
 
     // 6. 출력 디렉터리 생성
@@ -211,7 +213,7 @@ export class StreamingService {
     }
 
     // 3. 캐시 확인
-    const cachedPath = checkSegmentCache(mediaId, quality, segmentNumber);
+    const cachedPath = FFmpegTranscoder.checkCache(mediaId, quality, segmentNumber);
     if (cachedPath) {
       return cachedPath;
     }
@@ -273,7 +275,8 @@ export class StreamingService {
     logger.debug(`Starting JIT transcoding: ${mediaId} / ${quality} / segment ${segmentNumber}`);
 
     // 트랜스코딩 실행
-    const success = await transcodeSegment(mediaPath, segmentInfo, profile, analysis, outputPath);
+    const transcoder = new FFmpegTranscoder();
+    const success = await transcoder.transcodeSegment(mediaPath, segmentInfo, profile, analysis, outputPath);
 
     if (!success) {
       logger.error(`JIT transcoding failed for segment ${segmentNumber}`);

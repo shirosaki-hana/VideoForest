@@ -106,6 +106,3 @@ export class MediaAnalyzer {
     };
   }
 }
-
-// 하위 호환성을 위한 함수 export
-export const analyzeMedia = MediaAnalyzer.analyze.bind(MediaAnalyzer);

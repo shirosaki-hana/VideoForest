@@ -114,16 +114,3 @@ export class SegmentUtils {
     return segments;
   }
 }
-
-// 하위 호환성을 위한 함수 export
-export const getSegmentStartTime = SegmentUtils.getStartTime.bind(SegmentUtils);
-export const getSegmentNumberFromTime = SegmentUtils.getNumberFromTime.bind(SegmentUtils);
-export const calculateTotalSegments = SegmentUtils.calculateTotalSegments.bind(SegmentUtils);
-export const getSegmentFileName = SegmentUtils.getFileName.bind(SegmentUtils);
-export const parseSegmentNumber = SegmentUtils.parseNumber.bind(SegmentUtils);
-export const getSegmentPath = SegmentUtils.getPath.bind(SegmentUtils);
-export const getQualityDir = SegmentUtils.getQualityDir.bind(SegmentUtils);
-export const getMediaDir = SegmentUtils.getMediaDir.bind(SegmentUtils);
-export const getPlaylistPath = SegmentUtils.getPlaylistPath.bind(SegmentUtils);
-export const createSegmentInfo = SegmentUtils.createInfo.bind(SegmentUtils);
-export const createAllSegmentInfos = SegmentUtils.createAllInfos.bind(SegmentUtils);

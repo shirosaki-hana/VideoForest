@@ -131,11 +131,3 @@ export class SegmentValidator {
     }
   }
 }
-
-// 하위 호환성을 위한 함수 export
-const validator = new SegmentValidator();
-
-export const validateSegment = (segmentPath: string) => validator.validate(segmentPath);
-
-export const logValidationResult = (segmentNumber: number, expectedDuration: number, validation: SegmentValidation) =>
-  validator.logResult(segmentNumber, expectedDuration, validation);
