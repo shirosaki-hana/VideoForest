@@ -26,4 +26,3 @@ export async function notFoundHandler(request: FastifyRequest, reply: FastifyRep
     message: `Resource ${request.url} not found`,
   });
 }
-

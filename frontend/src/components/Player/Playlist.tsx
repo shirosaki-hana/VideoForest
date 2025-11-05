@@ -97,4 +97,3 @@ export default function Playlist({ playlist, currentMediaId, onSelectMedia }: Pl
     </Box>
   );
 }
-

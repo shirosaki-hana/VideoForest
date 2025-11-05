@@ -53,4 +53,3 @@ export default function PlayerLoadingState({ loading, preparingStream, error, me
     </Container>
   );
 }
-

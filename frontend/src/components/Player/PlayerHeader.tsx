@@ -23,4 +23,3 @@ export default function PlayerHeader({ mediaName, onBack }: PlayerHeaderProps) {
     </Paper>
   );
 }
-

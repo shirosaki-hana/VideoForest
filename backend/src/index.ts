@@ -36,13 +36,13 @@ async function createFastifyApp() {
 // 서버 시작 함수
 async function startServer(port: number) {
   logger.info(`Starting server... [Environment: ${env.NODE_ENV}]`);
-  
+
   const fastify = await createFastifyApp();
   await checkDatabaseConnection();
   await detectFFmpeg();
   await detectFFprobe();
   await fastify.listen({ port, host: env.HOST });
-  
+
   logger.success(`Server is running on http://${env.HOST}:${port}`);
 
   return fastify;

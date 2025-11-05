@@ -17,4 +17,3 @@ export async function errorHandler(error: FastifyError, request: FastifyRequest,
     ...(isDevelopment && { stack: error.stack }),
   });
 }
-

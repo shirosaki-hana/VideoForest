@@ -18,9 +18,7 @@ export default function MediaInfo({ mediaInfo }: MediaInfoProps) {
         {t('player.mediaInfo')}
       </Typography>
       <Stack direction='row' spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: 2 }}>
-        {mediaInfo.width && mediaInfo.height && (
-          <Chip label={`${mediaInfo.width}×${mediaInfo.height}`} size='small' variant='outlined' />
-        )}
+        {mediaInfo.width && mediaInfo.height && <Chip label={`${mediaInfo.width}×${mediaInfo.height}`} size='small' variant='outlined' />}
         {mediaInfo.duration && <Chip label={formatDuration(mediaInfo.duration)} size='small' variant='outlined' />}
         {mediaInfo.fileSize && <Chip label={formatFileSize(mediaInfo.fileSize)} size='small' variant='outlined' />}
         {mediaInfo.codec && <Chip label={mediaInfo.codec.toUpperCase()} size='small' variant='outlined' />}
@@ -31,4 +29,3 @@ export default function MediaInfo({ mediaInfo }: MediaInfoProps) {
     </Paper>
   );
 }
-
