@@ -24,7 +24,7 @@ export class FFprobeAnalyzer {
    * - `pts_time`으로 정확한 타임스탬프 얻기
    */
   async analyzeKeyframes(mediaPath: string): Promise<KeyframeAnalysis> {
-    logger.info(`Analyzing keyframes for ${path.basename(mediaPath)}...`);
+    logger.debug(`Analyzing keyframes for ${path.basename(mediaPath)}...`);
 
     try {
       // 1. FFprobe로 비디오 패킷 정보 추출 (키프레임만)
@@ -89,7 +89,7 @@ export class FFprobeAnalyzer {
 
       const averageGopSize = Math.round(averageGopDuration * fps);
 
-      logger.success(`Found ${totalKeyframes} keyframes ` + `(avg GOP: ${averageGopDuration.toFixed(2)}s / ${averageGopSize} frames)`);
+      logger.debug(`Found ${totalKeyframes} keyframes ` + `(avg GOP: ${averageGopDuration.toFixed(2)}s / ${averageGopSize} frames)`);
 
       return {
         keyframes,
@@ -131,7 +131,7 @@ export class FFprobeAnalyzer {
       // 기본값
       return 24;
     } catch (error) {
-      logger.warn(`Failed to extract FPS, using default 24: ${error}`);
+      logger.debug(`Failed to extract FPS, using default 24: ${error}`);
       return 24;
     }
   }
@@ -216,7 +216,7 @@ export class FFprobeAnalyzer {
     const isValid = warnings.length === 0;
 
     if (!isValid) {
-      warnings.forEach(w => logger.warn(w));
+      warnings.forEach(w => logger.debug(w));
     }
 
     return { isValid, warnings };

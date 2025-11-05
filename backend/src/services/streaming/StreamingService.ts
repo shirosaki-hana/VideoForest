@@ -130,7 +130,7 @@ export class StreamingService {
     const masterPlaylistContent = PlaylistGenerator.generateMaster(availableProfiles);
     try {
       writeFileSync(masterPlaylistPath, masterPlaylistContent);
-      logger.success(`Master playlist created: ${masterPlaylistPath}`);
+      logger.debug(`Master playlist created: ${masterPlaylistPath}`);
     } catch (error) {
       logger.error(`Failed to write master playlist: ${error}`);
       return null;
@@ -146,7 +146,7 @@ export class StreamingService {
 
       try {
         writeFileSync(qualityPlaylistPath, qualityPlaylistContent);
-        logger.success(`Quality playlist created: ${profile.name}`);
+        logger.debug(`Quality playlist created: ${profile.name}`);
       } catch (error) {
         logger.error(`Failed to write quality playlist for ${profile.name}: ${error}`);
         return null;
@@ -168,7 +168,7 @@ export class StreamingService {
 
     this.metadataCache.set(mediaId, metadata);
 
-    logger.success(`Streaming initialized for ${mediaId} ` + `(${metadata.totalSegments} segments, ${availableProfiles.length} qualities)`);
+    logger.debug(`Streaming initialized for ${mediaId} ` + `(${metadata.totalSegments} segments, ${availableProfiles.length} qualities)`);
 
     return masterPlaylistPath;
   }

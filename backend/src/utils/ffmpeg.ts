@@ -36,13 +36,13 @@ export async function detectFFmpeg(): Promise<FFmpegInfo> {
     return cachedFFmpegInfo;
   }
 
-  logger.info('Detecting FFmpeg installation...');
+  logger.debug('Detecting FFmpeg installation...');
 
   // 1. 시스템 FFmpeg 확인
   const systemFFmpeg = await checkSystemFFmpeg();
   if (systemFFmpeg) {
-    logger.success(`Using system FFmpeg: ${systemFFmpeg.path}`);
-    logger.info(`  Version: ${systemFFmpeg.version}`);
+    logger.info(`Using system FFmpeg: ${systemFFmpeg.path}`);
+    logger.debug(`  Version: ${systemFFmpeg.version}`);
     cachedFFmpegInfo = systemFFmpeg;
     return systemFFmpeg;
   }
