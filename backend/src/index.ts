@@ -7,8 +7,9 @@ import rateLimit from '@fastify/rate-limit';
 import staticFiles from '@fastify/static';
 import apiRoutes from './api/index.js';
 import { logger, detectFFmpeg, detectFFprobe } from './utils/index.js';
-import { env, isDevelopment, fastifyConfig, helmetConfig, rateLimitConfig, corsConfig, staticFilesConfig } from './config/index.js';
+import { env, fastifyConfig, helmetConfig, rateLimitConfig, corsConfig, staticFilesConfig } from './config/index.js';
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
+import { notFoundHandler, errorHandler } from './handlers/index.js';
 //------------------------------------------------------------------------------//
 
 // Fastify 서버 생성
@@ -23,39 +24,11 @@ async function createFastifyApp() {
   await fastify.register(apiRoutes, { prefix: '/api' }); // API 라우트
   await fastify.register(staticFiles, staticFilesConfig); // 정적 파일 서빙
 
-  // SPA fallback: API가 아닌 모든 GET 요청을 index.html로 처리
-  fastify.setNotFoundHandler(async (request, reply) => {
-    // API 요청은 404 반환
-    if (request.url.startsWith('/api/')) {
-      return reply.code(404).send({
-        error: 'Not Found',
-        message: `Route ${request.method}:${request.url} not found`,
-      });
-    }
-
-    // GET 요청이고 Accept 헤더가 HTML을 포함하면 index.html 반환 (SPA 라우팅)
-    if (request.method === 'GET' && request.headers.accept?.includes('text/html')) {
-      return reply.type('text/html').sendFile('index.html');
-    }
-
-    // 그 외의 경우 404 반환
-    return reply.code(404).send({
-      error: 'Not Found',
-      message: `Resource ${request.url} not found`,
-    });
-  });
+  // SPA fallback 및 404 핸들러
+  fastify.setNotFoundHandler(notFoundHandler);
 
   // 전역 에러 핸들러
-  fastify.setErrorHandler(async (error, request, reply) => {
-    logger.error('Unhandled error:', error);
-
-    const statusCode = error.statusCode || 500;
-
-    return reply.code(statusCode).send({
-      error: isDevelopment ? error.message : 'Internal server error',
-      ...(isDevelopment && { stack: error.stack }),
-    });
-  });
+  fastify.setErrorHandler(errorHandler);
 
   return fastify;
 }
