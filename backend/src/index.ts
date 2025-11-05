@@ -10,7 +10,6 @@ import { logger, detectFFmpeg, detectFFprobe } from './utils/index.js';
 import { env, fastifyConfig, helmetConfig, rateLimitConfig, corsConfig, staticFilesConfig } from './config/index.js';
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
 import { notFoundHandler, errorHandler } from './handlers/index.js';
-import { log } from 'console';
 //------------------------------------------------------------------------------//
 
 // Fastify 서버 생성
