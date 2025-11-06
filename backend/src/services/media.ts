@@ -157,7 +157,7 @@ export async function refreshMediaLibrary() {
     }
   }
 
-  logger.success(`Media library refresh completed! Total: ${allMediaFiles.length} files`);
+  logger.debug(`Media library refresh completed! Total: ${allMediaFiles.length} files`);
 
   // 전체 미디어 목록 반환
   return await database.media.findMany({

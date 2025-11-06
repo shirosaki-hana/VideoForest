@@ -35,7 +35,7 @@ export async function detectFFmpeg(): Promise<FFmpegInfo> {
     return cachedFFmpegInfo;
   }
 
-  logger.debug('Detecting FFmpeg installation...');
+  logger.info('Detecting FFmpeg installation...');
 
   // 1. 시스템 FFmpeg 확인
   const systemFFmpeg = await checkSystemFFmpeg();

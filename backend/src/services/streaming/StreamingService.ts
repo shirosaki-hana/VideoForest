@@ -1,5 +1,5 @@
-import { existsSync, writeFileSync } from 'fs';
-import { mkdir } from 'fs/promises';
+import { existsSync } from 'fs';
+import { mkdir, writeFile } from 'fs/promises';
 import { logger } from '../../utils/index.js';
 import { database } from '../../database/index.js';
 import {
@@ -129,7 +129,7 @@ export class StreamingService {
     const masterPlaylistPath = SegmentUtils.getPlaylistPath(mediaId, 'master');
     const masterPlaylistContent = PlaylistGenerator.generateMaster(availableProfiles);
     try {
-      writeFileSync(masterPlaylistPath, masterPlaylistContent);
+      await writeFile(masterPlaylistPath, masterPlaylistContent);
       logger.debug(`Master playlist created: ${masterPlaylistPath}`);
     } catch (error) {
       logger.error(`Failed to write master playlist: ${error}`);
@@ -145,7 +145,7 @@ export class StreamingService {
       const qualityPlaylistContent = PlaylistGenerator.generateQuality(info.duration, analysis.segmentDuration, accurateSegments);
 
       try {
-        writeFileSync(qualityPlaylistPath, qualityPlaylistContent);
+        await writeFile(qualityPlaylistPath, qualityPlaylistContent);
         logger.debug(`Quality playlist created: ${profile.name}`);
       } catch (error) {
         logger.error(`Failed to write quality playlist for ${profile.name}: ${error}`);

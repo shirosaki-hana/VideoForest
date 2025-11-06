@@ -94,6 +94,8 @@ MEDIA_PATHS=./backend/media
 
 # Speed Mode (use faster encoding presets, lower quality)
 VIDEOFOREST_SPEED_MODE=0
+# Hardware encoder selection: Auto | NVENC | QSV | CPU
+VIDEOFOREST_ENCODER=Auto
 ```
 
 ### Environment Variables
@@ -109,6 +111,7 @@ VIDEOFOREST_SPEED_MODE=0
 - `RATELIMIT_WINDOWMS`: Rate limit time window (e.g., `10s`)
 - `MEDIA_PATHS`: Comma-separated list of media directories to scan
 - `VIDEOFOREST_SPEED_MODE`: Enable faster encoding presets (`0` or `1`)
+- `VIDEOFOREST_ENCODER`: Hardware encoder selection (`Auto`, `NVENC`, `QSV`, `CPU`). In `Auto` mode, the app detects NVENC/QSV and falls back to CPU; in manual modes (`NVENC`/`QSV`/`CPU`), it forces the chosen encoder without fallback.
 
 ## Running the Application
 

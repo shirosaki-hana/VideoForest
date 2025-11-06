@@ -29,22 +29,19 @@ export interface HWAccelDetectionResult {
  */
 export class HardwareAccelerationDetector {
   private static cachedResult: HWAccelDetectionResult | null = null;
-  private static readonly CACHE_DURATION = 5 * 60 * 1000; // 5분
 
   /**
-   * 하드웨어 가속 감지 (캐시 사용)
+   * 하드웨어 가속 감지 (영구 캐시 사용)
+   * 서버 시작 시 한 번만 실행되고 결과는 영구적으로 캐싱됩니다.
    */
   static async detect(): Promise<HWAccelDetectionResult> {
-    // 캐시 확인
+    // 캐시 확인 (영구 캐싱)
     if (this.cachedResult) {
-      const age = Date.now() - this.cachedResult.detectedAt;
-      if (age < this.CACHE_DURATION) {
-        logger.debug?.(`Using cached HW accel detection (age: ${Math.floor(age / 1000)}s)`);
-        return this.cachedResult;
-      }
+      logger.debug?.('Using cached HW accel detection');
+      return this.cachedResult;
     }
 
-    logger.debug('Detecting hardware acceleration support...');
+    logger.info('Detecting hardware acceleration support...');
 
     const result: HWAccelDetectionResult = {
       available: ['libx264'], // CPU는 항상 사용 가능
@@ -60,9 +57,9 @@ export class HardwareAccelerationDetector {
       result.available.unshift('h264_nvenc'); // 맨 앞에 추가 (최우선)
       result.preferred = 'h264_nvenc';
       result.nvencAvailable = true;
-      logger.debug('✓ NVENC (NVIDIA GPU) available - will be used for encoding');
+      logger.info('✓ NVENC (NVIDIA GPU) available');
     } else {
-      logger.debug('✗ NVENC not available');
+      logger.warn('✗ NVENC not available');
     }
 
     // QSV 감지 (두 번째 우선순위)
@@ -74,12 +71,12 @@ export class HardwareAccelerationDetector {
       // NVENC이 없으면 QSV를 preferred로
       if (!nvencAvailable) {
         result.preferred = 'h264_qsv';
-        logger.debug('✓ QSV (Intel GPU) available - will be used for encoding');
+        logger.info('✓ QSV (Intel GPU) available');
       } else {
-        logger.debug('✓ QSV (Intel GPU) available - secondary option');
+        logger.info('✓ QSV (Intel GPU) available');
       }
     } else {
-      logger.debug('✗ QSV not available');
+      logger.warn('✗ QSV not available');
     }
 
     // 최종 fallback 로그
