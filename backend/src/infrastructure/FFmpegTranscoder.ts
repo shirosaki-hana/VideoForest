@@ -95,9 +95,24 @@ export class FFmpegTranscoder {
       return true;
     }
 
-    // GPU 인코딩 실패 시 CPU로 폴백
+    // GPU 인코딩 실패 시 fallback 체인: NVENC -> QSV -> CPU
     if (preferredEncoder === 'h264_nvenc') {
-      logger.warn(`NVENC encoding failed for segment ${segmentInfo.segmentNumber}, falling back to CPU...`);
+      logger.warn(`NVENC encoding failed for segment ${segmentInfo.segmentNumber}, trying QSV...`);
+      
+      // QSV 시도
+      const qsvSuccess = await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'h264_qsv');
+      if (qsvSuccess) {
+        return true;
+      }
+      
+      // QSV도 실패하면 CPU로 최종 폴백
+      logger.warn(`QSV encoding also failed for segment ${segmentInfo.segmentNumber}, falling back to CPU...`);
+      return await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'libx264');
+    }
+
+    // QSV가 preferred인 경우 (NVENC 없음)
+    if (preferredEncoder === 'h264_qsv') {
+      logger.warn(`QSV encoding failed for segment ${segmentInfo.segmentNumber}, falling back to CPU...`);
       return await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'libx264');
     }
 
@@ -119,7 +134,8 @@ export class FFmpegTranscoder {
     const ffmpegArgs = this.buildFFmpegArgs(mediaPath, segmentInfo, profile, analysis, outputPath, encoderType);
 
     // 인코더 정보 로그
-    const encoderName = encoderType === 'h264_nvenc' ? 'NVENC (GPU)' : 'libx264 (CPU)';
+    const encoderName =
+      encoderType === 'h264_nvenc' ? 'NVENC (NVIDIA GPU)' : encoderType === 'h264_qsv' ? 'QSV (Intel GPU)' : 'libx264 (CPU)';
     logger.debug?.(`Using encoder: ${encoderName}`);
 
     // FFmpeg 프로세스 실행 (동기적으로 완료 대기)
@@ -171,6 +187,14 @@ export class FFmpegTranscoder {
               logger.error('NVENC error: Driver or library issue');
             } else if (stderr.includes('InitializeEncoder failed')) {
               logger.error('NVENC error: Encoder initialization failed');
+            }
+          } else if (encoderType === 'h264_qsv') {
+            if (stderr.includes('No QSV device found') || stderr.includes('failed to initialize')) {
+              logger.error('QSV error: No Intel GPU found or not initialized');
+            } else if (stderr.includes('Cannot load')) {
+              logger.error('QSV error: Driver or library issue');
+            } else if (stderr.includes('InitializeEncoder failed')) {
+              logger.error('QSV error: Encoder initialization failed');
             }
           }
 
@@ -234,11 +258,8 @@ export class FFmpegTranscoder {
     }
 
     // 8. 비디오 인코딩 옵션
-    const videoFilter = EncoderOptions.buildVideoFilter(profile, analysis);
+    const videoFilter = EncoderOptions.buildVideoFilter(profile, analysis, this.speedMode);
     if (videoFilter !== 'null') {
-      if (this.speedMode) {
-        args.push('-sws_flags', 'fast_bilinear');
-      }
       args.push('-vf', videoFilter);
     }
 

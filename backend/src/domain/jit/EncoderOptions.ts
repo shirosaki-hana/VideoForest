@@ -5,7 +5,7 @@ import { QualityProfileSelector } from '../media/QualityProfiles.js';
 /**
  * 지원하는 비디오 인코더 타입
  */
-export type VideoEncoderType = 'h264_nvenc' | 'libx264';
+export type VideoEncoderType = 'h264_nvenc' | 'h264_qsv' | 'libx264';
 
 /**
  * FFmpeg 인코더 옵션 생성 로직
@@ -36,6 +36,8 @@ export class EncoderOptions {
     // 인코더 타입에 따라 적절한 옵션 생성
     if (encoderType === 'h264_nvenc') {
       return this.buildNVENCVideoArgs(profile, gopSize, keyframeExpr, speedMode);
+    } else if (encoderType === 'h264_qsv') {
+      return this.buildQSVVideoArgs(profile, gopSize, keyframeExpr, speedMode);
     } else {
       return this.buildCPUVideoArgs(profile, gopSize, keyframeExpr, speedMode);
     }
@@ -52,17 +54,55 @@ export class EncoderOptions {
    * - 하드웨어 가속으로 CPU 대비 3~10배 빠름
    */
   private static buildNVENCVideoArgs(profile: QualityProfile, gopSize: number, keyframeExpr: string, speedMode: boolean): string[] {
-    // NVENC 프리셋 (구형/신형 FFmpeg 모두 호환)
-    // llhp: Low Latency High Performance (초고속)
-    // llhq: Low Latency High Quality (균형)
-    // ll: Low Latency (기본)
-    const preset = speedMode ? 'llhp' : 'llhq';
+    if (speedMode) {
+      // 속도 최우선 모드: AQ와 Lookahead 비활성화로 극한의 속도
+      return [
+        '-c:v',
+        'h264_nvenc',
+        '-preset',
+        'llhp', // Low Latency High Performance (최고 속도)
+        '-rc',
+        'cbr', // CBR 모드가 VBR보다 계산이 단순함
+        '-b:v',
+        profile.videoBitrate,
+        '-maxrate',
+        profile.maxrate,
+        '-bufsize',
+        profile.bufsize,
+        '-g',
+        String(gopSize),
+        '-keyint_min',
+        String(gopSize),
+        '-force_key_frames',
+        keyframeExpr,
+        '-profile:v',
+        'baseline', // baseline 프로파일로 단순화
+        '-level',
+        '4.0',
+        '-pix_fmt',
+        'yuv420p',
+        // 속도를 위해 품질 향상 기능 모두 비활성화
+        '-spatial-aq',
+        '0', // Spatial AQ 끄기
+        '-temporal-aq',
+        '0', // Temporal AQ 끄기
+        '-rc-lookahead',
+        '0', // Lookahead 끄기 (속도 향상)
+        '-no-scenecut',
+        '1', // Scene cut 감지 비활성화
+        '-zerolatency',
+        '1', // Zero latency 모드
+        '-2pass',
+        '0', // 2pass 비활성화
+      ];
+    }
 
+    // 기본 모드 (균형)
     return [
       '-c:v',
       'h264_nvenc',
       '-preset',
-      preset,
+      'llhq', // Low Latency High Quality
       '-rc',
       'vbr', // Variable Bitrate
       '-b:v',
@@ -89,7 +129,88 @@ export class EncoderOptions {
       '-temporal-aq',
       '1', // Temporal AQ (시간적 품질 향상)
       '-rc-lookahead',
-      '20', // Rate Control Lookahead
+      '10', // Rate Control Lookahead 줄임 (20 -> 10)
+    ];
+  }
+
+  /**
+   * QSV (Intel Quick Sync Video) 인코더 옵션
+   *
+   * Intel GPU 가속 인코딩 설정:
+   * - preset: veryfast (스트리밍 최적화)
+   * - global_quality: 품질 설정 (낮을수록 고품질)
+   * - look_ahead: Rate Control Lookahead
+   * - 하드웨어 가속으로 CPU 대비 2~5배 빠름
+   */
+  private static buildQSVVideoArgs(profile: QualityProfile, gopSize: number, keyframeExpr: string, speedMode: boolean): string[] {
+    if (speedMode) {
+      // 속도 최우선 모드: 품질 희생하고 속도 극대화
+      return [
+        '-c:v',
+        'h264_qsv',
+        '-preset',
+        'veryfast', // QSV에서 가장 빠른 프리셋
+        '-global_quality',
+        '28', // 품질 낮춤 (속도 우선)
+        '-b:v',
+        profile.videoBitrate,
+        '-maxrate',
+        profile.maxrate,
+        '-bufsize',
+        profile.bufsize,
+        '-g',
+        String(gopSize),
+        '-keyint_min',
+        String(gopSize),
+        '-force_key_frames',
+        keyframeExpr,
+        '-profile:v',
+        'baseline', // baseline 프로파일로 단순화
+        '-level',
+        '4.0',
+        '-pix_fmt',
+        'nv12',
+        '-look_ahead',
+        '0', // Lookahead 비활성화 (속도 향상)
+        '-async_depth',
+        '4', // 비동기 처리 깊이 (병렬 처리 향상)
+        '-low_power',
+        '0', // 저전력 모드 끄기 (성능 우선)
+      ];
+    }
+
+    // 기본 모드 (균형)
+    return [
+      '-c:v',
+      'h264_qsv',
+      '-preset',
+      'veryfast',
+      '-global_quality',
+      '23', // 품질 (18-28 범위, 낮을수록 고품질)
+      '-b:v',
+      profile.videoBitrate,
+      '-maxrate',
+      profile.maxrate,
+      '-bufsize',
+      profile.bufsize,
+      '-g',
+      String(gopSize),
+      '-keyint_min',
+      String(gopSize),
+      '-force_key_frames',
+      keyframeExpr,
+      '-profile:v',
+      'main',
+      '-level',
+      '4.0',
+      '-pix_fmt',
+      'nv12', // QSV는 nv12 픽셀 포맷 선호
+      '-look_ahead',
+      '1', // Lookahead 활성화
+      '-look_ahead_depth',
+      '20', // Lookahead 깊이 줄임 (40 -> 20)
+      '-async_depth',
+      '2', // 비동기 처리
     ];
   }
 
@@ -181,7 +302,7 @@ export class EncoderOptions {
   /**
    * 비디오 필터 생성 (스케일링)
    */
-  static buildVideoFilter(profile: QualityProfile, analysis: MediaAnalysis): string {
+  static buildVideoFilter(profile: QualityProfile, analysis: MediaAnalysis, speedMode: boolean = false): string {
     const { width: targetWidth, height: targetHeight } = profile;
     const { width: srcWidth, height: srcHeight } = analysis.inputFormat;
 
@@ -191,8 +312,10 @@ export class EncoderOptions {
     }
 
     // 스케일링 필터
-    // flags=lanczos: 고품질 다운스케일
-    return `scale=${targetWidth}:${targetHeight}:flags=lanczos`;
+    // speedMode: fast_bilinear (초고속, 품질 낮음)
+    // 기본: lanczos (고품질, 느림)
+    const scaleAlgo = speedMode ? 'fast_bilinear' : 'lanczos';
+    return `scale=${targetWidth}:${targetHeight}:flags=${scaleAlgo}`;
   }
 
   /**
@@ -210,8 +333,11 @@ export class EncoderOptions {
 
     if (speedMode) {
       // 표준 컨테이너/코덱 가정 하에 스타트업 오버헤드 감소
-      args.push('-analyzeduration', '0');
-      args.push('-probesize', '32k');
+      args.push('-analyzeduration', '100000'); // 더 공격적으로 줄임
+      args.push('-probesize', '5000000'); // 5MB로 제한
+      args.push('-fflags', '+discardcorrupt+nobuffer'); // 버퍼링 최소화
+      args.push('-flags', 'low_delay'); // 저지연 플래그
+      args.push('-strict', 'experimental'); // 실험적 기능 활성화
     }
 
     return args;

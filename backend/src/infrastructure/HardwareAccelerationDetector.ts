@@ -5,7 +5,7 @@ import { logger, getFFmpegPath } from '../utils/index.js';
 /**
  * 하드웨어 가속 인코더 타입
  */
-export type HWEncoderType = 'h264_nvenc' | 'libx264';
+export type HWEncoderType = 'h264_nvenc' | 'h264_qsv' | 'libx264';
 
 /**
  * 하드웨어 가속 감지 결과
@@ -14,6 +14,7 @@ export interface HWAccelDetectionResult {
   available: HWEncoderType[];
   preferred: HWEncoderType;
   nvencAvailable: boolean;
+  qsvAvailable: boolean;
   detectedAt: number;
 }
 
@@ -23,6 +24,7 @@ export interface HWAccelDetectionResult {
  * 책임:
  * - 시스템에서 사용 가능한 하드웨어 인코더 감지
  * - NVENC (NVIDIA GPU) 가용성 확인
+ * - QSV (Intel Quick Sync Video) 가용성 확인
  * - 감지 결과 캐싱 (시스템 시작 시 한 번만 실행)
  */
 export class HardwareAccelerationDetector {
@@ -48,24 +50,124 @@ export class HardwareAccelerationDetector {
       available: ['libx264'], // CPU는 항상 사용 가능
       preferred: 'libx264',
       nvencAvailable: false,
+      qsvAvailable: false,
       detectedAt: Date.now(),
     };
 
-    // NVENC 감지
+    // NVENC 감지 (최우선)
     const nvencAvailable = await this.testNVENC();
     if (nvencAvailable) {
-      result.available.unshift('h264_nvenc'); // 맨 앞에 추가 (우선순위)
+      result.available.unshift('h264_nvenc'); // 맨 앞에 추가 (최우선)
       result.preferred = 'h264_nvenc';
       result.nvencAvailable = true;
       logger.debug('✓ NVENC (NVIDIA GPU) available - will be used for encoding');
     } else {
-      logger.debug('✗ NVENC not available - falling back to CPU (libx264)');
+      logger.debug('✗ NVENC not available');
+    }
+
+    // QSV 감지 (두 번째 우선순위)
+    const qsvAvailable = await this.testQSV();
+    if (qsvAvailable) {
+      result.available.unshift('h264_qsv'); // NVENC 다음 우선순위
+      result.qsvAvailable = true;
+      
+      // NVENC이 없으면 QSV를 preferred로
+      if (!nvencAvailable) {
+        result.preferred = 'h264_qsv';
+        logger.debug('✓ QSV (Intel GPU) available - will be used for encoding');
+      } else {
+        logger.debug('✓ QSV (Intel GPU) available - secondary option');
+      }
+    } else {
+      logger.debug('✗ QSV not available');
+    }
+
+    // 최종 fallback 로그
+    if (!nvencAvailable && !qsvAvailable) {
+      logger.debug('⚠ No GPU acceleration available - falling back to CPU (libx264)');
     }
 
     // 캐시 저장
     this.cachedResult = result;
 
     return result;
+  }
+
+  /**
+   * QSV 가용성 테스트
+   *
+   * 전략: 1초짜리 더미 비디오 인코딩 시도
+   * - 성공: QSV 사용 가능
+   * - 실패: QSV 불가 (Intel GPU 없음, 드라이버 없음 등)
+   */
+  private static async testQSV(): Promise<boolean> {
+    const ffmpegPath = getFFmpegPath();
+
+    // 초경량 테스트: 1초짜리 검은 화면을 QSV로 인코딩
+    const args = [
+      '-y',
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-f',
+      'lavfi',
+      '-i',
+      'color=black:s=256x144:d=1',
+      '-c:v',
+      'h264_qsv',
+      '-preset',
+      'veryfast',
+      '-b:v',
+      '100k',
+      '-f',
+      'null',
+      '-',
+    ];
+
+    return new Promise<boolean>(resolve => {
+      const process = spawn(ffmpegPath, args, {
+        stdio: ['ignore', 'ignore', 'pipe'],
+      });
+
+      let stderr = '';
+
+      process.stderr?.on('data', data => {
+        stderr += data.toString();
+      });
+
+      // 타임아웃 설정 (5초)
+      const timeout = setTimeout(() => {
+        process.kill();
+        logger.debug?.('QSV test timed out');
+        resolve(false);
+      }, 5000);
+
+      process.on('error', () => {
+        clearTimeout(timeout);
+        resolve(false);
+      });
+
+      process.on('exit', code => {
+        clearTimeout(timeout);
+
+        if (code === 0) {
+          logger.debug?.('QSV test successful');
+          resolve(true);
+        } else {
+          // 에러 메시지에서 유용한 정보 추출
+          if (stderr.includes('No QSV device found') || stderr.includes('failed to initialize')) {
+            logger.debug?.('QSV unavailable: No Intel GPU found or not initialized');
+          } else if (stderr.includes('Unknown encoder')) {
+            logger.debug?.('QSV unavailable: FFmpeg not compiled with QSV support');
+          } else if (stderr.includes('Cannot load')) {
+            logger.debug?.('QSV unavailable: Driver or library issue');
+          } else {
+            logger.debug?.(`QSV test failed (exit ${code})`);
+          }
+          resolve(false);
+        }
+      });
+    });
   }
 
   /**

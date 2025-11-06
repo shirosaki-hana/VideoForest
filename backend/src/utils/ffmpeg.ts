@@ -28,7 +28,6 @@ export function clearFFmpegCache(): void {
  * 1. 시스템 FFmpeg
  * 2. @ffmpeg-installer/ffmpeg (번들)
  *
- * CPU 트랜스코딩만 지원합니다.
  */
 export async function detectFFmpeg(): Promise<FFmpegInfo> {
   // 캐시된 정보 반환
