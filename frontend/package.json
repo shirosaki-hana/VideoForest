@@ -38,6 +38,6 @@
     "@types/video.js": "^7.3.58",
     "@vitejs/plugin-react": "^5.1.0",
     "rollup-plugin-visualizer": "^6.0.5",
-    "vite": "^7.2.0"
+    "vite": "^7.2.1"
   }
 }
