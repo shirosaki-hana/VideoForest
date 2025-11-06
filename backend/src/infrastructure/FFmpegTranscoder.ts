@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+import { spawn, type ChildProcess } from 'child_process';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import path from 'path';
@@ -33,11 +33,32 @@ export class FFmpegTranscoder {
   private speedMode: boolean;
   private preferredEncoder: VideoEncoderType | null = null;
   private hardwareMode: 'auto' | 'nvenc' | 'qsv' | 'cpu';
+  
+  // 활성 FFmpeg 프로세스 추적 (고아 프로세스 방지)
+  private static activeProcesses = new Set<ChildProcess>();
 
   constructor(speedMode: boolean = false) {
     this.ffmpegPath = getFFmpegPath();
     this.speedMode = speedMode;
     this.hardwareMode = env.VIDEOFOREST_ENCODER;
+  }
+
+  /**
+   * 모든 활성 FFmpeg 프로세스 종료 (graceful shutdown용)
+   */
+  static killAllProcesses(): void {
+    logger.info(`Killing ${this.activeProcesses.size} active FFmpeg processes...`);
+    
+    for (const ffmpegProcess of this.activeProcesses) {
+      try {
+        ffmpegProcess.kill('SIGKILL'); // 강제 종료
+      } catch (error) {
+        logger.warn(`Failed to kill FFmpeg process: ${error}`);
+      }
+    }
+    
+    this.activeProcesses.clear();
+    logger.success('All FFmpeg processes killed');
   }
 
   /**
@@ -52,13 +73,13 @@ export class FFmpegTranscoder {
     if (this.hardwareMode !== 'auto') {
       if (this.hardwareMode === 'nvenc') {
         this.preferredEncoder = 'h264_nvenc';
-        logger.info('Hardware encoder forced by env: NVENC');
+        logger.debug('Hardware encoder forced by env: NVENC');
       } else if (this.hardwareMode === 'qsv') {
         this.preferredEncoder = 'h264_qsv';
-        logger.info('Hardware encoder forced by env: QSV');
+        logger.debug('Hardware encoder forced by env: QSV');
       } else {
         this.preferredEncoder = 'libx264';
-        logger.info('Hardware encoder forced by env: CPU (libx264)');
+        logger.debug('Hardware encoder forced by env: CPU (libx264)');
       }
       return this.preferredEncoder;
     }
@@ -97,7 +118,7 @@ export class FFmpegTranscoder {
     const endTime = isAccurate ? (segmentInfo as AccurateSegmentInfo).endTime : segmentInfo.startTime + segmentInfo.duration;
     const duration = endTime - segmentInfo.startTime;
 
-    logger.info(
+    logger.debug(
       `JIT transcoding: segment ${segmentInfo.segmentNumber} ` +
         `(${segmentInfo.startTime.toFixed(3)}s ~ ${endTime.toFixed(3)}s) ` +
         `duration ${duration.toFixed(3)}s ` +
@@ -166,6 +187,9 @@ export class FFmpegTranscoder {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
+      // 활성 프로세스 추적에 추가 (고아 프로세스 방지)
+      FFmpegTranscoder.activeProcesses.add(ffmpegProcess);
+
       let stderr = '';
 
       ffmpegProcess.stderr?.on('data', data => {
@@ -174,13 +198,16 @@ export class FFmpegTranscoder {
 
       ffmpegProcess.on('error', error => {
         logger.error(`FFmpeg process error: ${error.message}`);
+        FFmpegTranscoder.activeProcesses.delete(ffmpegProcess);
         resolve(false);
       });
 
       ffmpegProcess.on('exit', async code => {
+        // 프로세스 종료 시 추적에서 제거
+        FFmpegTranscoder.activeProcesses.delete(ffmpegProcess);
         if (code === 0) {
           // 성공 - 세그먼트 검증
-          logger.success(`Segment ${segmentInfo.segmentNumber} transcoded successfully ` + `(${profile.name}, ${encoderName})`);
+          logger.debug(`Segment ${segmentInfo.segmentNumber} transcoded successfully ` + `(${profile.name}, ${encoderName})`);
 
           // 프로덕션에서는 검증을 완전히 건너뜀 (지연 최소화)
           if (isProduction) {

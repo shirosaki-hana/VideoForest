@@ -275,7 +275,7 @@ export async function refreshMediaLibraryWithProgress(
     }
   }
 
-  logger.success(`Media library refresh completed! Total: ${allMediaFiles.length} files`);
+  logger.debug(`Media library refresh completed! Total: ${allMediaFiles.length} files`);
 
   return {
     total: allMediaFiles.length,

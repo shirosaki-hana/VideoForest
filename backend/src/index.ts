@@ -6,7 +6,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import staticFiles from '@fastify/static';
 import apiRoutes from './api/index.js';
-import { HardwareAccelerationDetector } from './infrastructure/index.js';
+import { HardwareAccelerationDetector, FFmpegTranscoder } from './infrastructure/index.js';
 import { logger, detectFFmpeg, detectFFprobe } from './utils/index.js';
 import { env, fastifyConfig, helmetConfig, rateLimitConfig, corsConfig, staticFilesConfig } from './config/index.js';
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
@@ -50,6 +50,7 @@ async function gracefulShutdown(fastify: Awaited<ReturnType<typeof createFastify
   logger.warn(`Received ${signal}: shutting down server...`);
 
   try {
+    FFmpegTranscoder.killAllProcesses(); // 활성 FFmpeg 프로세스 종료 (고아 프로세스 방지)
     await fastify.close(); // Fastify 서버 종료
     await disconnectDatabase(); // 데이터베이스 연결 해제
     logger.success('Server closed successfully');

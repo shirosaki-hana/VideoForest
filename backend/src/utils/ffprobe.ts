@@ -37,7 +37,7 @@ export async function detectFFprobe(): Promise<FFprobeInfo> {
     return cachedFFprobeInfo;
   }
 
-  logger.debug('Detecting FFprobe installation...');
+  logger.info('Detecting FFprobe installation...');
 
   // 1. 시스템 FFprobe 확인
   const systemFFprobe = await checkSystemFFprobe();
