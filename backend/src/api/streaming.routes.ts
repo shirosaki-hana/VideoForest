@@ -2,7 +2,7 @@ import { type FastifyPluginAsync } from 'fastify';
 import { requireAuth } from '../middleware/auth.js';
 import { getMasterPlaylistPath, getQualityPlaylistPath, getSegment } from '../services/index.js';
 import fs from 'fs/promises';
-import { existsSync } from 'fs';
+import { existsSync, createReadStream } from 'fs';
 import { logger } from '../utils/index.js';
 //------------------------------------------------------------------------------//
 // JIT 트랜스코딩 + 영구 캐싱 API
@@ -119,7 +119,7 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
       const { mediaId, quality, segmentName } = request.params;
 
       // 세그먼트 파일명 검증 (보안)
-      if (!/^segment_\d{3}\.ts$/.test(segmentName)) {
+      if (!/^segment_\d+\.ts$/.test(segmentName)) {
         return reply.code(400).send({ error: 'Invalid segment name' });
       }
 
@@ -139,7 +139,7 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
         }
 
         // 세그먼트 파일 스트림으로 전송
-        const stream = (await import('fs')).createReadStream(segmentPath);
+        const stream = createReadStream(segmentPath);
 
         return reply
           .code(200)

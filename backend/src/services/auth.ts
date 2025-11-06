@@ -9,6 +9,10 @@ import { LoginRequestSchema, SetupPasswordRequestSchema } from '@videoforest/typ
 //------------------------------------------------------------------------------//
 const SESSION_TTL_MS = ms(env.SESSION_TTL);
 
+// 세션 토큰 메모리 캐시: token -> expiresAt(ms)
+// 단일 사용자 VOD 특성상 메모리 캐시만으로도 큰 이점이 있음
+const sessionCache = new Map<string, number>();
+
 /**
  * 안전한 세션 토큰 생성 (96자 hex 문자열)
  */
@@ -75,6 +79,7 @@ export async function login(body: unknown): Promise<string> {
  */
 export async function logoutByToken(token: string): Promise<void> {
   await database.session.deleteMany({ where: { token } });
+  sessionCache.delete(token);
 }
 
 /**
@@ -87,18 +92,29 @@ export async function authenticateByToken(token?: string | null): Promise<boolea
     return false;
   }
 
+  const now = Date.now();
+  const cachedExpiry = sessionCache.get(token);
+  if (cachedExpiry) {
+    if (cachedExpiry > now) {
+      return true;
+    }
+    // 캐시 만료
+    sessionCache.delete(token);
+  }
+
   const session = await database.session.findUnique({ where: { token } });
   if (!session) {
     return false;
   }
 
-  // TTL 만료 확인
-  const expiresAt = new Date(session.createdAt.getTime() + session.ttl);
-  if (expiresAt.getTime() <= Date.now()) {
+  const expiresAtMs = session.createdAt.getTime() + session.ttl;
+  if (expiresAtMs <= now) {
     await database.session.delete({ where: { token } }).catch(() => undefined);
     return false;
   }
 
+  // 유효한 세션을 캐시 (만료 시각까지만)
+  sessionCache.set(token, expiresAtMs);
   return true;
 }
 

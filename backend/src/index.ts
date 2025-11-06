@@ -6,6 +6,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import staticFiles from '@fastify/static';
 import apiRoutes from './api/index.js';
+import { HardwareAccelerationDetector } from './infrastructure/index.js';
 import { logger, detectFFmpeg, detectFFprobe } from './utils/index.js';
 import { env, fastifyConfig, helmetConfig, rateLimitConfig, corsConfig, staticFilesConfig } from './config/index.js';
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
@@ -23,27 +24,23 @@ async function createFastifyApp() {
   await fastify.register(cookie);
   await fastify.register(apiRoutes, { prefix: '/api' }); // API 라우트
   await fastify.register(staticFiles, staticFilesConfig); // 정적 파일 서빙
-
-  // SPA fallback 및 404 핸들러
-  fastify.setNotFoundHandler(notFoundHandler);
-
-  // 전역 에러 핸들러
-  fastify.setErrorHandler(errorHandler);
+  
+  fastify.setNotFoundHandler(notFoundHandler); // SPA fallback 및 404 핸들러
+  fastify.setErrorHandler(errorHandler); // 전역 에러 핸들러
 
   return fastify;
 }
 
 // 서버 시작 함수
-async function startServer(port: number) {
+async function startServer(host: string, port: number) {
   logger.info(`Starting server... [Environment: ${env.NODE_ENV}]`);
-
   const fastify = await createFastifyApp();
   await checkDatabaseConnection();
   await detectFFmpeg();
   await detectFFprobe();
-  await fastify.listen({ port, host: env.HOST });
-
-  logger.success(`Server is running on http://${env.HOST}:${port}`);
+  await HardwareAccelerationDetector.detect();
+  await fastify.listen({ port, host: host });
+  logger.success(`Server is running on http://${host}:${port}`);
 
   return fastify;
 }
@@ -66,7 +63,7 @@ async function gracefulShutdown(fastify: Awaited<ReturnType<typeof createFastify
 // 메인 엔트리 포인트
 async function main() {
   try {
-    const fastify = await startServer(env.PORT);
+    const fastify = await startServer(env.HOST, env.PORT);
 
     // 시그널 핸들러 등록
     process.on('SIGINT', () => {

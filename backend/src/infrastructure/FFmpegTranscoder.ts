@@ -3,6 +3,7 @@ import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import path from 'path';
 import { logger, getFFmpegPath } from '../utils/index.js';
+import { isProduction } from '../config/index.js';
 import {
   EncoderOptions,
   SegmentUtils,
@@ -160,13 +161,18 @@ export class FFmpegTranscoder {
           // 성공 - 세그먼트 검증
           logger.success(`Segment ${segmentInfo.segmentNumber} transcoded successfully ` + `(${profile.name}, ${encoderName})`);
 
-          // 세그먼트 품질 검증 (비동기, 에러 무시)
+          // 프로덕션에서는 검증을 완전히 건너뜀 (지연 최소화)
+          if (isProduction) {
+            resolve(true);
+            return;
+          }
+
+          // 개발 환경에서는 검증 수행 (디버깅 도움)
           try {
             const validator = new SegmentValidator();
             const validation = await validator.validate(outputPath);
             validator.logResult(segmentInfo.segmentNumber, segmentInfo.duration, validation);
 
-            // 검증 실패 시에도 일단 true 반환 (경고만)
             if (!validation.isValid) {
               logger.warn(`Segment ${segmentInfo.segmentNumber} validation failed but continuing...`);
             }
