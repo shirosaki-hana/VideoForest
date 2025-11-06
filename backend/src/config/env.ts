@@ -47,6 +47,19 @@ const envSchema = z.object({
     .string()
     .default('0')
     .transform(v => v === '1' || v.toLowerCase() === 'true'),
+  // 트랜스코딩 하드웨어 선택: Auto | NVENC | QSV | CPU (대소문자 무시)
+  VIDEOFOREST_ENCODER: z
+    .string()
+    .default('Auto')
+    .transform(v => {
+      const norm = v.trim().toLowerCase();
+      if (norm === 'auto') return 'auto' as const;
+      if (norm === 'nvenc') return 'nvenc' as const;
+      if (norm === 'qsv') return 'qsv' as const;
+      if (norm === 'cpu') return 'cpu' as const;
+      // 알 수 없는 값은 Auto로 강제
+      return 'auto' as const;
+    }),
 });
 
 // 출력

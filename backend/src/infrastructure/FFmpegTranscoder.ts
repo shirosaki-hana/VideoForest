@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import path from 'path';
 import { logger, getFFmpegPath } from '../utils/index.js';
-import { isProduction } from '../config/index.js';
+import { isProduction, env } from '../config/index.js';
 import {
   EncoderOptions,
   SegmentUtils,
@@ -32,10 +32,12 @@ export class FFmpegTranscoder {
   private ffmpegPath: string;
   private speedMode: boolean;
   private preferredEncoder: VideoEncoderType | null = null;
+  private hardwareMode: 'auto' | 'nvenc' | 'qsv' | 'cpu';
 
   constructor(speedMode: boolean = false) {
     this.ffmpegPath = getFFmpegPath();
     this.speedMode = speedMode;
+    this.hardwareMode = env.VIDEOFOREST_ENCODER;
   }
 
   /**
@@ -46,6 +48,22 @@ export class FFmpegTranscoder {
       return this.preferredEncoder;
     }
 
+    // 수동 모드인 경우, 감지 없이 지정된 하드웨어를 강제 사용
+    if (this.hardwareMode !== 'auto') {
+      if (this.hardwareMode === 'nvenc') {
+        this.preferredEncoder = 'h264_nvenc';
+        logger.info('Hardware encoder forced by env: NVENC');
+      } else if (this.hardwareMode === 'qsv') {
+        this.preferredEncoder = 'h264_qsv';
+        logger.info('Hardware encoder forced by env: QSV');
+      } else {
+        this.preferredEncoder = 'libx264';
+        logger.info('Hardware encoder forced by env: CPU (libx264)');
+      }
+      return this.preferredEncoder;
+    }
+
+    // Auto 모드: 감지 결과를 사용
     const detection = await HardwareAccelerationDetector.detect();
     this.preferredEncoder = detection.preferred;
 
@@ -96,25 +114,28 @@ export class FFmpegTranscoder {
       return true;
     }
 
-    // GPU 인코딩 실패 시 fallback 체인: NVENC -> QSV -> CPU
-    if (preferredEncoder === 'h264_nvenc') {
-      logger.warn(`NVENC encoding failed for segment ${segmentInfo.segmentNumber}, trying QSV...`);
-      
-      // QSV 시도
-      const qsvSuccess = await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'h264_qsv');
-      if (qsvSuccess) {
-        return true;
+    // Auto 모드에서만 fallback 체인을 수행
+    if (this.hardwareMode === 'auto') {
+      // GPU 인코딩 실패 시 fallback 체인: NVENC -> QSV -> CPU
+      if (preferredEncoder === 'h264_nvenc') {
+        logger.warn(`NVENC encoding failed for segment ${segmentInfo.segmentNumber}, trying QSV...`);
+        
+        // QSV 시도
+        const qsvSuccess = await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'h264_qsv');
+        if (qsvSuccess) {
+          return true;
+        }
+        
+        // QSV도 실패하면 CPU로 최종 폴백
+        logger.warn(`QSV encoding also failed for segment ${segmentInfo.segmentNumber}, falling back to CPU...`);
+        return await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'libx264');
       }
-      
-      // QSV도 실패하면 CPU로 최종 폴백
-      logger.warn(`QSV encoding also failed for segment ${segmentInfo.segmentNumber}, falling back to CPU...`);
-      return await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'libx264');
-    }
 
-    // QSV가 preferred인 경우 (NVENC 없음)
-    if (preferredEncoder === 'h264_qsv') {
-      logger.warn(`QSV encoding failed for segment ${segmentInfo.segmentNumber}, falling back to CPU...`);
-      return await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'libx264');
+      // QSV가 preferred인 경우 (NVENC 없음)
+      if (preferredEncoder === 'h264_qsv') {
+        logger.warn(`QSV encoding failed for segment ${segmentInfo.segmentNumber}, falling back to CPU...`);
+        return await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'libx264');
+      }
     }
 
     return false;

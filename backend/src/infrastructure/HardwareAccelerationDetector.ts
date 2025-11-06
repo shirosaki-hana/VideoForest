@@ -60,7 +60,7 @@ export class HardwareAccelerationDetector {
       result.available.unshift('h264_nvenc'); // 맨 앞에 추가 (최우선)
       result.preferred = 'h264_nvenc';
       result.nvencAvailable = true;
-      logger.debug('✓ NVENC (NVIDIA GPU) available - will be used for encoding');
+      logger.debug('✓ NVENC (NVIDIA GPU) available');
     } else {
       logger.debug('✗ NVENC not available');
     }
@@ -74,9 +74,9 @@ export class HardwareAccelerationDetector {
       // NVENC이 없으면 QSV를 preferred로
       if (!nvencAvailable) {
         result.preferred = 'h264_qsv';
-        logger.debug('✓ QSV (Intel GPU) available - will be used for encoding');
+        logger.debug('✓ QSV (Intel GPU) available');
       } else {
-        logger.debug('✓ QSV (Intel GPU) available - secondary option');
+        logger.debug('✓ QSV (Intel GPU) available');
       }
     } else {
       logger.debug('✗ QSV not available');
