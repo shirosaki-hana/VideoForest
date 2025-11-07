@@ -1,51 +1,38 @@
-import { AppBar as MuiAppBar, Toolbar, Typography, IconButton, Box } from '@mui/material';
-import { Settings as SettingsIcon, Logout as LogoutIcon } from '@mui/icons-material';
+import { AppBar as MuiAppBar, Toolbar, Typography, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { Menu as MenuIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { useSettingsStore } from '../stores/settingsStore';
-import { useAuthStore } from '../stores/authStore';
+import { useSidebarStore } from '../stores/sidebarStore';
 
 export default function AppBar() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { openSettings } = useSettingsStore();
-  const { logout, isLoading } = useAuthStore();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/');
-    } catch {
-      // 에러는 스토어에서 처리
-    }
-  };
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { toggleSidebar } = useSidebarStore();
 
   return (
     <MuiAppBar
       position='sticky'
       sx={theme => ({
         top: 0,
-        bgcolor: theme.palette.mode === 'light' ? 'rgba(255,255,255,0.6)' : 'rgba(2,6,23,0.55)',
+        bgcolor: theme.palette.mode === 'light' ? 'rgba(255,255,255,0.7)' : 'rgba(2,6,23,0.7)',
         color: 'text.primary',
         borderBottom: '1px solid',
         borderColor: 'divider',
-        backdropFilter: 'saturate(150%) blur(10px)',
+        backdropFilter: 'saturate(150%) blur(12px)',
         boxShadow: 'none',
+        zIndex: theme.zIndex.drawer + 1,
       })}
     >
-      <Toolbar>
-        <Typography variant='h6' component='div' sx={{ flexGrow: 1, fontWeight: 600 }}>
+      <Toolbar variant='dense' sx={{ minHeight: 48 }}>
+        {isMobile && (
+          <IconButton color='inherit' edge='start' onClick={toggleSidebar} sx={{ mr: 2 }} aria-label='menu'>
+            <MenuIcon />
+          </IconButton>
+        )}
+
+        <Typography variant='h6' component='div' sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
           {t('common.appName')}
         </Typography>
-
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <IconButton color='inherit' onClick={openSettings} aria-label={t('settings.title')}>
-            <SettingsIcon />
-          </IconButton>
-          <IconButton color='inherit' onClick={handleLogout} disabled={isLoading} aria-label={t('auth.logout')}>
-            <LogoutIcon />
-          </IconButton>
-        </Box>
       </Toolbar>
     </MuiAppBar>
   );

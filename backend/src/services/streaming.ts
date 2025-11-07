@@ -457,4 +457,3 @@ export function getMetadata(mediaId: string): MediaMetadata | undefined {
 export function getAllMetadata(): MediaMetadata[] {
   return streamingService.getAllMetadata();
 }
-
