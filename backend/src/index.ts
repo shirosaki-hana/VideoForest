@@ -24,7 +24,7 @@ async function createFastifyApp() {
   await fastify.register(cookie);
   await fastify.register(apiRoutes, { prefix: '/api' }); // API 라우트
   await fastify.register(staticFiles, staticFilesConfig); // 정적 파일 서빙
-  
+
   fastify.setNotFoundHandler(notFoundHandler); // SPA fallback 및 404 핸들러
   fastify.setErrorHandler(errorHandler); // 전역 에러 핸들러
 
