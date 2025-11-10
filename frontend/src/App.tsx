@@ -37,7 +37,7 @@ function AuthRouter() {
       {/* 비밀번호가 설정되지 않은 경우 */}
       {!isSetup && (
         <>
-          <Route element={<Layout showAppBar={false} />}>
+          <Route element={<Layout />}>
             <Route path='/' element={<SetupPasswordPage />} />
           </Route>
           <Route path='*' element={<Navigate to='/' replace />} />
@@ -47,7 +47,7 @@ function AuthRouter() {
       {/* 비밀번호는 설정되었지만 로그인하지 않은 경우 */}
       {isSetup && !isAuthenticated && (
         <>
-          <Route element={<Layout showAppBar={false} />}>
+          <Route element={<Layout />}>
             <Route path='/' element={<LoginPage />} />
           </Route>
           <Route path='*' element={<Navigate to='/' replace />} />
@@ -57,7 +57,7 @@ function AuthRouter() {
       {/* 로그인된 경우 */}
       {isSetup && isAuthenticated && (
         <>
-          <Route element={<Layout showAppBar={true} />}>
+          <Route element={<Layout />}>
             <Route path='/media' element={<MediaListPage />} />
             <Route path='/player/:mediaId' element={<PlayerPage />} />
             <Route path='/' element={<Navigate to='/media' replace />} />
