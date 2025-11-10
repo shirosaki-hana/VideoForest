@@ -1,15 +1,15 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, useTheme, useMediaQuery, Container, Paper, IconButton, Typography } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { Box, useTheme, useMediaQuery, Container, Paper } from '@mui/material';
 import VideoPlayer, { type PlayerError } from '../components/VideoPlayer';
 import PlayerLoadingState from '../components/Player/PlayerLoadingState';
+import PlayerHeader from '../components/Player/PlayerHeader';
 import PlayerControls from '../components/Player/PlayerControls';
 import MediaInfo from '../components/Player/MediaInfo';
 import Playlist from '../components/Player/Playlist';
 import { getMediaInfo, getHLSPlaylistUrl, waitForPlaylist } from '../api/streaming';
 import { useMediaStore } from '../stores/mediaStore';
-import { useSidebarStore } from '../stores/sidebarStore';
+import { useSettingsStore } from '../stores/settingsStore';
 import { getNextFile, getPreviousFile, getSiblingFiles } from '../utils/mediaTree';
 import type { MediaInfoResponse, MediaTreeNode } from '@videoforest/types';
 
@@ -25,13 +25,9 @@ export default function PlayerPage() {
   const [error, setError] = useState<string | null>(null);
   const [playlistUrl, setPlaylistUrl] = useState<string>('');
 
-  // 컨트롤 표시/숨김 상태
-  const [showControls, setShowControls] = useState(true);
-  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // 미디어 트리와 자동재생 설정
   const { mediaTree } = useMediaStore();
-  const { autoPlayNext, setAutoPlayNext } = useSidebarStore();
+  const { autoPlayNext, setAutoPlayNext } = useSettingsStore();
 
   // 재생 목록 정보
   const [playlist, setPlaylist] = useState<MediaTreeNode[]>([]);
@@ -141,28 +137,8 @@ export default function PlayerPage() {
     }
   };
 
-  // 마우스 움직임 감지 및 자동 숨김
-  const handleMouseMove = useCallback(() => {
-    setShowControls(true);
-
-    // 기존 타이머 취소
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-    }
-
-    // 3초 후 컨트롤 숨김
-    hideTimeoutRef.current = setTimeout(() => {
-      setShowControls(false);
-    }, 3000);
-  }, []);
-
-  // 마우스가 상단 영역에 있으면 컨트롤 표시
-  const handleMouseEnter = () => {
-    setShowControls(true);
-  };
-
   return (
-    <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: 'background.default' }} onMouseMove={handleMouseMove}>
+    <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* 로딩/에러 상태 */}
       <PlayerLoadingState
         loading={loading}
@@ -175,59 +151,9 @@ export default function PlayerPage() {
       {/* 플레이어 및 컨텐츠 */}
       {!loading && !preparingStream && !error && playlistUrl && (
         <>
-          {/* 상단 헤더 오버레이 (마우스 호버 시 표시) */}
-          <Box
-            onMouseEnter={handleMouseEnter}
-            sx={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              zIndex: 1200,
-              bgcolor: theme.palette.mode === 'light' ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.85)',
-              backdropFilter: 'blur(10px)',
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              transform: showControls ? 'translateY(0)' : 'translateY(-100%)',
-              transition: theme.transitions.create(['transform', 'opacity'], {
-                duration: theme.transitions.duration.standard,
-              }),
-              opacity: showControls ? 1 : 0,
-              pointerEvents: showControls ? 'auto' : 'none',
-            }}
-          >
-            <Container maxWidth='xl' sx={{ py: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <IconButton onClick={handleBack} size='small'>
-                  <ArrowBackIcon />
-                </IconButton>
-                <Typography variant='h6' sx={{ fontWeight: 600, flex: 1 }}>
-                  {mediaInfo?.name || ''}
-                </Typography>
-              </Box>
-            </Container>
-          </Box>
-
-          {/* 비디오 플레이어 - 최대 너비 제한 */}
-          <Box
-            sx={{
-              width: '100%',
-              bgcolor: 'black',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <Box
-              sx={{
-                width: '100%',
-                maxWidth: '1920px', // 최대 1920px (Full HD)
-                position: 'relative',
-                aspectRatio: '16/9',
-              }}
-            >
-              <VideoPlayer src={playlistUrl} mediaId={mediaId!} onError={handlePlayerError} onEnded={handleVideoEnded} />
-            </Box>
+          {/* 비디오 플레이어 - 전체 너비, 여백 없음 */}
+          <Box sx={{ width: '100%', bgcolor: 'black', position: 'relative', aspectRatio: '16/9' }}>
+            <VideoPlayer src={playlistUrl} mediaId={mediaId!} onError={handlePlayerError} onEnded={handleVideoEnded} />
           </Box>
 
           {/* 컨텐츠 영역 */}
@@ -235,6 +161,9 @@ export default function PlayerPage() {
             <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 0 : 3 }}>
               {/* 왼쪽: 비디오 정보 및 컨트롤 */}
               <Box sx={{ flex: isMobile ? '1 1 auto' : '1 1 66.66%', minWidth: 0 }}>
+                {/* 헤더 및 제목 */}
+                <PlayerHeader mediaName={mediaInfo?.name || ''} onBack={handleBack} />
+
                 {/* 재생 컨트롤 */}
                 <Paper elevation={0} sx={{ p: 2, mb: isMobile ? 0 : 2, borderRadius: isMobile ? 0 : 1 }}>
                   <PlayerControls

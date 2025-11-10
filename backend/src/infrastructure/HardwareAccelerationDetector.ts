@@ -67,7 +67,7 @@ export class HardwareAccelerationDetector {
     if (qsvAvailable) {
       result.available.unshift('h264_qsv'); // NVENC 다음 우선순위
       result.qsvAvailable = true;
-
+      
       // NVENC이 없으면 QSV를 preferred로
       if (!nvencAvailable) {
         result.preferred = 'h264_qsv';

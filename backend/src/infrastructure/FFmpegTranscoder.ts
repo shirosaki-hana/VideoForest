@@ -33,7 +33,7 @@ export class FFmpegTranscoder {
   private speedMode: boolean;
   private preferredEncoder: VideoEncoderType | null = null;
   private hardwareMode: 'auto' | 'nvenc' | 'qsv' | 'cpu';
-
+  
   // 활성 FFmpeg 프로세스 추적 (고아 프로세스 방지)
   private static activeProcesses = new Set<ChildProcess>();
 
@@ -48,7 +48,7 @@ export class FFmpegTranscoder {
    */
   static killAllProcesses(): void {
     logger.info(`Killing ${this.activeProcesses.size} active FFmpeg processes...`);
-
+    
     for (const ffmpegProcess of this.activeProcesses) {
       try {
         ffmpegProcess.kill('SIGKILL'); // 강제 종료
@@ -56,7 +56,7 @@ export class FFmpegTranscoder {
         logger.warn(`Failed to kill FFmpeg process: ${error}`);
       }
     }
-
+    
     this.activeProcesses.clear();
     logger.success('All FFmpeg processes killed');
   }
@@ -140,13 +140,13 @@ export class FFmpegTranscoder {
       // GPU 인코딩 실패 시 fallback 체인: NVENC -> QSV -> CPU
       if (preferredEncoder === 'h264_nvenc') {
         logger.warn(`NVENC encoding failed for segment ${segmentInfo.segmentNumber}, trying QSV...`);
-
+        
         // QSV 시도
         const qsvSuccess = await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'h264_qsv');
         if (qsvSuccess) {
           return true;
         }
-
+        
         // QSV도 실패하면 CPU로 최종 폴백
         logger.warn(`QSV encoding also failed for segment ${segmentInfo.segmentNumber}, falling back to CPU...`);
         return await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'libx264');

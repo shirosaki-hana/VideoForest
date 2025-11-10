@@ -53,18 +53,10 @@ const envSchema = z.object({
     .default('Auto')
     .transform(v => {
       const norm = v.trim().toLowerCase();
-      if (norm === 'auto') {
-        return 'auto' as const;
-      }
-      if (norm === 'nvenc') {
-        return 'nvenc' as const;
-      }
-      if (norm === 'qsv') {
-        return 'qsv' as const;
-      }
-      if (norm === 'cpu') {
-        return 'cpu' as const;
-      }
+      if (norm === 'auto') return 'auto' as const;
+      if (norm === 'nvenc') return 'nvenc' as const;
+      if (norm === 'qsv') return 'qsv' as const;
+      if (norm === 'cpu') return 'cpu' as const;
       // 알 수 없는 값은 Auto로 강제
       return 'auto' as const;
     }),
