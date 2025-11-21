@@ -39,7 +39,13 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
         preload: 'auto',
         html5: {
           vhs: {
-            withCredentials: true, // 쿠키 인증 지원
+            withCredentials: true,
+            experimentalBufferBasedABR: true,
+            bandwidth: 1500000,
+            maxBufferLength: 360,
+            maxBufferSize: 100 * 1000 * 1000,
+            smoothQualityChange: true,
+            useNetworkInformationApi: false,
           },
           nativeAudioTracks: false,
           nativeVideoTracks: false,
