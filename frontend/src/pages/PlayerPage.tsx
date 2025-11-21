@@ -59,7 +59,7 @@ export default function PlayerPage() {
         setLoading(false);
 
         // 2. 스트리밍 준비 대기 (Playlist가 생성될 때까지)
-        const isReady = await waitForPlaylist(mediaId, 30000, signal); // 최대 30초 대기
+        const isReady = await waitForPlaylist(mediaId, 180000, signal); // 최대 180초 대기
         if (signal.aborted) return;
 
         if (isReady) {
