@@ -30,7 +30,7 @@ export function getHLSPlaylistUrl(mediaId: string): string {
 /**
  * Master Playlist가 준비될 때까지 폴링
  */
-export async function waitForPlaylist(mediaId: string, maxWaitMs: number = 30000, signal?: AbortSignal): Promise<boolean> {
+export async function waitForPlaylist(mediaId: string, maxWaitMs: number = 180000, signal?: AbortSignal): Promise<boolean> {
   const startTime = Date.now();
   const pollInterval = 1000; // 1초마다 확인
 
