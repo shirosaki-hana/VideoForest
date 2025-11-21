@@ -43,8 +43,8 @@ export class FFprobeAnalyzer {
           path.resolve(mediaPath),
         ],
         {
-          timeout: 60000, // 60초 타임아웃 (긴 영상 대응)
-          maxBuffer: 10 * 1024 * 1024, // 10MB 버퍼
+          timeout: 180000, // 180초 타임아웃
+          maxBuffer: 100 * 1024 * 1024, // 100MB 버퍼
         }
       );
 
