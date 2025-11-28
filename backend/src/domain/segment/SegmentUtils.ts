@@ -1,5 +1,6 @@
 import path from 'path';
 import type { SegmentInfo } from '../types.js';
+import { env } from '../../config/index.js';
 //------------------------------------------------------------------------------//
 
 /**
@@ -54,7 +55,7 @@ export class SegmentUtils {
   /**
    * 세그먼트 전체 경로 생성
    */
-  static getPath(mediaId: string, quality: string, segmentNumber: number, baseDir: string = 'temp/hls'): string {
+  static getPath(mediaId: string, quality: string, segmentNumber: number, baseDir: string = env.HLS_TEMP_DIR): string {
     const fileName = this.getFileName(segmentNumber);
     return path.join(baseDir, mediaId, quality, fileName);
   }
@@ -62,21 +63,21 @@ export class SegmentUtils {
   /**
    * 화질별 디렉터리 경로
    */
-  static getQualityDir(mediaId: string, quality: string, baseDir: string = 'temp/hls'): string {
+  static getQualityDir(mediaId: string, quality: string, baseDir: string = env.HLS_TEMP_DIR): string {
     return path.join(baseDir, mediaId, quality);
   }
 
   /**
    * 미디어 루트 디렉터리 경로
    */
-  static getMediaDir(mediaId: string, baseDir: string = 'temp/hls'): string {
+  static getMediaDir(mediaId: string, baseDir: string = env.HLS_TEMP_DIR): string {
     return path.join(baseDir, mediaId);
   }
 
   /**
    * 플레이리스트 경로
    */
-  static getPlaylistPath(mediaId: string, quality: string | 'master', baseDir: string = 'temp/hls'): string {
+  static getPlaylistPath(mediaId: string, quality: string | 'master', baseDir: string = env.HLS_TEMP_DIR): string {
     if (quality === 'master') {
       return path.join(baseDir, mediaId, 'master.m3u8');
     }

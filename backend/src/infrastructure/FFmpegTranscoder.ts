@@ -378,7 +378,7 @@ export class FFmpegTranscoder {
   /**
    * 세그먼트 캐시 확인
    */
-  static checkCache(mediaId: string, quality: string, segmentNumber: number, baseDir: string = 'temp/hls'): string | null {
+  static checkCache(mediaId: string, quality: string, segmentNumber: number, baseDir: string = env.HLS_TEMP_DIR): string | null {
     const segmentPath = SegmentUtils.getPath(mediaId, quality, segmentNumber, baseDir);
 
     if (existsSync(segmentPath)) {
@@ -393,7 +393,7 @@ export class FFmpegTranscoder {
   /**
    * 세그먼트 캐시 확인 (존재 여부만)
    */
-  static isCached(mediaId: string, quality: string, segmentNumber: number, baseDir: string = 'temp/hls'): boolean {
+  static isCached(mediaId: string, quality: string, segmentNumber: number, baseDir: string = env.HLS_TEMP_DIR): boolean {
     return this.checkCache(mediaId, quality, segmentNumber, baseDir) !== null;
   }
 }

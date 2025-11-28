@@ -33,7 +33,7 @@ const envSchema = z.object({
   DATABASE_URL_SQLITE: z.string().default('file:./prisma/videoforest.db'),
   SESSION_COOKIE: z.string().default('session'),
   SESSION_TTL: msStringSchema.default('24h'),
-  RATELIMIT_MAX: z.coerce.number().positive().default(10),
+  RATELIMIT_MAX: z.coerce.number().positive().default(100),
   RATELIMIT_WINDOWMS: msStringSchema.default('10s'),
   MEDIA_PATHS: z
     .string()
@@ -50,6 +50,8 @@ const envSchema = z.object({
     .string()
     .default('0')
     .transform(v => v === '1' || v.toLowerCase() === 'true'),
+  // HLS 세그먼트 저장 경로
+  HLS_TEMP_DIR: z.string().default('temp/hls'),
   // 트랜스코딩 하드웨어 선택: Auto | NVENC | QSV | CPU (대소문자 무시)
   VIDEOFOREST_ENCODER: z
     .string()
