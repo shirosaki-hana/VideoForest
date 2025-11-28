@@ -19,15 +19,15 @@
     "lint:fix": "pnpm -w exec eslint backend/ --fix",
     "format": "pnpm -w exec prettier --write backend/",
     "format:check": "pnpm -w exec prettier --check backend/",
-    "db:status": "prisma migrate status",
-    "db:dev": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status --config prisma/prisma.config.mjs",
+    "db:dev": "prisma migrate dev --config prisma/prisma.config.mjs",
+    "db:deploy": "prisma migrate deploy --config prisma/prisma.config.mjs",
     "db:generate": "prisma generate --no-hints",
-    "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset"
+    "db:studio": "prisma studio --config prisma/prisma.config.mjs",
+    "db:reset": "prisma migrate reset --config prisma/prisma.config.mjs"
   },
   "dependencies": {
-    "@fastify/compress": "^8.1.0",
+    "@fastify/compress": "^8.3.0",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.1.0",
     "@fastify/helmet": "^13.0.1",
@@ -36,20 +36,24 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@ffprobe-installer/ffprobe": "^2.1.2",
     "@node-rs/argon2": "^2.0.2",
-    "@prisma/client": "^6.19.0",
+    "@prisma/adapter-better-sqlite3": "^7.0.1",
+    "@prisma/client": "^7.0.1",
+    "@prisma/client-runtime-utils": "^7.0.1",
     "@videoforest/types": "workspace:*",
     "ansi-colors": "^4.1.3",
     "axios": "^1.13.2",
+    "better-sqlite3": "^12.4.6",
     "dotenv": "^17.2.2",
-    "esbuild": "^0.25.12",
-    "fastify": "^5.6.0",
+    "esbuild": "^0.27.0",
+    "fastify": "^5.6.2",
     "ms": "^2.1.3",
-    "prisma": "^6.19.0"
+    "prisma": "^7.0.1"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/ms": "^2.1.0",
-    "@types/node": "^24.10.0",
-    "nodemon": "^3.1.10",
+    "@types/node": "^24.10.1",
+    "nodemon": "^3.1.11",
     "tsx": "^4.20.5"
   }
 }

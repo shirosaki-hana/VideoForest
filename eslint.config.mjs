@@ -51,7 +51,7 @@ export default defineConfig([
   },
   // Backend JavaScript rules
   {
-    files: ['backend/**/*.js'],
+    files: ['backend/**/*.{js,mjs}'],
     languageOptions: {
       ecmaVersion: 2022,
       globals: { ...globals.node, ...globals.es2022 },

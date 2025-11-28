@@ -8,5 +8,6 @@ onlyBuiltDependencies:
   - '@ffprobe-installer/linux-x64'
   - '@prisma/client'
   - '@prisma/engines'
+  - better-sqlite3
   - esbuild
   - prisma

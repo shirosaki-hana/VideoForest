@@ -1,8 +1,11 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import ms from 'ms';
+import path from 'path';
+import { backendRoot, projectRoot } from '../utils/dir.js';
 //------------------------------------------------------------------------------//
-dotenv.config({ quiet: true });
+dotenv.config({ path: path.resolve(backendRoot, '.env'), quiet: true });
+dotenv.config({ path: path.resolve(projectRoot, '.env'), quiet: true });
 
 // ms 라이브러리 형식의 시간 문자열을 검증하는 Zod 스키마
 const msStringSchema = z

@@ -2,11 +2,16 @@ import { build } from 'esbuild';
 
 // 네이티브/런타임 종속성은 번들에서 제외해야 합니다.
 const externals = [
-  // Prisma & Engines
+  // Prisma & Engines (Prisma 7)
   '@prisma/client',
+  '@prisma/client-runtime-utils',
   '@prisma/engines',
+  '@prisma/adapter-better-sqlite3',
   'prisma',
   '.prisma/client',
+
+  // SQLite (Prisma 7 adapter)
+  'better-sqlite3',
 
   // Native
   '@node-rs/argon2',

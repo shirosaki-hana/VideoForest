@@ -1,7 +1,14 @@
+import path from 'node:path';
 import { PrismaClient } from '../database/prismaclient/index.js';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { logger } from '../utils/log.js';
-import { isDevelopment } from '../config/index.js';
+import { env, isDevelopment } from '../config/index.js';
+import { backendRoot } from '../utils/dir.js';
 //------------------------------------------------------------------------------//
+// 환경변수에서 DB 경로 추출 (file: 접두어 제거 후 절대 경로로 변환)
+const dbRelativePath = env.DATABASE_URL_SQLITE.replace(/^file:/, '');
+const dbPath = path.resolve(backendRoot, dbRelativePath);
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
@@ -13,8 +20,11 @@ function createPrismaClient(): PrismaClient {
     return globalForPrisma.prisma;
   }
 
-  // Create new PrismaClient instance
-  const prismaClient = new PrismaClient();
+  // Create adapter with URL
+  const adapter = new PrismaBetterSqlite3({ url: dbPath });
+
+  // Create new PrismaClient instance with adapter
+  const prismaClient = new PrismaClient({ adapter });
 
   // Cache the instance in development mode
   if (isDevelopment) {
