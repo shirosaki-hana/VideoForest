@@ -73,6 +73,15 @@ const envSchema = z.object({
       // 알 수 없는 값은 Auto로 강제
       return 'auto' as const;
     }),
+  // 프리페칭 활성화 여부: '1' | '0' | 'true' | 'false'
+  VIDEOFOREST_PREFETCH_ENABLED: z
+    .string()
+    .default('1')
+    .transform(v => v === '1' || v.toLowerCase() === 'true'),
+  // 프리페칭할 세그먼트 개수 (현재 세그먼트 이후 N개)
+  VIDEOFOREST_PREFETCH_COUNT: z.coerce.number().min(0).max(10).default(3),
+  // 최대 동시 프리페치 트랜스코딩 작업 수
+  VIDEOFOREST_MAX_CONCURRENT_PREFETCH: z.coerce.number().min(1).max(10).default(2),
 });
 
 // 출력

@@ -128,4 +128,5 @@ export interface TranscodingJob {
   segmentNumber: number;
   promise: Promise<string | null>; // 세그먼트 파일 경로 반환 (실패 시 null)
   startTime: number;
+  isPrefetch?: boolean; // 프리페치 작업 여부 (동시 작업 수 제한용)
 }

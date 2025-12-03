@@ -2,6 +2,7 @@ import { existsSync } from 'fs';
 import { mkdir, writeFile } from 'fs/promises';
 import { logger } from '../utils/index.js';
 import { database } from '../database/index.js';
+import { env } from '../config/index.js';
 import {
   MetadataCache,
   TranscodingJobTracker,
@@ -223,6 +224,8 @@ class StreamingService {
     // 3. 캐시 확인
     const cachedPath = FFmpegTranscoder.checkCache(mediaId, quality, segmentNumber);
     if (cachedPath) {
+      // 캐시 히트 시에도 다음 세그먼트 프리페칭 트리거
+      this.prefetchSegments(metadata, quality, segmentNumber, profile);
       return cachedPath;
     }
 
@@ -230,7 +233,10 @@ class StreamingService {
     const existingJob = this.transcodingJobs.get(mediaId, quality, segmentNumber);
     if (existingJob) {
       logger.debug(`Transcoding already in progress for ${mediaId}:${quality}:${segmentNumber}, waiting...`);
-      return await existingJob.promise;
+      const result = await existingJob.promise;
+      // 기존 작업 완료 후 프리페칭 트리거
+      this.prefetchSegments(metadata, quality, segmentNumber, profile);
+      return result;
     }
 
     // 새로운 트랜스코딩 작업 시작
@@ -247,7 +253,10 @@ class StreamingService {
     this.transcodingJobs.register(job);
 
     try {
-      return await promise;
+      const result = await promise;
+      // 트랜스코딩 완료 후 다음 세그먼트 프리페칭 트리거
+      this.prefetchSegments(metadata, quality, segmentNumber, profile);
+      return result;
     } finally {
       // 작업 완료 후 제거
       this.transcodingJobs.complete(mediaId, quality, segmentNumber);
@@ -298,6 +307,88 @@ class StreamingService {
     }
 
     return outputPath;
+  }
+
+  /**
+   * 프리페칭 수행 (백그라운드, Fire-and-Forget)
+   *
+   * 요청된 세그먼트 이후 N개의 세그먼트를 미리 트랜스코딩
+   * - 동시 프리페치 작업 수 제한
+   * - 이미 캐시된 세그먼트는 스킵
+   * - 이미 트랜스코딩 중인 세그먼트는 스킵
+   */
+  private prefetchSegments(
+    metadata: MediaMetadata,
+    quality: string,
+    currentSegmentNumber: number,
+    profile: QualityProfile
+  ): void {
+    // 프리페칭 비활성화 체크
+    if (!env.VIDEOFOREST_PREFETCH_ENABLED) {
+      return;
+    }
+
+    const prefetchCount = env.VIDEOFOREST_PREFETCH_COUNT;
+    const maxConcurrentPrefetch = env.VIDEOFOREST_MAX_CONCURRENT_PREFETCH;
+    const maxSegment = metadata.totalSegments - 1;
+
+    // 현재 프리페치 작업 수 체크
+    const activePrefetchCount = this.transcodingJobs.getPrefetchCount();
+    if (activePrefetchCount >= maxConcurrentPrefetch) {
+      logger.debug?.(`Prefetch limit reached (${activePrefetchCount}/${maxConcurrentPrefetch}), skipping`);
+      return;
+    }
+
+    // 남은 슬롯 수 계산
+    const availableSlots = maxConcurrentPrefetch - activePrefetchCount;
+    const segmentsToPrefetch = Math.min(prefetchCount, availableSlots);
+
+    let prefetchedCount = 0;
+
+    for (let i = 1; i <= prefetchCount && prefetchedCount < segmentsToPrefetch; i++) {
+      const nextSegmentNumber = currentSegmentNumber + i;
+
+      // 범위 초과 체크
+      if (nextSegmentNumber > maxSegment) {
+        break;
+      }
+
+      // 이미 캐시됨 → 스킵
+      if (FFmpegTranscoder.isCached(metadata.mediaId, quality, nextSegmentNumber)) {
+        continue;
+      }
+
+      // 이미 트랜스코딩 진행 중 → 스킵
+      if (this.transcodingJobs.get(metadata.mediaId, quality, nextSegmentNumber)) {
+        continue;
+      }
+
+      // 백그라운드로 트랜스코딩 시작 (await 없음!)
+      const promise = this.performJITTranscoding(metadata, quality, nextSegmentNumber, profile);
+
+      // 작업 등록 (중복 방지)
+      const job: TranscodingJob = {
+        mediaId: metadata.mediaId,
+        quality,
+        segmentNumber: nextSegmentNumber,
+        promise,
+        startTime: Date.now(),
+        isPrefetch: true,
+      };
+      this.transcodingJobs.register(job);
+
+      // 완료 시 정리 (fire-and-forget이지만 작업 추적은 정리)
+      promise.finally(() => {
+        this.transcodingJobs.complete(metadata.mediaId, quality, nextSegmentNumber);
+      });
+
+      prefetchedCount++;
+      logger.debug?.(`Prefetching segment ${nextSegmentNumber} for ${metadata.mediaId}/${quality}`);
+    }
+
+    if (prefetchedCount > 0) {
+      logger.debug(`Started prefetching ${prefetchedCount} segment(s) after segment ${currentSegmentNumber}`);
+    }
   }
 
   /**

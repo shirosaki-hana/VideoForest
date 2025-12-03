@@ -47,15 +47,25 @@ export class TranscodingJobTracker {
    */
   getStats() {
     const jobs = Array.from(this.jobs.values());
+    const prefetchJobs = jobs.filter(job => job.isPrefetch);
     return {
       activeJobs: jobs.length,
+      activePrefetchJobs: prefetchJobs.length,
       jobs: jobs.map(job => ({
         mediaId: job.mediaId,
         quality: job.quality,
         segmentNumber: job.segmentNumber,
         duration: Date.now() - job.startTime,
+        isPrefetch: job.isPrefetch ?? false,
       })),
     };
+  }
+
+  /**
+   * 진행 중인 프리페치 작업 수
+   */
+  getPrefetchCount(): number {
+    return Array.from(this.jobs.values()).filter(job => job.isPrefetch).length;
   }
 
   /**
