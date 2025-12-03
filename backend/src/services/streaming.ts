@@ -61,21 +61,21 @@ class StreamingService {
   async initializeStreaming(mediaId: string): Promise<string | null> {
     // 1. 캐시 확인
     if (this.metadataCache.has(mediaId)) {
-      logger.debug(`Using cached metadata for ${mediaId}`);
+      logger.debug('streaming', `Using cached metadata for ${mediaId}`);
       return SegmentUtils.getPlaylistPath(mediaId, 'master');
     }
 
-    logger.debug(`Initializing streaming for ${mediaId}`);
+    logger.debug('streaming', `Initializing streaming for ${mediaId}`);
 
     // 2. 미디어 정보 조회
     const mediaData = await this.getMediaInfo(mediaId);
     if (!mediaData) {
-      logger.error(`Media not found: ${mediaId}`);
+      logger.error('streaming', `Media not found: ${mediaId}`);
       return null;
     }
 
     if (!existsSync(mediaData.path)) {
-      logger.error(`Media file not found: ${mediaData.path}`);
+      logger.error('streaming', `Media file not found: ${mediaData.path}`);
       return null;
     }
 
@@ -83,16 +83,16 @@ class StreamingService {
 
     // Duration 체크
     if (!info.duration || info.duration <= 0) {
-      logger.error(`Invalid duration for media ${mediaId}: ${info.duration}`);
+      logger.error('streaming', `Invalid duration for media ${mediaId}: ${info.duration}`);
       return null;
     }
 
     // 3. 미디어 분석
-    logger.debug(`Analyzing media ${mediaId}...`);
+    logger.debug('streaming', `Analyzing media ${mediaId}...`);
     const analysis = MediaAnalyzer.analyze(info);
 
     if (analysis.totalSegments === 0) {
-      logger.error(`Cannot calculate segments for media ${mediaId}`);
+      logger.error('streaming', `Cannot calculate segments for media ${mediaId}`);
       return null;
     }
 
@@ -116,19 +116,19 @@ class StreamingService {
 
       accurateSegments = segmentCalculation.segments;
 
-      logger.debug(
+      logger.debug('streaming', 
         `Keyframe-based segmentation: ${accurateSegments.length} segments ` +
           `(avg: ${segmentCalculation.averageSegmentDuration.toFixed(2)}s)`
       );
     } catch (error) {
-      logger.warn(`Keyframe analysis failed, using approximate segmentation: ${error}`);
+      logger.warn('streaming', `Keyframe analysis failed, using approximate segmentation: ${error}`);
       accurateSegments = undefined;
       keyframeAnalysis = undefined;
     }
 
     // 5. ABR 프로파일 생성
     const availableProfiles = QualityProfileSelector.generateABR(info);
-    logger.debug(`Available qualities: ${availableProfiles.map(p => p.name).join(', ')}`);
+    logger.debug('streaming', `Available qualities: ${availableProfiles.map(p => p.name).join(', ')}`);
 
     // 6. 출력 디렉터리 생성
     const mediaDir = SegmentUtils.getMediaDir(mediaId);
@@ -139,9 +139,9 @@ class StreamingService {
     const masterPlaylistContent = PlaylistGenerator.generateMaster(availableProfiles);
     try {
       await writeFile(masterPlaylistPath, masterPlaylistContent);
-      logger.debug(`Master playlist created: ${masterPlaylistPath}`);
+      logger.debug('streaming', `Master playlist created: ${masterPlaylistPath}`);
     } catch (error) {
-      logger.error(`Failed to write master playlist: ${error}`);
+      logger.error('streaming', `Failed to write master playlist: ${error}`);
       return null;
     }
 
@@ -155,9 +155,9 @@ class StreamingService {
 
       try {
         await writeFile(qualityPlaylistPath, qualityPlaylistContent);
-        logger.debug(`Quality playlist created: ${profile.name}`);
+        logger.debug('streaming', `Quality playlist created: ${profile.name}`);
       } catch (error) {
-        logger.error(`Failed to write quality playlist for ${profile.name}: ${error}`);
+        logger.error('streaming', `Failed to write quality playlist for ${profile.name}: ${error}`);
         return null;
       }
     }
@@ -177,7 +177,7 @@ class StreamingService {
 
     this.metadataCache.set(mediaId, metadata);
 
-    logger.debug(`Streaming initialized for ${mediaId} ` + `(${metadata.totalSegments} segments, ${availableProfiles.length} qualities)`);
+    logger.debug('streaming', `Streaming initialized for ${mediaId} ` + `(${metadata.totalSegments} segments, ${availableProfiles.length} qualities)`);
 
     return masterPlaylistPath;
   }
@@ -189,14 +189,14 @@ class StreamingService {
     // 1. 메타데이터 확인
     let metadata = this.metadataCache.get(mediaId);
     if (!metadata) {
-      logger.debug(`Metadata not cached for ${mediaId}, initializing...`);
+      logger.debug('streaming', `Metadata not cached for ${mediaId}, initializing...`);
       const masterPath = await this.initializeStreaming(mediaId);
       if (!masterPath) {
         return null;
       }
       metadata = this.metadataCache.get(mediaId);
       if (!metadata) {
-        logger.error(`Failed to load metadata for ${mediaId}`);
+        logger.error('streaming', `Failed to load metadata for ${mediaId}`);
         return null;
       }
     }
@@ -204,20 +204,20 @@ class StreamingService {
     // 2. 세그먼트 번호 파싱
     const segmentNumber = SegmentUtils.parseNumber(segmentFileName);
     if (segmentNumber === null) {
-      logger.error(`Invalid segment filename: ${segmentFileName}`);
+      logger.error('streaming', `Invalid segment filename: ${segmentFileName}`);
       return null;
     }
 
     // 범위 체크
     if (segmentNumber < 0 || segmentNumber >= metadata.totalSegments) {
-      logger.error(`Segment ${segmentNumber} out of range (0-${metadata.totalSegments - 1})`);
+      logger.error('streaming', `Segment ${segmentNumber} out of range (0-${metadata.totalSegments - 1})`);
       return null;
     }
 
     // 화질 체크
     const profile = metadata.availableProfiles.find(p => p.name === quality);
     if (!profile) {
-      logger.error(`Quality ${quality} not available for ${mediaId}`);
+      logger.error('streaming', `Quality ${quality} not available for ${mediaId}`);
       return null;
     }
 
@@ -232,7 +232,7 @@ class StreamingService {
     // 4. JIT 트랜스코딩 (중복 요청 방지)
     const existingJob = this.transcodingJobs.get(mediaId, quality, segmentNumber);
     if (existingJob) {
-      logger.debug(`Transcoding already in progress for ${mediaId}:${quality}:${segmentNumber}, waiting...`);
+      logger.debug('streaming', `Transcoding already in progress for ${mediaId}:${quality}:${segmentNumber}, waiting...`);
       const result = await existingJob.promise;
       // 기존 작업 완료 후 프리페칭 트리거
       this.prefetchSegments(metadata, quality, segmentNumber, profile);
@@ -279,7 +279,7 @@ class StreamingService {
     if (accurateSegments && accurateSegments.length > 0) {
       segmentInfo = accurateSegments.find(s => s.segmentNumber === segmentNumber);
       if (!segmentInfo) {
-        logger.error(`Accurate segment ${segmentNumber} not found`);
+        logger.error('streaming', `Accurate segment ${segmentNumber} not found`);
         return null;
       }
     } else {
@@ -289,20 +289,20 @@ class StreamingService {
     // 출력 경로
     const outputPath = SegmentUtils.getPath(mediaId, quality, segmentNumber);
 
-    logger.debug(`Starting JIT transcoding: ${mediaId} / ${quality} / segment ${segmentNumber}`);
+    logger.debug('streaming', `Starting JIT transcoding: ${mediaId} / ${quality} / segment ${segmentNumber}`);
 
     // 트랜스코딩 실행
     const transcoder = new FFmpegTranscoder();
     const success = await transcoder.transcodeSegment(mediaPath, segmentInfo, profile, analysis, outputPath);
 
     if (!success) {
-      logger.error(`JIT transcoding failed for segment ${segmentNumber}`);
+      logger.error('streaming', `JIT transcoding failed for segment ${segmentNumber}`);
       return null;
     }
 
     // 생성된 파일 확인
     if (!existsSync(outputPath)) {
-      logger.error(`Transcoded segment file not found: ${outputPath}`);
+      logger.error('streaming', `Transcoded segment file not found: ${outputPath}`);
       return null;
     }
 
@@ -335,7 +335,7 @@ class StreamingService {
     // 현재 프리페치 작업 수 체크
     const activePrefetchCount = this.transcodingJobs.getPrefetchCount();
     if (activePrefetchCount >= maxConcurrentPrefetch) {
-      logger.debug?.(`Prefetch limit reached (${activePrefetchCount}/${maxConcurrentPrefetch}), skipping`);
+      logger.debug?.('streaming', `Prefetch limit reached (${activePrefetchCount}/${maxConcurrentPrefetch}), skipping`);
       return;
     }
 
@@ -383,11 +383,11 @@ class StreamingService {
       });
 
       prefetchedCount++;
-      logger.debug?.(`Prefetching segment ${nextSegmentNumber} for ${metadata.mediaId}/${quality}`);
+      logger.debug?.('streaming', `Prefetching segment ${nextSegmentNumber} for ${metadata.mediaId}/${quality}`);
     }
 
     if (prefetchedCount > 0) {
-      logger.debug(`Started prefetching ${prefetchedCount} segment(s) after segment ${currentSegmentNumber}`);
+      logger.debug('streaming', `Started prefetching ${prefetchedCount} segment(s) after segment ${currentSegmentNumber}`);
     }
   }
 
@@ -419,7 +419,7 @@ class StreamingService {
     // 화질 체크
     const hasQuality = metadata.availableProfiles.some(p => p.name === quality);
     if (!hasQuality) {
-      logger.error(`Quality ${quality} not available for ${mediaId}`);
+      logger.error('streaming', `Quality ${quality} not available for ${mediaId}`);
       return null;
     }
 
@@ -432,9 +432,9 @@ class StreamingService {
   clearMetadataCache(mediaId?: string): void {
     this.metadataCache.delete(mediaId);
     if (mediaId) {
-      logger.debug(`Cleared metadata cache for ${mediaId}`);
+      logger.debug('streaming', `Cleared metadata cache for ${mediaId}`);
     } else {
-      logger.debug('Cleared all metadata cache');
+      logger.debug('streaming', 'Cleared all metadata cache');
     }
   }
 

@@ -47,18 +47,18 @@ export class FFmpegTranscoder {
    * 모든 활성 FFmpeg 프로세스 종료 (graceful shutdown용)
    */
   static killAllProcesses(): void {
-    logger.info(`Killing ${this.activeProcesses.size} active FFmpeg processes...`);
+    logger.info('system',`Killing ${this.activeProcesses.size} active FFmpeg processes...`);
 
     for (const ffmpegProcess of this.activeProcesses) {
       try {
         ffmpegProcess.kill('SIGKILL'); // 강제 종료
       } catch (error) {
-        logger.warn(`Failed to kill FFmpeg process: ${error}`);
+        logger.warn('system', `Failed to kill FFmpeg process: ${error}`);
       }
     }
 
     this.activeProcesses.clear();
-    logger.success('All FFmpeg processes killed');
+    logger.success('system', 'All FFmpeg processes killed');
   }
 
   /**
@@ -73,13 +73,13 @@ export class FFmpegTranscoder {
     if (this.hardwareMode !== 'auto') {
       if (this.hardwareMode === 'nvenc') {
         this.preferredEncoder = 'h264_nvenc';
-        logger.debug('Hardware encoder forced by env: NVENC');
+        logger.debug('system', 'Hardware encoder forced by env: NVENC');
       } else if (this.hardwareMode === 'qsv') {
         this.preferredEncoder = 'h264_qsv';
-        logger.debug('Hardware encoder forced by env: QSV');
+        logger.debug('system', 'Hardware encoder forced by env: QSV');
       } else {
         this.preferredEncoder = 'libx264';
-        logger.debug('Hardware encoder forced by env: CPU (libx264)');
+        logger.debug('system', 'Hardware encoder forced by env: CPU (libx264)');
       }
       return this.preferredEncoder;
     }
@@ -118,7 +118,7 @@ export class FFmpegTranscoder {
     const endTime = isAccurate ? (segmentInfo as AccurateSegmentInfo).endTime : segmentInfo.startTime + segmentInfo.duration;
     const duration = endTime - segmentInfo.startTime;
 
-    logger.debug(
+    logger.debug('system',
       `JIT transcoding: segment ${segmentInfo.segmentNumber} ` +
         `(${segmentInfo.startTime.toFixed(3)}s ~ ${endTime.toFixed(3)}s) ` +
         `duration ${duration.toFixed(3)}s ` +
@@ -139,7 +139,7 @@ export class FFmpegTranscoder {
     if (this.hardwareMode === 'auto') {
       // GPU 인코딩 실패 시 fallback 체인: NVENC -> QSV -> CPU
       if (preferredEncoder === 'h264_nvenc') {
-        logger.warn(`NVENC encoding failed for segment ${segmentInfo.segmentNumber}, trying QSV...`);
+        logger.warn('system', `NVENC encoding failed for segment ${segmentInfo.segmentNumber}, trying QSV...`);
 
         // QSV 시도
         const qsvSuccess = await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'h264_qsv');
@@ -148,13 +148,13 @@ export class FFmpegTranscoder {
         }
 
         // QSV도 실패하면 CPU로 최종 폴백
-        logger.warn(`QSV encoding also failed for segment ${segmentInfo.segmentNumber}, falling back to CPU...`);
+        logger.warn('system', `QSV encoding also failed for segment ${segmentInfo.segmentNumber}, falling back to CPU...`);
         return await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'libx264');
       }
 
       // QSV가 preferred인 경우 (NVENC 없음)
       if (preferredEncoder === 'h264_qsv') {
-        logger.warn(`QSV encoding failed for segment ${segmentInfo.segmentNumber}, falling back to CPU...`);
+        logger.warn('system', `QSV encoding failed for segment ${segmentInfo.segmentNumber}, falling back to CPU...`);
         return await this.tryTranscode(mediaPath, segmentInfo, profile, analysis, outputPath, 'libx264');
       }
     }
@@ -179,7 +179,7 @@ export class FFmpegTranscoder {
     // 인코더 정보 로그
     const encoderName =
       encoderType === 'h264_nvenc' ? 'NVENC (NVIDIA GPU)' : encoderType === 'h264_qsv' ? 'QSV (Intel GPU)' : 'libx264 (CPU)';
-    logger.debug?.(`Using encoder: ${encoderName}`);
+    logger.debug?.('system', `Using encoder: ${encoderName}`);
 
     // FFmpeg 프로세스 실행 (동기적으로 완료 대기)
     return new Promise<boolean>(resolve => {
@@ -197,7 +197,7 @@ export class FFmpegTranscoder {
       });
 
       ffmpegProcess.on('error', error => {
-        logger.error(`FFmpeg process error: ${error.message}`);
+        logger.error('system', `FFmpeg process error: ${error.message}`);
         FFmpegTranscoder.activeProcesses.delete(ffmpegProcess);
         resolve(false);
       });
@@ -207,7 +207,7 @@ export class FFmpegTranscoder {
         FFmpegTranscoder.activeProcesses.delete(ffmpegProcess);
         if (code === 0) {
           // 성공 - 세그먼트 검증
-          logger.debug(`Segment ${segmentInfo.segmentNumber} transcoded successfully ` + `(${profile.name}, ${encoderName})`);
+          logger.debug('system', `Segment ${segmentInfo.segmentNumber} transcoded successfully ` + `(${profile.name}, ${encoderName})`);
 
           // 프로덕션에서는 검증을 완전히 건너뜀 (지연 최소화)
           if (isProduction) {
@@ -222,37 +222,37 @@ export class FFmpegTranscoder {
             validator.logResult(segmentInfo.segmentNumber, segmentInfo.duration, validation);
 
             if (!validation.isValid) {
-              logger.warn(`Segment ${segmentInfo.segmentNumber} validation failed but continuing...`);
+              logger.warn('system', `Segment ${segmentInfo.segmentNumber} validation failed but continuing...`);
             }
           } catch (error) {
-            logger.warn(`Segment validation error (non-fatal): ${error}`);
+            logger.warn('system', `Segment validation error (non-fatal): ${error}`);
           }
 
           resolve(true);
         } else {
           // 실패
-          logger.error(`Segment ${segmentInfo.segmentNumber} transcoding failed with ${encoderName} ` + `(exit code: ${code})`);
+          logger.error('system', `Segment ${segmentInfo.segmentNumber} transcoding failed with ${encoderName} ` + `(exit code: ${code})`);
 
           // GPU 인코딩 실패 시 유용한 에러 정보 출력
           if (encoderType === 'h264_nvenc') {
             if (stderr.includes('No NVENC capable devices found')) {
-              logger.error('NVENC error: No NVIDIA GPU found');
+              logger.error('system', 'NVENC error: No NVIDIA GPU found');
             } else if (stderr.includes('Cannot load')) {
-              logger.error('NVENC error: Driver or library issue');
+              logger.error('system', 'NVENC error: Driver or library issue');
             } else if (stderr.includes('InitializeEncoder failed')) {
-              logger.error('NVENC error: Encoder initialization failed');
+              logger.error('system', 'NVENC error: Encoder initialization failed');
             }
           } else if (encoderType === 'h264_qsv') {
             if (stderr.includes('No QSV device found') || stderr.includes('failed to initialize')) {
-              logger.error('QSV error: No Intel GPU found or not initialized');
+              logger.error('system', 'QSV error: No Intel GPU found or not initialized');
             } else if (stderr.includes('Cannot load')) {
-              logger.error('QSV error: Driver or library issue');
+              logger.error('system', 'QSV error: Driver or library issue');
             } else if (stderr.includes('InitializeEncoder failed')) {
-              logger.error('QSV error: Encoder initialization failed');
+              logger.error('system', 'QSV error: Encoder initialization failed');
             }
           }
 
-          logger.debug?.(`FFmpeg stderr:\n${stderr.slice(-1000)}`); // 마지막 1000자만
+          logger.debug?.('system', `FFmpeg stderr:\n${stderr.slice(-1000)}`); // 마지막 1000자만
           resolve(false);
         }
       });
@@ -382,11 +382,11 @@ export class FFmpegTranscoder {
     const segmentPath = SegmentUtils.getPath(mediaId, quality, segmentNumber, baseDir);
 
     if (existsSync(segmentPath)) {
-      logger.debug?.(`Cache hit: ${segmentPath}`);
+      logger.debug?.('streaming', `Cache hit: ${segmentPath}`);
       return segmentPath;
     }
 
-    logger.debug?.(`Cache miss: ${segmentPath}`);
+    logger.debug?.('streaming', `Cache miss: ${segmentPath}`);
     return null;
   }
 

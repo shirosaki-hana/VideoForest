@@ -8,7 +8,7 @@ import { isDevelopment } from '../config/index.js';
  * - 프로덕션 환경에서는 일반적인 에러 메시지만 반환
  */
 export async function errorHandler(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {
-  logger.error('Unhandled error:', error);
+  logger.error('system','Unhandled error:', error);
 
   const statusCode = error.statusCode || 500;
 

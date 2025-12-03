@@ -75,7 +75,7 @@ async function scanDirectoryStructure(dirPath: string): Promise<DirectoryStructu
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error(`Failed to scan directory ${dirPath}:`, errorMessage);
+    logger.error('media', `Failed to scan directory ${dirPath}:`, errorMessage);
   }
 
   return {
@@ -105,7 +105,7 @@ async function saveFolderStructure(structure: DirectoryStructure, parentId: stri
         parentId,
       },
     });
-    logger.debug(`Created folder: ${structure.name} (${structure.path})`);
+    logger.debug('media', `Created folder: ${structure.name} (${structure.path})`);
   } else if (folder.parentId !== parentId) {
     // parentId가 변경되었으면 업데이트
     folder = await database.mediaFolder.update({
@@ -133,7 +133,7 @@ export interface ScanProgressCallback {
 export async function refreshMediaLibraryWithProgress(
   onProgress?: ScanProgressCallback
 ): Promise<{ total: number; success: number; failed: number }> {
-  logger.debug('Starting media library refresh...');
+  logger.debug('media', 'Starting media library refresh...');
 
   // 환경 변수에서 미디어 경로 가져오기
   const mediaPaths = env.MEDIA_PATHS.map(p => {
@@ -141,7 +141,7 @@ export async function refreshMediaLibraryWithProgress(
     return path.isAbsolute(p) ? p : path.resolve(backendRoot, p);
   });
 
-  logger.debug(`Scanning directories: ${mediaPaths.join(', ')}`);
+  logger.debug('media', `Scanning directories: ${mediaPaths.join(', ')}`);
 
   // 모든 디렉터리 구조 스캔
   const structures: DirectoryStructure[] = [];
@@ -152,12 +152,12 @@ export async function refreshMediaLibraryWithProgress(
       structures.push(structure);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.warn(`Directory not accessible: ${dirPath} - ${errorMessage}`);
+      logger.warn('media', `Directory not accessible: ${dirPath} - ${errorMessage}`);
     }
   }
 
   // 디렉터리 구조를 DB에 저장
-  logger.debug('Saving directory structure to database...');
+  logger.debug('media', 'Saving directory structure to database...');
   for (const structure of structures) {
     await saveFolderStructure(structure, null);
   }
@@ -185,7 +185,7 @@ export async function refreshMediaLibraryWithProgress(
     await collectMediaFiles(structure);
   }
 
-  logger.debug(`Found ${allMediaFiles.length} media files`);
+  logger.debug('media', `Found ${allMediaFiles.length} media files`);
 
   // DB의 기존 미디어 목록 가져오기
   const existingMedia = await database.media.findMany();
@@ -194,7 +194,7 @@ export async function refreshMediaLibraryWithProgress(
   // 새로운 파일만 처리
   const mediaToProcess = allMediaFiles.filter(({ path }) => !existingPaths.has(path));
 
-  logger.debug(`Processing ${mediaToProcess.length} new media files...`);
+  logger.debug('media', `Processing ${mediaToProcess.length} new media files...`);
 
   // 각 파일의 메타데이터 추출 및 DB 저장
   let successCount = 0;
@@ -230,11 +230,11 @@ export async function refreshMediaLibraryWithProgress(
       });
 
       successCount++;
-      logger.debug(`[${successCount}/${mediaToProcess.length}] Added: ${filename}`);
+      logger.debug('media', `[${successCount}/${mediaToProcess.length}] Added: ${filename}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       failedCount++;
-      logger.error(`Failed to process ${filePath}:`, errorMessage);
+      logger.error('media', `Failed to process ${filePath}:`, errorMessage);
     }
   }
 
@@ -243,10 +243,10 @@ export async function refreshMediaLibraryWithProgress(
   const filesToDelete = existingMedia.filter(m => !allMediaPathsSet.has(m.filePath));
 
   if (filesToDelete.length > 0) {
-    logger.debug(`Removing ${filesToDelete.length} deleted files from database...`);
+    logger.debug('media', `Removing ${filesToDelete.length} deleted files from database...`);
     for (const media of filesToDelete) {
       await database.media.delete({ where: { id: media.id } });
-      logger.debug(`Removed: ${media.name}`);
+      logger.debug('media', `Removed: ${media.name}`);
     }
   }
 
@@ -268,14 +268,14 @@ export async function refreshMediaLibraryWithProgress(
   const foldersToDelete = allFolders.filter(f => !validFolderPaths.has(f.path));
 
   if (foldersToDelete.length > 0) {
-    logger.debug(`Removing ${foldersToDelete.length} deleted folders from database...`);
+    logger.debug('media', `Removing ${foldersToDelete.length} deleted folders from database...`);
     for (const folder of foldersToDelete) {
       await database.mediaFolder.delete({ where: { id: folder.id } });
-      logger.debug(`Removed folder: ${folder.name}`);
+      logger.debug('media', `Removed folder: ${folder.name}`);
     }
   }
 
-  logger.debug(`Media library refresh completed! Total: ${allMediaFiles.length} files`);
+  logger.debug('media', `Media library refresh completed! Total: ${allMediaFiles.length} files`);
 
   return {
     total: allMediaFiles.length,

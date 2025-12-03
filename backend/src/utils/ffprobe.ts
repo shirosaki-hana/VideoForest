@@ -37,19 +37,19 @@ export async function detectFFprobe(): Promise<FFprobeInfo> {
     return cachedFFprobeInfo;
   }
 
-  logger.info('Detecting FFprobe installation...');
+  logger.info('system', 'Detecting FFprobe installation...');
 
   // 1. 시스템 FFprobe 확인
   const systemFFprobe = await checkSystemFFprobe();
   if (systemFFprobe) {
-    logger.info(`Using system FFprobe: ${systemFFprobe.path}`);
-    logger.debug(`  Version: ${systemFFprobe.version}`);
+    logger.info('system', `Using system FFprobe: ${systemFFprobe.path}`);
+    logger.debug('system', `  Version: ${systemFFprobe.version}`);
     cachedFFprobeInfo = systemFFprobe;
     return systemFFprobe;
   }
 
   // 2. Installer FFprobe 사용
-  logger.info(`Using bundled FFprobe: ${ffprobeInstaller.path}`);
+  logger.info('system', 'system', `Using bundled FFprobe: ${ffprobeInstaller.path}`);
 
   const installerInfo: FFprobeInfo = {
     path: ffprobeInstaller.path,
@@ -95,7 +95,7 @@ async function checkSystemFFprobe(): Promise<FFprobeInfo | null> {
       source: 'system',
     };
   } catch (error) {
-    logger.debug?.(`Failed to check system FFprobe: ${error}`);
+    logger.debug?.('system', `Failed to check system FFprobe: ${error}`);
     return null;
   }
 }
@@ -125,7 +125,7 @@ export function getFFprobePath(): string {
   }
 
   // 캐시되지 않은 경우 installer 경로 반환 (폴백)
-  logger.warn('FFprobe not detected yet, using installer fallback');
+  logger.warn('system', 'FFprobe not detected yet, using installer fallback');
   return ffprobeInstaller.path;
 }
 
@@ -295,7 +295,7 @@ export async function extractMediaMetadata(filePath: string): Promise<MediaMetad
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error(`Failed to extract metadata from ${filePath}:`, errorMessage);
+    logger.error('system', `Failed to extract metadata from ${filePath}:`, errorMessage);
 
     // 메타데이터 추출 실패 시 null 반환
     return {
@@ -388,7 +388,7 @@ export async function probeSegment(segmentPath: string): Promise<{
         startsWithKeyframe = !!firstPacket.flags?.includes('K');
       }
     } catch (err) {
-      logger.debug?.(`Packet scan failed for ${segmentPath}: ${err}`);
+      logger.debug?.('system', `Packet scan failed for ${segmentPath}: ${err}`);
     }
 
     return {
@@ -398,7 +398,7 @@ export async function probeSegment(segmentPath: string): Promise<{
       startsWithKeyframe,
     };
   } catch (error) {
-    logger.warn(`Failed to probe segment ${segmentPath}: ${error}`);
+    logger.warn('system', `Failed to probe segment ${segmentPath}: ${error}`);
 
     // 검증 실패 시 기본값 반환 (계속 진행)
     return {

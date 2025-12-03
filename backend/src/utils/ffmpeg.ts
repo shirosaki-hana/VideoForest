@@ -35,19 +35,19 @@ export async function detectFFmpeg(): Promise<FFmpegInfo> {
     return cachedFFmpegInfo;
   }
 
-  logger.info('Detecting FFmpeg installation...');
+  logger.info('system', 'Detecting FFmpeg installation...');
 
   // 1. 시스템 FFmpeg 확인
   const systemFFmpeg = await checkSystemFFmpeg();
   if (systemFFmpeg) {
-    logger.info(`Using system FFmpeg: ${systemFFmpeg.path}`);
-    logger.debug(`  Version: ${systemFFmpeg.version}`);
+    logger.info('system', `Using system FFmpeg: ${systemFFmpeg.path}`);
+    logger.debug('system', `  Version: ${systemFFmpeg.version}`);
     cachedFFmpegInfo = systemFFmpeg;
     return systemFFmpeg;
   }
 
   // 2. Installer FFmpeg 사용
-  logger.info(`Using bundled FFmpeg: ${ffmpegInstaller.path}`);
+  logger.info('system', `Using bundled FFmpeg: ${ffmpegInstaller.path}`);
 
   const installerInfo: FFmpegInfo = {
     path: ffmpegInstaller.path,
@@ -93,7 +93,7 @@ async function checkSystemFFmpeg(): Promise<FFmpegInfo | null> {
       source: 'system',
     };
   } catch (error) {
-    logger.debug?.(`Failed to check system FFmpeg: ${error}`);
+    logger.debug?.('system', `Failed to check system FFmpeg: ${error}`);
     return null;
   }
 }
@@ -123,6 +123,6 @@ export function getFFmpegPath(): string {
   }
 
   // 캐시되지 않은 경우 installer 경로 반환 (폴백)
-  logger.warn('FFmpeg not detected yet, using installer fallback');
+  logger.warn('system', 'FFmpeg not detected yet, using installer fallback');
   return ffmpegInstaller.path;
 }

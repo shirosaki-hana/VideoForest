@@ -37,11 +37,11 @@ export class HardwareAccelerationDetector {
   static async detect(): Promise<HWAccelDetectionResult> {
     // 캐시 확인 (영구 캐싱)
     if (this.cachedResult) {
-      logger.debug?.('Using cached HW accel detection');
+      logger.debug?.('system', 'Using cached HW accel detection');
       return this.cachedResult;
     }
 
-    logger.info('Detecting hardware acceleration support...');
+    logger.info('system', 'Detecting hardware acceleration support...');
 
     const result: HWAccelDetectionResult = {
       available: ['libx264'], // CPU는 항상 사용 가능
@@ -57,9 +57,9 @@ export class HardwareAccelerationDetector {
       result.available.unshift('h264_nvenc'); // 맨 앞에 추가 (최우선)
       result.preferred = 'h264_nvenc';
       result.nvencAvailable = true;
-      logger.info('✓ NVENC (NVIDIA GPU) available');
+      logger.info('system', 'NVENC (NVIDIA GPU) available');
     } else {
-      logger.warn('✗ NVENC not available');
+      logger.warn('system', 'NVENC not available');
     }
 
     // QSV 감지 (두 번째 우선순위)
@@ -71,17 +71,17 @@ export class HardwareAccelerationDetector {
       // NVENC이 없으면 QSV를 preferred로
       if (!nvencAvailable) {
         result.preferred = 'h264_qsv';
-        logger.info('✓ QSV (Intel GPU) available');
+        logger.info('system', 'QSV (Intel GPU) available');
       } else {
-        logger.info('✓ QSV (Intel GPU) available');
+        logger.info('system', 'QSV (Intel GPU) available');
       }
     } else {
-      logger.warn('✗ QSV not available');
+      logger.warn('system', 'QSV not available');
     }
 
     // 최종 fallback 로그
     if (!nvencAvailable && !qsvAvailable) {
-      logger.debug('⚠ No GPU acceleration available - falling back to CPU (libx264)');
+      logger.debug('system', 'No GPU acceleration available - falling back to CPU (libx264)');
     }
 
     // 캐시 저장
@@ -135,7 +135,7 @@ export class HardwareAccelerationDetector {
       // 타임아웃 설정 (5초)
       const timeout = setTimeout(() => {
         process.kill();
-        logger.debug?.('QSV test timed out');
+        logger.debug?.('system', 'QSV test timed out');
         resolve(false);
       }, 5000);
 
@@ -148,18 +148,18 @@ export class HardwareAccelerationDetector {
         clearTimeout(timeout);
 
         if (code === 0) {
-          logger.debug?.('QSV test successful');
+          logger.debug?.('system', 'QSV test successful');
           resolve(true);
         } else {
           // 에러 메시지에서 유용한 정보 추출
           if (stderr.includes('No QSV device found') || stderr.includes('failed to initialize')) {
-            logger.debug?.('QSV unavailable: No Intel GPU found or not initialized');
+            logger.debug?.('system', 'QSV unavailable: No Intel GPU found or not initialized');
           } else if (stderr.includes('Unknown encoder')) {
-            logger.debug?.('QSV unavailable: FFmpeg not compiled with QSV support');
+            logger.debug?.('system', 'QSV unavailable: FFmpeg not compiled with QSV support');
           } else if (stderr.includes('Cannot load')) {
-            logger.debug?.('QSV unavailable: Driver or library issue');
+            logger.debug?.('system', 'QSV unavailable: Driver or library issue');
           } else {
-            logger.debug?.(`QSV test failed (exit ${code})`);
+            logger.debug?.('system', `QSV test failed (exit ${code})`);
           }
           resolve(false);
         }
@@ -217,7 +217,7 @@ export class HardwareAccelerationDetector {
       // 타임아웃 설정 (5초)
       const timeout = setTimeout(() => {
         process.kill();
-        logger.debug?.('NVENC test timed out');
+        logger.debug?.('system', 'NVENC test timed out');
         resolve(false);
       }, 5000);
 
@@ -230,20 +230,20 @@ export class HardwareAccelerationDetector {
         clearTimeout(timeout);
 
         if (code === 0) {
-          logger.debug?.('NVENC test successful');
+          logger.debug?.('system', 'NVENC test successful');
           resolve(true);
         } else {
           // 에러 메시지에서 유용한 정보 추출
           if (stderr.includes('No NVENC capable devices found')) {
-            logger.debug?.('NVENC unavailable: No NVIDIA GPU found');
+            logger.debug?.('system', 'NVENC unavailable: No NVIDIA GPU found');
           } else if (stderr.includes('unsupported device')) {
-            logger.debug?.('NVENC unavailable: GPU does not support NVENC (common on entry-level/mobile GPUs)');
+            logger.debug?.('system', 'NVENC unavailable: GPU does not support NVENC (common on entry-level/mobile GPUs)');
           } else if (stderr.includes('Cannot load')) {
-            logger.debug?.('NVENC unavailable: Driver or library issue');
+            logger.debug?.('system', 'NVENC unavailable: Driver or library issue');
           } else if (stderr.includes('Unknown encoder')) {
-            logger.debug?.('NVENC unavailable: FFmpeg not compiled with NVENC support');
+            logger.debug?.('system', 'NVENC unavailable: FFmpeg not compiled with NVENC support');
           } else {
-            logger.debug?.(`NVENC test failed (exit ${code})`);
+            logger.debug?.('system', `NVENC test failed (exit ${code})`);
           }
           resolve(false);
         }
@@ -256,7 +256,7 @@ export class HardwareAccelerationDetector {
    */
   static clearCache(): void {
     this.cachedResult = null;
-    logger.debug?.('Hardware acceleration cache cleared');
+    logger.debug?.('system', 'Hardware acceleration cache cleared');
   }
 
   /**

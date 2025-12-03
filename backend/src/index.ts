@@ -49,16 +49,16 @@ async function startServer(host: string, port: number) {
 
 // Graceful shutdown 핸들러
 async function gracefulShutdown(fastify: Awaited<ReturnType<typeof createFastifyApp>>, signal: string) {
-  logger.warn(`Received ${signal}: shutting down server...`);
+  logger.warn('system', `Received ${signal}: shutting down server...`);
 
   try {
     FFmpegTranscoder.killAllProcesses(); // 활성 FFmpeg 프로세스 종료 (고아 프로세스 방지)
     await fastify.close(); // Fastify 서버 종료
     await disconnectDatabase(); // 데이터베이스 연결 해제
-    logger.success('Server closed successfully');
+    logger.success('system', 'Server closed successfully');
     process.exitCode = 0;
   } catch (error) {
-    logger.error('Error during graceful shutdown:', error);
+    logger.error('system', 'Error during graceful shutdown:', error);
     process.exitCode = 1;
   }
 }
@@ -76,7 +76,7 @@ async function main() {
       gracefulShutdown(fastify, 'SIGTERM').catch(() => {});
     });
   } catch (error) {
-    logger.error('Failed to start server:', error);
+    logger.error('system', 'Failed to start server:', error);
     process.exitCode = 1;
   }
 }

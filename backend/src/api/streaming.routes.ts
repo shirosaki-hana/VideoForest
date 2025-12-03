@@ -31,7 +31,7 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
       const masterPlaylistPath = await getMasterPlaylistPath(mediaId);
 
       if (!masterPlaylistPath) {
-        logger.error(`Failed to initialize streaming for ${mediaId}`);
+        logger.error('streaming', `Failed to initialize streaming for ${mediaId}`);
         return reply.code(500).send({
           error: 'Streaming initialization failed',
           message: 'Failed to analyze media or create playlists',
@@ -44,7 +44,7 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
       }
 
       if (!existsSync(masterPlaylistPath)) {
-        logger.error(`Master playlist file not found: ${masterPlaylistPath}`);
+        logger.error('streaming', `Master playlist file not found: ${masterPlaylistPath}`);
         return reply.code(500).send({
           error: 'Master playlist file not found',
         });
@@ -58,7 +58,7 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
         .header('Cache-Control', 'public, max-age=3600') // 1시간 캐시 (변하지 않음)
         .send(playlistContent);
     } catch (error) {
-      logger.error(`Failed to serve master playlist for ${mediaId}:`, error);
+      logger.error('streaming', `Failed to serve master playlist for ${mediaId}:`, error);
       return reply.code(500).send({ error: 'Failed to serve master playlist' });
     }
   });
@@ -76,7 +76,7 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
       const playlistPath = await getQualityPlaylistPath(mediaId, quality);
 
       if (!playlistPath) {
-        logger.error(`Failed to get quality playlist for ${quality} / ${mediaId}`);
+        logger.error('streaming', `Failed to get quality playlist for ${quality} / ${mediaId}`);
         return reply.code(404).send({ error: 'Quality not available' });
       }
 
@@ -86,7 +86,7 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
       }
 
       if (!existsSync(playlistPath)) {
-        logger.error(`Quality playlist file not found: ${playlistPath}`);
+        logger.error('streaming', `Quality playlist file not found: ${playlistPath}`);
         return reply.code(500).send({ error: 'Playlist file not found' });
       }
 
@@ -98,7 +98,7 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
         .header('Cache-Control', 'public, max-age=3600') // 1시간 캐시 (변하지 않음)
         .send(playlistContent);
     } catch (error) {
-      logger.error(`Failed to serve quality playlist ${quality} for ${mediaId}:`, error);
+      logger.error('streaming', `Failed to serve quality playlist ${quality} for ${mediaId}:`, error);
       return reply.code(500).send({ error: 'Failed to serve quality playlist' });
     }
   });
@@ -128,13 +128,13 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
         const segmentPath = await getSegment(mediaId, quality, segmentName);
 
         if (!segmentPath) {
-          logger.error(`Failed to get segment: ${mediaId} / ${quality} / ${segmentName}`);
+          logger.error('streaming', `Failed to get segment: ${mediaId} / ${quality} / ${segmentName}`);
           return reply.code(500).send({ error: 'Segment transcoding failed' });
         }
 
         // 세그먼트 파일이 있는지 최종 확인
         if (!existsSync(segmentPath)) {
-          logger.error(`Segment file not found after transcoding: ${segmentPath}`);
+          logger.error('streaming', `Segment file not found after transcoding: ${segmentPath}`);
           return reply.code(500).send({ error: 'Segment file not found' });
         }
 
@@ -147,7 +147,7 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
           .header('Cache-Control', 'public, max-age=31536000, immutable') // 영구 캐시
           .send(stream);
       } catch (error) {
-        logger.error(`Failed to serve segment ${quality}/${segmentName} for ${mediaId}:`, error);
+        logger.error('streaming', `Failed to serve segment ${quality}/${segmentName} for ${mediaId}:`, error);
         return reply.code(500).send({ error: 'Failed to serve segment' });
       }
     }
@@ -186,7 +186,7 @@ export const streamingRoutes: FastifyPluginAsync = async fastify => {
         },
       });
     } catch (error) {
-      logger.error(`Failed to get media info for ${mediaId}:`, error);
+      logger.error('streaming', `Failed to get media info for ${mediaId}:`, error);
       return reply.code(500).send({ error: 'Failed to get media info' });
     }
   });
