@@ -177,6 +177,7 @@ export default {
         auth: 'Auth',
         system: 'System',
         database: 'DB',
+        server: 'Server',
       },
       errors: {
         loadFailed: 'Failed to load logs',

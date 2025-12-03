@@ -1,9 +1,40 @@
 import path from 'path';
 import ms from 'ms';
 import { env, isDevelopment, isProduction } from './env.js';
-import { projectRoot } from '../utils/index.js';
+import { projectRoot, logger } from '../utils/index.js';
+import type { LogLevel } from '@videoforest/types';
 //------------------------------------------------------------------------------//
-export const fastifyConfig = { bodyLimit: parseInt(env.REQUEST_BODY_LIMIT.replace('mb', '')) * 1024 * 1024 };
+// Pino 레벨 -> 프로젝트 레벨 매핑
+const pinoLevelToLogLevel = (level: number): LogLevel => {
+  if (level >= 50) return 'ERROR'; // error, fatal
+  if (level >= 40) return 'WARN';  // warn
+  if (level >= 30) return 'INFO';  // info
+  return 'DEBUG';                   // debug, trace
+};
+
+// Fastify 커스텀 로거 스트림 (콘솔 출력 없이 DB에만 저장)
+const fastifyLoggerStream = {
+  write(msg: string) {
+    try {
+      const obj = JSON.parse(msg);
+      const level = pinoLevelToLogLevel(obj.level);
+      const message = obj.msg || 'Fastify log';
+      // 불필요한 필드 제거 후 메타데이터로 저장
+      const { level: _, msg: __, time: ___, pid: ____, hostname: _____, ...meta } = obj;
+      logger[level.toLowerCase() as Lowercase<LogLevel>]('server', message, Object.keys(meta).length > 0 ? meta : undefined);
+    } catch {
+      logger.info('server', msg.trim());
+    }
+  },
+};
+
+export const fastifyConfig = {
+  bodyLimit: parseInt(env.REQUEST_BODY_LIMIT.replace('mb', '')) * 1024 * 1024,
+  logger: {
+    level: isDevelopment ? 'debug' : 'info',
+    stream: fastifyLoggerStream,
+  },
+};
 
 export const corsConfig = {
   origin: isDevelopment ? true : env.FRONTEND_URL,

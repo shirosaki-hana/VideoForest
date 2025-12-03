@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Box, Button, Card, CardContent, FormControl, InputAdornment, InputLabel, MenuItem, Select, TextField } from '@mui/material';
 import { Search as SearchIcon, Delete as DeleteIcon, FilterList as FilterIcon } from '@mui/icons-material';
-import type { LogLevel, LogCategory } from '@videoforest/types';
+import { LogLevelSchema, LogCategorySchema, type LogLevel, type LogCategory } from '@videoforest/types';
 
 interface LogsFilterProps {
   search: string;
@@ -47,10 +47,11 @@ export default function LogsFilter({
             <InputLabel>{t('logs.level')}</InputLabel>
             <Select value={levelFilter} label={t('logs.level')} onChange={e => onLevelFilterChange(e.target.value as LogLevel | '')}>
               <MenuItem value=''>{t('logs.all')}</MenuItem>
-              <MenuItem value='ERROR'>ERROR</MenuItem>
-              <MenuItem value='WARN'>WARN</MenuItem>
-              <MenuItem value='INFO'>INFO</MenuItem>
-              <MenuItem value='DEBUG'>DEBUG</MenuItem>
+              {LogLevelSchema.options.map(level => (
+                <MenuItem key={level} value={level}>
+                  {level}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
           <FormControl size='small' sx={{ minWidth: 120 }}>
@@ -61,12 +62,11 @@ export default function LogsFilter({
               onChange={e => onCategoryFilterChange(e.target.value as LogCategory | '')}
             >
               <MenuItem value=''>{t('logs.all')}</MenuItem>
-              <MenuItem value='api'>{t('logs.categories.api')}</MenuItem>
-              <MenuItem value='streaming'>{t('logs.categories.streaming')}</MenuItem>
-              <MenuItem value='media'>{t('logs.categories.media')}</MenuItem>
-              <MenuItem value='auth'>{t('logs.categories.auth')}</MenuItem>
-              <MenuItem value='system'>{t('logs.categories.system')}</MenuItem>
-              <MenuItem value='database'>{t('logs.categories.database')}</MenuItem>
+              {LogCategorySchema.options.map(category => (
+                <MenuItem key={category} value={category}>
+                  {t(`logs.categories.${category}`, category)}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
           <Box sx={{ flexGrow: 1 }} />
