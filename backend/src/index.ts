@@ -7,7 +7,7 @@ import rateLimit from '@fastify/rate-limit';
 import staticFiles from '@fastify/static';
 import apiRoutes from './api/index.js';
 import { HardwareAccelerationDetector, FFmpegTranscoder } from './infrastructure/index.js';
-import { logger, detectFFmpeg, detectFFprobe } from './utils/index.js';
+import { detectFFmpeg, detectFFprobe } from './utils/index.js';
 import { env, fastifyConfig, helmetConfig, rateLimitConfig, corsConfig, staticFilesConfig } from './config/index.js';
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
 import { notFoundHandler, errorHandler } from './handlers/index.js';
@@ -17,15 +17,15 @@ import { initializeLogger } from './services/logs.js';
 // Fastify 서버 생성
 async function createFastifyApp() {
   const fastify = Fastify(fastifyConfig);
-
-  await fastify.register(helmet, helmetConfig);
-  await fastify.register(rateLimit, rateLimitConfig);
-  await fastify.register(compress);
-  await fastify.register(cors, corsConfig);
-  await fastify.register(cookie);
-  await fastify.register(apiRoutes, { prefix: '/api' }); // API 라우트
-  await fastify.register(staticFiles, staticFilesConfig); // 정적 파일 서빙
-
+  //서버 초기 설정
+  await fastify.register(helmet, helmetConfig); // 1. 보안 헤더 설정
+  await fastify.register(rateLimit, rateLimitConfig); // 2. Rate Limit 설정
+  await fastify.register(compress); // 3. 압축 설정
+  await fastify.register(cors, corsConfig); // 4. CORS 정책 설정
+  await fastify.register(cookie); // 5. Cookie 설정
+  await fastify.register(apiRoutes, { prefix: '/api' }); // 6. API 라우트 등록
+  await fastify.register(staticFiles, staticFilesConfig); // 7. 정적 파일 서빙
+  //핸들러 등록
   fastify.setNotFoundHandler(notFoundHandler); // SPA fallback 및 404 핸들러
   fastify.setErrorHandler(errorHandler); // 전역 에러 핸들러
 
@@ -34,31 +34,26 @@ async function createFastifyApp() {
 
 // 서버 시작 함수
 async function startServer(host: string, port: number) {
-  logger.info('system', `Starting server... [Environment: ${env.NODE_ENV}]`);
   const fastify = await createFastifyApp();
-  await checkDatabaseConnection();
-  initializeLogger(); // 로거 DB 저장 초기화 (DB 연결 이후)
-  await detectFFmpeg();
-  await detectFFprobe();
-  await HardwareAccelerationDetector.detect();
-  await fastify.listen({ port, host: host });
-  logger.info('system', `Server is running on http://${host}:${port}`);
+  //앱 초기 동작
+  await checkDatabaseConnection(); // 1. 데이터베이스 커넥션 확인
+  initializeLogger(); // 2. 로거 초기화
+  await detectFFmpeg(); // 3. FFmpeg 감지
+  await detectFFprobe(); // 4. FFprove 감지
+  await HardwareAccelerationDetector.detect(); // 5. 하드웨어 가속 감지
+  await fastify.listen({ port, host: host }); // 6. 서버 리스닝 시작
 
   return fastify;
 }
 
 // Graceful shutdown 핸들러
-async function gracefulShutdown(fastify: Awaited<ReturnType<typeof createFastifyApp>>, signal: string) {
-  logger.warn('system', `Received ${signal}: shutting down server...`);
-
-  try {
-    FFmpegTranscoder.killAllProcesses(); // 활성 FFmpeg 프로세스 종료 (고아 프로세스 방지)
-    await fastify.close(); // Fastify 서버 종료
-    await disconnectDatabase(); // 데이터베이스 연결 해제
-    logger.info('system', 'Server closed successfully');
+async function gracefulShutdown(fastify: Awaited<ReturnType<typeof createFastifyApp>>) {
+ try {
+    FFmpegTranscoder.killAllProcesses(); // 1. 활성 FFmpeg 프로세스 종료 (고아 프로세스 방지)
+    await fastify.close(); // 2. Fastify 서버 종료
+    await disconnectDatabase(); // 3. 데이터베이스 연결 해제
     process.exitCode = 0;
-  } catch (error) {
-    logger.error('system', 'Error during graceful shutdown:', error);
+  } catch {
     process.exitCode = 1;
   }
 }
@@ -67,16 +62,13 @@ async function gracefulShutdown(fastify: Awaited<ReturnType<typeof createFastify
 async function main() {
   try {
     const fastify = await startServer(env.HOST, env.PORT);
-
-    // 시그널 핸들러 등록
     process.on('SIGINT', () => {
-      gracefulShutdown(fastify, 'SIGINT').catch(() => {});
+      gracefulShutdown(fastify).catch(() => {}); // SIGINT로 인한 서버 종료
     });
     process.on('SIGTERM', () => {
-      gracefulShutdown(fastify, 'SIGTERM').catch(() => {});
+      gracefulShutdown(fastify).catch(() => {}); // SIGTERM으로 인한 서버 종료
     });
-  } catch (error) {
-    logger.error('system', 'Failed to start server:', error);
+  } catch {
     process.exitCode = 1;
   }
 }
