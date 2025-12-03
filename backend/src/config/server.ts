@@ -6,10 +6,16 @@ import type { LogLevel } from '@videoforest/types';
 //------------------------------------------------------------------------------//
 // Pino 레벨 -> 프로젝트 레벨 매핑
 const pinoLevelToLogLevel = (level: number): LogLevel => {
-  if (level >= 50) return 'ERROR'; // error, fatal
-  if (level >= 40) return 'WARN';  // warn
-  if (level >= 30) return 'INFO';  // info
-  return 'DEBUG';                   // debug, trace
+  if (level >= 50) {
+    return 'ERROR';
+  } // error, fatal
+  if (level >= 40) {
+    return 'WARN';
+  } // warn
+  if (level >= 30) {
+    return 'INFO';
+  } // info
+  return 'DEBUG'; // debug, trace
 };
 
 // Fastify 커스텀 로거 스트림 (콘솔 출력 없이 DB에만 저장)
@@ -20,7 +26,8 @@ const fastifyLoggerStream = {
       const level = pinoLevelToLogLevel(obj.level);
       const message = obj.msg || 'Fastify log';
       // 불필요한 필드 제거 후 메타데이터로 저장
-      const { level: _, msg: __, time: ___, pid: ____, hostname: _____, ...meta } = obj;
+      const excludeKeys = new Set(['level', 'msg', 'time', 'pid', 'hostname']);
+      const meta = Object.fromEntries(Object.entries(obj).filter(([key]) => !excludeKeys.has(key)));
       logger[level.toLowerCase() as Lowercase<LogLevel>]('server', message, Object.keys(meta).length > 0 ? meta : undefined);
     } catch {
       logger.info('server', msg.trim());

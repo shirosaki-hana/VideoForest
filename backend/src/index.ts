@@ -50,7 +50,7 @@ async function startServer(host: string, port: number) {
 
 // Graceful shutdown 핸들러
 async function gracefulShutdown(fastify: Awaited<ReturnType<typeof createFastifyApp>>) {
- try {
+  try {
     FFmpegTranscoder.killAllProcesses(); // 1. 활성 FFmpeg 프로세스 종료 (고아 프로세스 방지)
     await fastify.close(); // 2. Fastify 서버 종료
     await disconnectDatabase(); // 3. 데이터베이스 연결 해제
