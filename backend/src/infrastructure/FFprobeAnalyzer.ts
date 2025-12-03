@@ -100,7 +100,7 @@ export class FFprobeAnalyzer {
         fps,
       };
     } catch (error) {
-      logger.error('media', `Failed to analyze keyframes: ${error}`);
+      logger.error('media', `Failed to analyze keyframes.`, error);
       throw error;
     }
   }

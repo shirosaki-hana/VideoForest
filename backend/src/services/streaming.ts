@@ -141,7 +141,7 @@ class StreamingService {
       await writeFile(masterPlaylistPath, masterPlaylistContent);
       logger.debug('streaming', `Master playlist created: ${masterPlaylistPath}`);
     } catch (error) {
-      logger.error('streaming', `Failed to write master playlist: ${error}`);
+      logger.error('streaming', `Failed to write master playlist.`, error);
       return null;
     }
 
@@ -157,7 +157,7 @@ class StreamingService {
         await writeFile(qualityPlaylistPath, qualityPlaylistContent);
         logger.debug('streaming', `Quality playlist created: ${profile.name}`);
       } catch (error) {
-        logger.error('streaming', `Failed to write quality playlist for ${profile.name}: ${error}`);
+        logger.error('streaming', `Failed to write quality playlist for ${profile.name}.`, error);
         return null;
       }
     }

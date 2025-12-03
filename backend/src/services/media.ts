@@ -55,8 +55,7 @@ async function scanDirectory(dirPath: string): Promise<string[]> {
       }
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('media', `Failed to scan directory ${dirPath}:`, errorMessage);
+    logger.error('media', `Failed to scan directory ${dirPath}:`, error);
   }
 
   return mediaFiles;
@@ -140,8 +139,7 @@ export async function refreshMediaLibrary() {
       successCount++;
       logger.debug('media', `[${successCount}/${mediaToProcess.length}] Added: ${filename}`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('media', `Failed to process ${filePath}:`, errorMessage);
+      logger.error('media', `Failed to process ${filePath}:`, error);
     }
   }
 

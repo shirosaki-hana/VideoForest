@@ -294,8 +294,7 @@ export async function extractMediaMetadata(filePath: string): Promise<MediaMetad
       audioCodec: audioStream?.codec_name || null,
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('system', `Failed to extract metadata from ${filePath}:`, errorMessage);
+    logger.error('system', `Failed to extract metadata from ${filePath}:`, error);
 
     // 메타데이터 추출 실패 시 null 반환
     return {
