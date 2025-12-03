@@ -1,5 +1,5 @@
-import { Box, Typography, Button, Stack, IconButton, Divider } from '@mui/material';
-import { Refresh as RefreshIcon, Scanner as ScanIcon, Settings as SettingsIcon, Logout as LogoutIcon } from '@mui/icons-material';
+import { Box, Typography, Button, Stack, IconButton, Divider, Tooltip } from '@mui/material';
+import { Refresh as RefreshIcon, Scanner as ScanIcon, Settings as SettingsIcon, Logout as LogoutIcon, Terminal as LogsIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useMediaStore } from '../../stores/mediaStore';
@@ -50,12 +50,21 @@ export default function MediaHeader({ onScanClick }: MediaHeaderProps) {
             {t('media.scan')}
           </Button>
           <Divider orientation='vertical' flexItem sx={{ mx: 1 }} />
-          <IconButton onClick={openSettings} aria-label={t('settings.title')} size='large'>
-            <SettingsIcon />
-          </IconButton>
-          <IconButton onClick={handleLogout} disabled={authLoading} aria-label={t('auth.logout')} size='large'>
-            <LogoutIcon />
-          </IconButton>
+          <Tooltip title={t('logs.title')}>
+            <IconButton onClick={() => navigate('/logs')} aria-label={t('logs.title')} size='large'>
+              <LogsIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('settings.title')}>
+            <IconButton onClick={openSettings} aria-label={t('settings.title')} size='large'>
+              <SettingsIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('auth.logout')}>
+            <IconButton onClick={handleLogout} disabled={authLoading} aria-label={t('auth.logout')} size='large'>
+              <LogoutIcon />
+            </IconButton>
+          </Tooltip>
         </Stack>
       </Box>
 

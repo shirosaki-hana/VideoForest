@@ -7,6 +7,7 @@ import SetupPasswordPage from './pages/SetupPasswordPage';
 import LoginPage from './pages/LoginPage';
 import MediaListPage from './pages/MediaListPage';
 import PlayerPage from './pages/PlayerPage';
+import LogsPage from './pages/LogsPage';
 
 // 인증 상태에 따른 라우팅 로직
 function AuthRouter() {
@@ -60,6 +61,7 @@ function AuthRouter() {
           <Route element={<Layout />}>
             <Route path='/media' element={<MediaListPage />} />
             <Route path='/player/:mediaId' element={<PlayerPage />} />
+            <Route path='/logs' element={<LogsPage />} />
             <Route path='/' element={<Navigate to='/media' replace />} />
           </Route>
           <Route path='*' element={<Navigate to='/media' replace />} />

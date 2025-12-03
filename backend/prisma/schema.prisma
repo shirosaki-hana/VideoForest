@@ -68,3 +68,18 @@ model Media {
   @@index([folderId])
   @@index([createdAt])
 }
+
+// 로그 테이블
+model Log {
+  id        Int      @id @default(autoincrement())
+  level     String   // ERROR, WARN, INFO, DEBUG
+  category  String   // api, streaming, media, auth, system 등
+  message   String
+  meta      String?  // JSON 형태의 추가 데이터
+  createdAt DateTime @default(now())
+  
+  @@map("logs")
+  @@index([level])
+  @@index([category])
+  @@index([createdAt])
+}
