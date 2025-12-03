@@ -17,7 +17,7 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply):
       ...meta,
       hasToken: Boolean(token),
     });
-    
+
     reply.code(401).send({ error: 'Unauthorized' });
   }
 }

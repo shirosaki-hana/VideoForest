@@ -89,7 +89,10 @@ export class FFprobeAnalyzer {
 
       const averageGopSize = Math.round(averageGopDuration * fps);
 
-      logger.debug('media', `Found ${totalKeyframes} keyframes ` + `(avg GOP: ${averageGopDuration.toFixed(2)}s / ${averageGopSize} frames)`);
+      logger.debug(
+        'media',
+        `Found ${totalKeyframes} keyframes ` + `(avg GOP: ${averageGopDuration.toFixed(2)}s / ${averageGopSize} frames)`
+      );
 
       return {
         keyframes,

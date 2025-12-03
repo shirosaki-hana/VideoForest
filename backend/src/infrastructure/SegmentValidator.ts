@@ -117,12 +117,14 @@ export class SegmentValidator {
       // 플레이리스트에 +0.05초 안전 마진이 추가되어 있으므로
       // 0.1초 이상 차이나면 경고
       if (durationDiff > 0.1) {
-        logger.warn('media', 
+        logger.warn(
+          'media',
           `Segment ${segmentNumber}: Duration mismatch! ` +
             `Expected ${expectedDuration}s, got ${validation.actualDuration}s (diff: ${durationDiff.toFixed(3)}s)`
         );
       } else {
-        logger.debug?.('media', 
+        logger.debug?.(
+          'media',
           `Segment ${segmentNumber} validated: ${validation.actualDuration?.toFixed(3)}s, ` + `${(validation.fileSize / 1024).toFixed(3)}KB`
         );
       }

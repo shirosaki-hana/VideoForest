@@ -3,14 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Container } from '@mui/material';
 import { useLogsStore } from '../stores/logsStore';
 import { dialog } from '../stores/dialogStore';
-import {
-  LogsHeader,
-  LogsStats,
-  LogsFilter,
-  LogsTable,
-  LogDetailDialog,
-  LogSettingsDialog,
-} from '../components/logs';
+import { LogsHeader, LogsStats, LogsFilter, LogsTable, LogDetailDialog, LogSettingsDialog } from '../components/logs';
 
 export default function LogsPage() {
   const { t } = useTranslation();
@@ -99,13 +92,9 @@ export default function LogsPage() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth='xl' sx={{ py: 4 }}>
       {/* 헤더 */}
-      <LogsHeader
-        onRefresh={handleRefresh}
-        onCleanup={handleCleanup}
-        onSettingsOpen={() => setSettingsOpen(true)}
-      />
+      <LogsHeader onRefresh={handleRefresh} onCleanup={handleCleanup} onSettingsOpen={() => setSettingsOpen(true)} />
 
       {/* 통계 카드 */}
       {stats && <LogsStats stats={stats} />}

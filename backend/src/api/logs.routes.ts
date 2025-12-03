@@ -27,56 +27,67 @@ export const logsRoutes: FastifyPluginAsync = async fastify => {
   fastify.get('/', async (request, reply) => {
     const params = GetLogsRequestSchema.parse(request.query);
     const result = await getLogs(params);
-    return reply.send(GetLogsResponseSchema.parse({
-      success: true,
-      ...result,
-    }));
+    return reply.send(
+      GetLogsResponseSchema.parse({
+        success: true,
+        ...result,
+      })
+    );
   });
 
   // 로그 통계 조회
   fastify.get('/stats', async (_request, reply) => {
     const stats = await getLogStats();
-    return reply.send(LogStatsResponseSchema.parse({
-      success: true,
-      stats,
-    }));
+    return reply.send(
+      LogStatsResponseSchema.parse({
+        success: true,
+        stats,
+      })
+    );
   });
 
   // 로그 삭제
   fastify.delete('/', async (request, reply) => {
     const params = DeleteLogsRequestSchema.parse(request.body);
     const deletedCount = await deleteLogs(params);
-    return reply.send(DeleteLogsResponseSchema.parse({
-      success: true,
-      deletedCount,
-    }));
+    return reply.send(
+      DeleteLogsResponseSchema.parse({
+        success: true,
+        deletedCount,
+      })
+    );
   });
 
   // 로그 설정 조회
   fastify.get('/settings', async (_request, reply) => {
-    return reply.send(GetLogSettingsResponseSchema.parse({
-      success: true,
-      settings: logSettings,
-    }));
+    return reply.send(
+      GetLogSettingsResponseSchema.parse({
+        success: true,
+        settings: logSettings,
+      })
+    );
   });
 
   // 로그 설정 업데이트
   fastify.put('/settings', async (request, reply) => {
     const newSettings = LogSettingsSchema.parse(request.body);
     logSettings = { ...logSettings, ...newSettings };
-    return reply.send(UpdateLogSettingsResponseSchema.parse({
-      success: true,
-      settings: logSettings,
-    }));
+    return reply.send(
+      UpdateLogSettingsResponseSchema.parse({
+        success: true,
+        settings: logSettings,
+      })
+    );
   });
 
   // 수동 로그 정리
   fastify.post('/cleanup', async (_request, reply) => {
     const deletedCount = await cleanupOldLogs(logSettings);
-    return reply.send(DeleteLogsResponseSchema.parse({
-      success: true,
-      deletedCount,
-    }));
+    return reply.send(
+      DeleteLogsResponseSchema.parse({
+        success: true,
+        deletedCount,
+      })
+    );
   });
 };
-

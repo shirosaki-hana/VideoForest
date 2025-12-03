@@ -116,7 +116,8 @@ class StreamingService {
 
       accurateSegments = segmentCalculation.segments;
 
-      logger.debug('streaming', 
+      logger.debug(
+        'streaming',
         `Keyframe-based segmentation: ${accurateSegments.length} segments ` +
           `(avg: ${segmentCalculation.averageSegmentDuration.toFixed(2)}s)`
       );
@@ -177,7 +178,10 @@ class StreamingService {
 
     this.metadataCache.set(mediaId, metadata);
 
-    logger.debug('streaming', `Streaming initialized for ${mediaId} ` + `(${metadata.totalSegments} segments, ${availableProfiles.length} qualities)`);
+    logger.debug(
+      'streaming',
+      `Streaming initialized for ${mediaId} ` + `(${metadata.totalSegments} segments, ${availableProfiles.length} qualities)`
+    );
 
     return masterPlaylistPath;
   }
@@ -317,12 +321,7 @@ class StreamingService {
    * - 이미 캐시된 세그먼트는 스킵
    * - 이미 트랜스코딩 중인 세그먼트는 스킵
    */
-  private prefetchSegments(
-    metadata: MediaMetadata,
-    quality: string,
-    currentSegmentNumber: number,
-    profile: QualityProfile
-  ): void {
+  private prefetchSegments(metadata: MediaMetadata, quality: string, currentSegmentNumber: number, profile: QualityProfile): void {
     // 프리페칭 비활성화 체크
     if (!env.VIDEOFOREST_PREFETCH_ENABLED) {
       return;

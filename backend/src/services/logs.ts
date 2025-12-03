@@ -4,12 +4,7 @@ import type { LogLevel, LogCategory, GetLogsRequest, LogSettings } from '@videof
 
 //------------------------------------------------------------------------------//
 // 로그 DB 저장 함수
-const saveLogToDb = async (
-  level: LogLevel,
-  category: LogCategory,
-  message: string,
-  meta?: unknown
-): Promise<void> => {
+const saveLogToDb = async (level: LogLevel, category: LogCategory, message: string, meta?: unknown): Promise<void> => {
   await database.log.create({
     data: {
       level,
@@ -28,18 +23,7 @@ export const initializeLogger = () => {
 //------------------------------------------------------------------------------//
 // 로그 조회
 export const getLogs = async (params: GetLogsRequest) => {
-  const {
-    level,
-    levels,
-    category,
-    categories,
-    search,
-    startDate,
-    endDate,
-    page = 1,
-    limit = 50,
-    sortOrder = 'desc',
-  } = params;
+  const { level, levels, category, categories, search, startDate, endDate, page = 1, limit = 50, sortOrder = 'desc' } = params;
 
   // WHERE 조건 구성
   const where: {
@@ -148,11 +132,7 @@ export const getLogStats = async () => {
 
 //------------------------------------------------------------------------------//
 // 로그 삭제
-export const deleteLogs = async (params: {
-  ids?: number[];
-  olderThan?: string;
-  level?: LogLevel;
-}): Promise<number> => {
+export const deleteLogs = async (params: { ids?: number[]; olderThan?: string; level?: LogLevel }): Promise<number> => {
   const { ids, olderThan, level } = params;
 
   // 특정 ID 삭제
@@ -206,7 +186,7 @@ export const cleanupOldLogs = async (settings: LogSettings): Promise<number> => 
   const currentCount = await database.log.count();
   if (currentCount > maxLogs) {
     const excessCount = currentCount - maxLogs;
-    
+
     // 가장 오래된 로그 ID 조회
     const oldestLogs = await database.log.findMany({
       select: { id: true },
@@ -224,4 +204,3 @@ export const cleanupOldLogs = async (settings: LogSettings): Promise<number> => 
 
   return deletedCount;
 };
-

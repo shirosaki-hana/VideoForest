@@ -43,7 +43,7 @@ export async function checkDatabaseConnection(): Promise<void> {
     await database.$queryRaw`SELECT 1`;
     logger.info('database', 'Database connection established successfully');
   } catch (error) {
-    logger.error('database','Database connection failed:', error);
+    logger.error('database', 'Database connection failed:', error);
     throw error;
   }
 }
@@ -51,5 +51,5 @@ export async function checkDatabaseConnection(): Promise<void> {
 // Database disconnection function
 export async function disconnectDatabase(): Promise<void> {
   await database.$disconnect();
-  logger.info('database','Database connection closed successfully');
+  logger.info('database', 'Database connection closed successfully');
 }

@@ -28,7 +28,7 @@ export const useDialogStore = create<DialogState>((set, get) => ({
   resolve: null,
 
   showAlert: (message: string, title?: string) => {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>(resolve => {
       set({
         open: true,
         options: {
@@ -42,7 +42,7 @@ export const useDialogStore = create<DialogState>((set, get) => ({
   },
 
   showError: (message: string, title?: string) => {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>(resolve => {
       set({
         open: true,
         options: {
@@ -56,7 +56,7 @@ export const useDialogStore = create<DialogState>((set, get) => ({
   },
 
   showConfirm: (message: string, title?: string) => {
-    return new Promise<boolean>((resolve) => {
+    return new Promise<boolean>(resolve => {
       set({
         open: true,
         options: {
@@ -84,4 +84,3 @@ export const dialog = {
   error: (message: string, title?: string) => useDialogStore.getState().showError(message, title),
   confirm: (message: string, title?: string) => useDialogStore.getState().showConfirm(message, title),
 };
-

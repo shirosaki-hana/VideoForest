@@ -1,11 +1,5 @@
 import { useEffect, useRef } from 'react';
-import {
-  MediaPlayer,
-  MediaProvider,
-  type MediaPlayerInstance,
-  type MediaErrorDetail,
-  isHLSProvider,
-} from '@vidstack/react';
+import { MediaPlayer, MediaProvider, type MediaPlayerInstance, type MediaErrorDetail, isHLSProvider } from '@vidstack/react';
 import { defaultLayoutIcons, DefaultVideoLayout } from '@vidstack/react/player/layouts/default';
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
@@ -64,14 +58,14 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
     <MediaPlayer
       ref={playerRef}
       src={src}
-      viewType="video"
-      streamType="on-demand"
-      crossOrigin="use-credentials"
+      viewType='video'
+      streamType='on-demand'
+      crossOrigin='use-credentials'
       playsInline
       onCanPlay={handleCanPlay}
       onEnded={handleEnded}
       onError={handleError}
-      onProviderChange={(provider) => {
+      onProviderChange={provider => {
         // HLS.js에 로컬 번들 라이브러리 및 withCredentials 설정 (쿠키 인증용)
         if (isHLSProvider(provider)) {
           provider.library = HLS;
@@ -86,9 +80,7 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
       style={{ width: '100%', height: '100%' }}
     >
       <MediaProvider />
-      <DefaultVideoLayout
-        icons={defaultLayoutIcons}
-      />
+      <DefaultVideoLayout icons={defaultLayoutIcons} />
     </MediaPlayer>
   );
 }

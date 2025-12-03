@@ -16,15 +16,10 @@ export interface RequestMeta {
 export function getRequestMeta(request: FastifyRequest): RequestMeta {
   // x-forwarded-for 헤더에서 첫 번째 IP 추출 (프록시 체인의 원본 IP)
   const forwarded = request.headers['x-forwarded-for'];
-  const forwardedIp = typeof forwarded === 'string' 
-    ? forwarded.split(',')[0].trim() 
-    : Array.isArray(forwarded) 
-      ? forwarded[0] 
-      : null;
+  const forwardedIp = typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : Array.isArray(forwarded) ? forwarded[0] : null;
 
   return {
     ip: forwardedIp || request.ip || 'unknown',
     userAgent: (request.headers['user-agent'] as string) || null,
   };
 }
-

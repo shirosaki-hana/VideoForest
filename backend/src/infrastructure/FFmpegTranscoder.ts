@@ -47,7 +47,7 @@ export class FFmpegTranscoder {
    * 모든 활성 FFmpeg 프로세스 종료 (graceful shutdown용)
    */
   static killAllProcesses(): void {
-    logger.info('system',`Killing ${this.activeProcesses.size} active FFmpeg processes...`);
+    logger.info('system', `Killing ${this.activeProcesses.size} active FFmpeg processes...`);
 
     for (const ffmpegProcess of this.activeProcesses) {
       try {
@@ -118,7 +118,8 @@ export class FFmpegTranscoder {
     const endTime = isAccurate ? (segmentInfo as AccurateSegmentInfo).endTime : segmentInfo.startTime + segmentInfo.duration;
     const duration = endTime - segmentInfo.startTime;
 
-    logger.debug('system',
+    logger.debug(
+      'system',
       `JIT transcoding: segment ${segmentInfo.segmentNumber} ` +
         `(${segmentInfo.startTime.toFixed(3)}s ~ ${endTime.toFixed(3)}s) ` +
         `duration ${duration.toFixed(3)}s ` +

@@ -8,4 +8,3 @@ declare module '@vidstack/react/player/styles/default/layouts/video.css' {
   const content: string;
   export default content;
 }
-

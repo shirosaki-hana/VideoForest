@@ -74,9 +74,8 @@ export default function PlayerPage() {
         if (signal.aborted || (err && typeof err === 'object' && 'code' in err && err.code === 'ERR_CANCELED')) {
           return; // 취소 시 무시
         }
-        const errorKey = err instanceof Error && err.message === 'streamTimeout' 
-          ? 'player.errors.streamTimeout' 
-          : 'player.errors.loadFailed';
+        const errorKey =
+          err instanceof Error && err.message === 'streamTimeout' ? 'player.errors.streamTimeout' : 'player.errors.loadFailed';
         dialog.error(t(errorKey)).then(() => navigate('/'));
         setLoading(false);
         setPreparingStream(false);
@@ -143,12 +142,7 @@ export default function PlayerPage() {
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* 로딩 상태 */}
-      <PlayerLoadingState
-        loading={loading}
-        preparingStream={preparingStream}
-        mediaName={mediaInfo?.name}
-        onBack={handleBack}
-      />
+      <PlayerLoadingState loading={loading} preparingStream={preparingStream} mediaName={mediaInfo?.name} onBack={handleBack} />
 
       {/* 플레이어 및 컨텐츠 */}
       {!loading && !preparingStream && playlistUrl && (

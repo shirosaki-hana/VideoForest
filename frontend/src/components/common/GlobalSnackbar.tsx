@@ -9,21 +9,14 @@ export default function GlobalSnackbar() {
   if (!options) return null;
 
   // 동적 키 사용 시 타입 체크 우회
-  const message = options.translationKey
-    ? (t as (key: string) => string)(options.message)
-    : options.message;
+  const message = options.translationKey ? (t as (key: string) => string)(options.message) : options.message;
 
   return (
-    <Snackbar
-      open={open}
-      autoHideDuration={options.duration}
-      onClose={close}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-    >
+    <Snackbar open={open} autoHideDuration={options.duration} onClose={close} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
       <Alert
         onClose={close}
         severity={options.severity}
-        variant="filled"
+        variant='filled'
         elevation={6}
         sx={{
           width: '100%',
@@ -38,4 +31,3 @@ export default function GlobalSnackbar() {
     </Snackbar>
   );
 }
-

@@ -14,20 +14,15 @@ import {
   useTheme,
   alpha,
 } from '@mui/material';
-import {
-  ErrorOutline as ErrorIcon,
-  Warning as WarningIcon,
-  Info as InfoIcon,
-  BugReport as DebugIcon,
-} from '@mui/icons-material';
+import { ErrorOutline as ErrorIcon, Warning as WarningIcon, Info as InfoIcon, BugReport as DebugIcon } from '@mui/icons-material';
 import type { LogItem, LogLevel, LogCategory } from '@videoforest/types';
 
 // 로그 레벨 색상 및 아이콘
 const levelConfig: Record<LogLevel, { color: 'error' | 'warning' | 'info' | 'secondary'; icon: React.ReactElement }> = {
-  ERROR: { color: 'error', icon: <ErrorIcon fontSize="small" /> },
-  WARN: { color: 'warning', icon: <WarningIcon fontSize="small" /> },
-  INFO: { color: 'info', icon: <InfoIcon fontSize="small" /> },
-  DEBUG: { color: 'secondary', icon: <DebugIcon fontSize="small" /> },
+  ERROR: { color: 'error', icon: <ErrorIcon fontSize='small' /> },
+  WARN: { color: 'warning', icon: <WarningIcon fontSize='small' /> },
+  INFO: { color: 'info', icon: <InfoIcon fontSize='small' /> },
+  DEBUG: { color: 'secondary', icon: <DebugIcon fontSize='small' /> },
 };
 
 interface LogsTableProps {
@@ -75,7 +70,7 @@ export default function LogsTable({
   return (
     <Card>
       <TableContainer>
-        <Table size="small">
+        <Table size='small'>
           <TableHead>
             <TableRow>
               <TableCell width={180}>{t('logs.time')}</TableCell>
@@ -87,26 +82,21 @@ export default function LogsTable({
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
+                <TableCell colSpan={4} align='center' sx={{ py: 8 }}>
                   <CircularProgress />
                 </TableCell>
               </TableRow>
             ) : logs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
-                  <Typography color="text.secondary">{t('logs.empty')}</Typography>
+                <TableCell colSpan={4} align='center' sx={{ py: 8 }}>
+                  <Typography color='text.secondary'>{t('logs.empty')}</Typography>
                 </TableCell>
               </TableRow>
             ) : (
-              logs.map((log) => (
-                <TableRow
-                  key={log.id}
-                  hover
-                  sx={{ cursor: 'pointer' }}
-                  onClick={() => onLogSelect(log)}
-                >
+              logs.map(log => (
+                <TableRow key={log.id} hover sx={{ cursor: 'pointer' }} onClick={() => onLogSelect(log)}>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                    <Typography variant='body2' sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
                       {formatDateLocalized(log.createdAt)}
                     </Typography>
                   </TableCell>
@@ -115,21 +105,21 @@ export default function LogsTable({
                       icon={levelConfig[log.level].icon}
                       label={log.level}
                       color={levelConfig[log.level].color}
-                      size="small"
-                      variant="outlined"
+                      size='small'
+                      variant='outlined'
                     />
                   </TableCell>
                   <TableCell>
                     <Chip
                       label={getCategoryLabel(log.category)}
-                      size="small"
-                      variant="filled"
+                      size='small'
+                      variant='filled'
                       sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}
                     />
                   </TableCell>
                   <TableCell>
                     <Typography
-                      variant="body2"
+                      variant='body2'
                       sx={{
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -149,12 +139,12 @@ export default function LogsTable({
         </Table>
       </TableContainer>
       <TablePagination
-        component="div"
+        component='div'
         count={total}
         page={page}
         onPageChange={(_, newPage) => onPageChange(newPage)}
         rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={(e) => {
+        onRowsPerPageChange={e => {
           onRowsPerPageChange(parseInt(e.target.value, 10));
         }}
         rowsPerPageOptions={[10, 25, 50, 100]}
@@ -164,4 +154,3 @@ export default function LogsTable({
     </Card>
   );
 }
-

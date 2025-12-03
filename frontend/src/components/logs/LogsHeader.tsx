@@ -25,15 +25,15 @@ export default function LogsHeader({ onRefresh, onCleanup, onSettingsOpen }: Log
           <ArrowBackIcon />
         </IconButton>
         <Box>
-          <Typography variant="h4" fontWeight="bold">
+          <Typography variant='h4' fontWeight='bold'>
             {t('logs.title')}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant='body2' color='text.secondary'>
             {t('logs.subtitle')}
           </Typography>
         </Box>
       </Box>
-      <Stack direction="row" spacing={1}>
+      <Stack direction='row' spacing={1}>
         <Tooltip title={t('common.refresh')}>
           <IconButton onClick={onRefresh}>
             <RefreshIcon />
@@ -53,4 +53,3 @@ export default function LogsHeader({ onRefresh, onCleanup, onSettingsOpen }: Log
     </Box>
   );
 }
-

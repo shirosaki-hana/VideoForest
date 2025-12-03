@@ -1,5 +1,11 @@
 import { Box, Typography, Button, Stack, IconButton, Divider, Tooltip } from '@mui/material';
-import { Refresh as RefreshIcon, Scanner as ScanIcon, Settings as SettingsIcon, Logout as LogoutIcon, Terminal as LogsIcon } from '@mui/icons-material';
+import {
+  Refresh as RefreshIcon,
+  Scanner as ScanIcon,
+  Settings as SettingsIcon,
+  Logout as LogoutIcon,
+  Terminal as LogsIcon,
+} from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useMediaStore } from '../../stores/mediaStore';

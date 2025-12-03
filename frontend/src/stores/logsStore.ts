@@ -87,7 +87,7 @@ export const useLogsStore = create<LogsState>((set, get) => ({
   loadLogs: async () => {
     const { page, rowsPerPage, search, levelFilter, categoryFilter } = get();
     set({ loading: true });
-    
+
     try {
       const response = await getLogs({
         page: page + 1,
@@ -128,7 +128,7 @@ export const useLogsStore = create<LogsState>((set, get) => ({
   saveSettings: async () => {
     const { settings } = get();
     set({ savingSettings: true });
-    
+
     try {
       await updateLogSettings(settings);
       set({ settingsOpen: false, savingSettings: false });
@@ -159,7 +159,7 @@ export const useLogsStore = create<LogsState>((set, get) => ({
       const oneYearLater = new Date();
       oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
       await deleteLogs({ olderThan: oneYearLater.toISOString() });
-      
+
       // 로드 갱신
       await get().loadLogs();
       await get().loadStats();
@@ -170,25 +170,24 @@ export const useLogsStore = create<LogsState>((set, get) => ({
   },
 
   // 필터 액션
-  setSearch: (search) => {
+  setSearch: search => {
     set({ search, page: 0 });
   },
-  setLevelFilter: (levelFilter) => {
+  setLevelFilter: levelFilter => {
     set({ levelFilter, page: 0 });
   },
-  setCategoryFilter: (categoryFilter) => {
+  setCategoryFilter: categoryFilter => {
     set({ categoryFilter, page: 0 });
   },
 
   // 페이지네이션 액션
-  setPage: (page) => set({ page }),
-  setRowsPerPage: (rowsPerPage) => set({ rowsPerPage, page: 0 }),
+  setPage: page => set({ page }),
+  setRowsPerPage: rowsPerPage => set({ rowsPerPage, page: 0 }),
 
   // 설정 액션
-  setSettings: (settings) => set({ settings }),
-  setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  setSettings: settings => set({ settings }),
+  setSettingsOpen: settingsOpen => set({ settingsOpen }),
 
   // 선택 액션
-  setSelectedLog: (selectedLog) => set({ selectedLog }),
+  setSelectedLog: selectedLog => set({ selectedLog }),
 }));
-

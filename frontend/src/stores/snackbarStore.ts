@@ -21,7 +21,7 @@ interface SnackbarState {
   close: () => void;
 }
 
-export const useSnackbarStore = create<SnackbarState>((set) => ({
+export const useSnackbarStore = create<SnackbarState>(set => ({
   open: false,
   options: null,
 
@@ -92,14 +92,9 @@ export const useSnackbarStore = create<SnackbarState>((set) => ({
 // 편의를 위한 헬퍼 함수 (컴포넌트 외부에서도 사용 가능)
 export const snackbar = {
   show: (options: SnackbarOptions) => useSnackbarStore.getState().show(options),
-  success: (message: string, translationKey?: boolean) =>
-    useSnackbarStore.getState().success(message, translationKey),
-  error: (message: string, translationKey?: boolean) =>
-    useSnackbarStore.getState().error(message, translationKey),
-  warning: (message: string, translationKey?: boolean) =>
-    useSnackbarStore.getState().warning(message, translationKey),
-  info: (message: string, translationKey?: boolean) =>
-    useSnackbarStore.getState().info(message, translationKey),
+  success: (message: string, translationKey?: boolean) => useSnackbarStore.getState().success(message, translationKey),
+  error: (message: string, translationKey?: boolean) => useSnackbarStore.getState().error(message, translationKey),
+  warning: (message: string, translationKey?: boolean) => useSnackbarStore.getState().warning(message, translationKey),
+  info: (message: string, translationKey?: boolean) => useSnackbarStore.getState().info(message, translationKey),
   close: () => useSnackbarStore.getState().close(),
 };
-

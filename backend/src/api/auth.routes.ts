@@ -24,10 +24,10 @@ export const authRoutes: FastifyPluginAsync = async fastify => {
   fastify.post('/setup', async (request, reply) => {
     const { password } = SetupPasswordRequestSchema.parse(request.body);
     await setupPassword({ password });
-    
+
     const meta = getRequestMeta(request);
     logger.info('auth', 'Password setup completed', meta);
-    
+
     return reply.send(SetupPasswordResponseSchema.parse({ success: true }));
   });
 
@@ -35,22 +35,22 @@ export const authRoutes: FastifyPluginAsync = async fastify => {
   fastify.post('/login', async (request, reply) => {
     const { password } = LoginRequestSchema.parse(request.body);
     const meta = getRequestMeta(request);
-    
+
     try {
       const token = await login({ password });
       reply.setCookie(env.SESSION_COOKIE, token, getCookieOptions());
-      
+
       logger.info('auth', 'Login successful', meta);
-      
+
       return reply.send(LoginResponseSchema.parse({ success: true }));
     } catch (error) {
       const statusCode = (error as { statusCode?: number }).statusCode;
-      
+
       // Invalid password
       if (statusCode === 401) {
         logger.warn('auth', 'Login failed: invalid password', meta);
       }
-      
+
       throw error;
     }
   });
@@ -62,10 +62,10 @@ export const authRoutes: FastifyPluginAsync = async fastify => {
       await logoutByToken(token);
     }
     reply.clearCookie(env.SESSION_COOKIE, getCookieOptions());
-    
+
     const meta = getRequestMeta(request);
     logger.info('auth', 'Logout', meta);
-    
+
     return reply.send(LogoutResponseSchema.parse({ success: true }));
   });
 };

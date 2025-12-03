@@ -1,18 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import {
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  useTheme,
-} from '@mui/material';
-import {
-  ErrorOutline as ErrorIcon,
-  InfoOutlined as InfoIcon,
-  HelpOutline as ConfirmIcon,
-} from '@mui/icons-material';
+import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, useTheme } from '@mui/material';
+import { ErrorOutline as ErrorIcon, InfoOutlined as InfoIcon, HelpOutline as ConfirmIcon } from '@mui/icons-material';
 import { useDialogStore } from '../../stores/dialogStore';
 
 export default function GlobalDialog() {
@@ -48,7 +36,7 @@ export default function GlobalDialog() {
     <Dialog
       open={open}
       onClose={() => close(false)}
-      maxWidth="xs"
+      maxWidth='xs'
       fullWidth
       PaperProps={{
         sx: {
@@ -68,22 +56,20 @@ export default function GlobalDialog() {
         {options.title || getDefaultTitle()}
       </DialogTitle>
       <DialogContent>
-        <DialogContentText sx={{ whiteSpace: 'pre-wrap' }}>
-          {options.message}
-        </DialogContentText>
+        <DialogContentText sx={{ whiteSpace: 'pre-wrap' }}>{options.message}</DialogContentText>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         {options.type === 'confirm' ? (
           <>
-            <Button onClick={() => close(false)} color="inherit">
+            <Button onClick={() => close(false)} color='inherit'>
               {options.cancelText || t('common.cancel')}
             </Button>
-            <Button onClick={() => close(true)} variant="contained" autoFocus>
+            <Button onClick={() => close(true)} variant='contained' autoFocus>
               {options.confirmText || t('dialog.confirmButton')}
             </Button>
           </>
         ) : (
-          <Button onClick={() => close(true)} variant="contained" autoFocus>
+          <Button onClick={() => close(true)} variant='contained' autoFocus>
             {t('common.close')}
           </Button>
         )}
@@ -91,4 +77,3 @@ export default function GlobalDialog() {
     </Dialog>
   );
 }
-

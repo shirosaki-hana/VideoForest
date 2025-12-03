@@ -58,4 +58,3 @@ export async function cleanupLogs(): Promise<DeleteLogsResponse> {
   const response = await apiClient.post('/logs/cleanup');
   return validateResponse(DeleteLogsResponseSchema, response.data);
 }
-
