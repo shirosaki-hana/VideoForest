@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Box, useTheme, useMediaQuery, Container, Paper } from '@mui/material';
 import VideoPlayer, { type PlayerError } from '../components/VideoPlayer';
 import PlayerLoadingState from '../components/Player/PlayerLoadingState';
@@ -11,18 +12,20 @@ import { getMediaInfo, getHLSPlaylistUrl, waitForPlaylist } from '../api/streami
 import { useMediaStore } from '../stores/mediaStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { getNextFile, getPreviousFile, getSiblingFiles } from '../utils/mediaTree';
+import { dialog } from '../stores/dialogStore';
+import { snackbar } from '../stores/snackbarStore';
 import type { MediaInfoResponse, MediaTreeNode } from '@videoforest/types';
 
 export default function PlayerPage() {
   const { mediaId } = useParams<{ mediaId: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [mediaInfo, setMediaInfo] = useState<MediaInfoResponse['media'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [preparingStream, setPreparingStream] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [playlistUrl, setPlaylistUrl] = useState<string>('');
 
   // 미디어 트리와 자동재생 설정
@@ -37,7 +40,7 @@ export default function PlayerPage() {
 
   useEffect(() => {
     if (!mediaId) {
-      setError('Media ID is missing');
+      dialog.error(t('player.errors.missingId')).then(() => navigate('/'));
       setLoading(false);
       return;
     }
@@ -50,7 +53,6 @@ export default function PlayerPage() {
       try {
         setLoading(true);
         setPreparingStream(true);
-        setError(null);
 
         // 1. 미디어 정보 먼저 로드
         const response = await getMediaInfo(mediaId, signal);
@@ -66,14 +68,16 @@ export default function PlayerPage() {
           setPlaylistUrl(getHLSPlaylistUrl(mediaId));
           setPreparingStream(false);
         } else {
-          throw new Error('Stream preparation failed or timeout. Please try again.');
+          throw new Error('streamTimeout');
         }
       } catch (err: unknown) {
         if (signal.aborted || (err && typeof err === 'object' && 'code' in err && err.code === 'ERR_CANCELED')) {
           return; // 취소 시 무시
         }
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load media info';
-        setError(errorMessage);
+        const errorKey = err instanceof Error && err.message === 'streamTimeout' 
+          ? 'player.errors.streamTimeout' 
+          : 'player.errors.loadFailed';
+        dialog.error(t(errorKey)).then(() => navigate('/'));
         setLoading(false);
         setPreparingStream(false);
       }
@@ -84,7 +88,7 @@ export default function PlayerPage() {
     return () => {
       abortController.abort();
     };
-  }, [mediaId]);
+  }, [mediaId, navigate, t]);
 
   // 재생 목록 업데이트
   useEffect(() => {
@@ -109,11 +113,10 @@ export default function PlayerPage() {
   // useCallback으로 메모이제이션하여 리렌더링 시 재생성 방지
   const handlePlayerError = useCallback((error: PlayerError) => {
     const errorMessage = error?.message || 'Unknown error';
-    // 에러가 발생해도 바로 상태를 업데이트하지 않음
-    // 폴백이 진행 중일 수 있으므로 재시도 기회를 줌
+    // 재생 에러는 스낵바로 표시 (3초 후에도 실패하면)
     setTimeout(() => {
-      setError(`Playback error: ${errorMessage}`);
-    }, 3000); // 3초 후에도 실패하면 에러 표시
+      snackbar.error(`Playback error: ${errorMessage}`);
+    }, 3000);
   }, []);
 
   // 비디오 종료 시 자동으로 다음 파일 재생
@@ -139,17 +142,16 @@ export default function PlayerPage() {
 
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* 로딩/에러 상태 */}
+      {/* 로딩 상태 */}
       <PlayerLoadingState
         loading={loading}
         preparingStream={preparingStream}
-        error={error}
         mediaName={mediaInfo?.name}
         onBack={handleBack}
       />
 
       {/* 플레이어 및 컨텐츠 */}
-      {!loading && !preparingStream && !error && playlistUrl && (
+      {!loading && !preparingStream && playlistUrl && (
         <>
           {/* 비디오 플레이어 - 전체 너비, 여백 없음 */}
           <Box sx={{ width: '100%', bgcolor: 'black', position: 'relative', aspectRatio: '16/9' }}>

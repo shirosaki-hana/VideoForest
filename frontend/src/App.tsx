@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CircularProgress, Box } from '@mui/material';
 import { useAuthStore } from './stores/authStore';
 import Layout from './components/Layout';
+import GlobalDialog from './components/common/GlobalDialog';
+import GlobalSnackbar from './components/common/GlobalSnackbar';
 import SetupPasswordPage from './pages/SetupPasswordPage';
 import LoginPage from './pages/LoginPage';
 import MediaListPage from './pages/MediaListPage';
@@ -75,6 +77,8 @@ function App() {
   return (
     <BrowserRouter>
       <AuthRouter />
+      <GlobalDialog />
+      <GlobalSnackbar />
     </BrowserRouter>
   );
 }

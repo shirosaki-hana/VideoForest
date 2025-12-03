@@ -1,46 +1,30 @@
 import { create } from 'zustand';
 import { checkAuthStatus, setupPassword, login as apiLogin, logout as apiLogout } from '../api/auth';
 import type { SetupPasswordRequest, LoginRequest } from '@videoforest/types';
+import { snackbar } from './snackbarStore';
 
 interface AuthState {
   // 상태
   isSetup: boolean; // 비밀번호가 설정되었는지
   isAuthenticated: boolean; // 로그인 되었는지
   isLoading: boolean; // 로딩 중인지
-  error: string | null; // 에러 메시지
 
   // 액션
   checkStatus: () => Promise<void>;
   setup: (data: SetupPasswordRequest) => Promise<void>;
   login: (data: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
-  clearError: () => void;
 }
-
-// 에러 메시지 추출 헬퍼
-const getErrorMessage = (error: unknown, defaultMessage: string): string => {
-  if (error && typeof error === 'object') {
-    const err = error as { response?: { data?: { error?: string } }; message?: string };
-    if (err.response?.data?.error) {
-      return err.response.data.error;
-    }
-    if (err.message) {
-      return err.message;
-    }
-  }
-  return defaultMessage;
-};
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   // 초기 상태
   isSetup: false,
   isAuthenticated: false,
   isLoading: false,
-  error: null,
 
   // 인증 상태 확인
   checkStatus: async () => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true });
     try {
       const status = await checkAuthStatus();
       set({
@@ -48,63 +32,52 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: status.isAuthenticated,
         isLoading: false,
       });
-    } catch (error) {
-      set({
-        error: getErrorMessage(error, 'Failed to check authentication status'),
-        isLoading: false,
-      });
+    } catch {
+      snackbar.error('errors.statusCheckFailed', true);
+      set({ isLoading: false });
     }
   },
 
   // 비밀번호 설정
   setup: async (data: SetupPasswordRequest) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true });
     try {
       await setupPassword(data);
       // 설정 후 상태 재확인
       await get().checkStatus();
-    } catch (error) {
-      set({
-        error: getErrorMessage(error, 'Failed to set password'),
-        isLoading: false,
-      });
-      throw error;
+    } catch {
+      snackbar.error('errors.setupFailed', true);
+      set({ isLoading: false });
+      throw new Error('errors.setupFailed');
     }
   },
 
   // 로그인
   login: async (data: LoginRequest) => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true });
     try {
       await apiLogin(data);
       // 로그인 후 상태 재확인
       await get().checkStatus();
-    } catch (error) {
-      set({
-        error: getErrorMessage(error, 'Login failed'),
-        isLoading: false,
-      });
-      throw error;
+    } catch {
+      snackbar.error('errors.loginFailed', true);
+      set({ isLoading: false });
+      throw new Error('errors.loginFailed');
     }
   },
 
   // 로그아웃
   logout: async () => {
-    set({ isLoading: true, error: null });
+    set({ isLoading: true });
     try {
       await apiLogout();
       set({
         isAuthenticated: false,
         isLoading: false,
       });
-    } catch (error) {
-      set({
-        error: getErrorMessage(error, 'Logout failed'),
-        isLoading: false,
-      });
+    } catch {
+      snackbar.error('errors.logoutFailed', true);
+      set({ isLoading: false });
     }
   },
-
-  // 에러 초기화
-  clearError: () => set({ error: null }),
 }));

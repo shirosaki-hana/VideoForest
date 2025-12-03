@@ -9,6 +9,16 @@ export default {
       cancel: 'Cancel',
       save: 'Save',
       close: 'Close',
+      refresh: 'Refresh',
+      saving: 'Saving...',
+      rowsPerPage: 'Rows per page',
+    },
+
+    // Dialog
+    dialog: {
+      notice: 'Notice',
+      confirm: 'Confirm',
+      confirmButton: 'OK',
     },
 
     // Auth
@@ -76,6 +86,11 @@ export default {
         close: 'Close',
         error: 'An error occurred during scan',
       },
+
+      // Error messages
+      errors: {
+        loadFailed: 'Failed to load media list',
+      },
     },
 
     // Settings
@@ -112,6 +127,11 @@ export default {
       video: 'Video',
       audio: 'Audio',
       bitrate: 'Bitrate',
+      errors: {
+        missingId: 'Media ID is missing',
+        loadFailed: 'Failed to load media information',
+        streamTimeout: 'Stream preparation timed out. Please try again.',
+      },
     },
 
     // Errors
@@ -158,6 +178,17 @@ export default {
         system: 'System',
         database: 'DB',
       },
+      errors: {
+        loadFailed: 'Failed to load logs',
+        settingsSaveFailed: 'Failed to save settings',
+        cleanupFailed: 'Failed to cleanup logs',
+        deleteFailed: 'Failed to delete logs',
+      },
+      confirm: {
+        cleanup: 'This will cleanup old logs according to settings. Continue?',
+        deleteAll: 'This will delete all logs. This action cannot be undone. Continue?',
+      },
+      cleanupResult: '{{count}} logs have been cleaned up.',
     },
   },
 };

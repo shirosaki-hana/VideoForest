@@ -1,30 +1,28 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Box, Button, Alert } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { Lock } from '@mui/icons-material';
 import { useAuthStore } from '../stores/authStore';
 import { PasswordSchema } from '@videoforest/types';
 import AuthPageLayout from '../components/common/AuthPageLayout';
 import PasswordField from '../components/common/PasswordField';
+import { snackbar } from '../stores/snackbarStore';
 
 export default function SetupPasswordPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { setup, isLoading, error, clearError } = useAuthStore();
+  const { setup, isLoading } = useAuthStore();
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setValidationError(null);
-    clearError();
 
     // 비밀번호 확인 검증
     if (password !== confirmPassword) {
-      setValidationError(t('auth.setup.passwordMismatch'));
+      snackbar.warning(t('auth.setup.passwordMismatch'));
       return;
     }
 
@@ -33,7 +31,7 @@ export default function SetupPasswordPage() {
       PasswordSchema.parse(password);
     } catch (err) {
       const zodError = err as { errors?: Array<{ message: string }> };
-      setValidationError(zodError.errors?.[0]?.message || t('auth.setup.invalidFormat'));
+      snackbar.warning(zodError.errors?.[0]?.message || t('auth.setup.invalidFormat'));
       return;
     }
 
@@ -41,18 +39,12 @@ export default function SetupPasswordPage() {
       await setup({ password });
       navigate('/');
     } catch {
-      // 에러는 스토어에서 처리
+      // 에러는 snackbar로 표시됨
     }
   };
 
   return (
     <AuthPageLayout icon={<Lock sx={{ fontSize: 32, color: 'white' }} />} title={t('common.appName')} subtitle={t('auth.setup.subtitle')}>
-      {(error || validationError) && (
-        <Alert severity='error' sx={{ width: '100%' }}>
-          {validationError || error}
-        </Alert>
-      )}
-
       <Box component='form' onSubmit={handleSubmit} sx={{ width: '100%' }}>
         <PasswordField
           margin='normal'

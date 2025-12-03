@@ -1,19 +1,18 @@
-import { Box, Container, Typography, CircularProgress, Alert, IconButton } from '@mui/material';
+import { Box, Container, Typography, CircularProgress, IconButton } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 
 interface PlayerLoadingStateProps {
   loading: boolean;
   preparingStream: boolean;
-  error: string | null;
   mediaName?: string;
   onBack: () => void;
 }
 
-export default function PlayerLoadingState({ loading, preparingStream, error, mediaName, onBack }: PlayerLoadingStateProps) {
+export default function PlayerLoadingState({ loading, preparingStream, mediaName, onBack }: PlayerLoadingStateProps) {
   const { t } = useTranslation();
 
-  if (!loading && !preparingStream && !error) {
+  if (!loading && !preparingStream) {
     return null;
   }
 
@@ -48,8 +47,6 @@ export default function PlayerLoadingState({ loading, preparingStream, error, me
           </Typography>
         </Box>
       )}
-
-      {!loading && error && <Alert severity='error'>{error}</Alert>}
     </Container>
   );
 }

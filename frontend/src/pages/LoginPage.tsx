@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Box, Button, Alert } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { Login as LoginIcon } from '@mui/icons-material';
 import { useAuthStore } from '../stores/authStore';
 import AuthPageLayout from '../components/common/AuthPageLayout';
@@ -10,12 +10,11 @@ import PasswordField from '../components/common/PasswordField';
 export default function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { login, isLoading, error, clearError } = useAuthStore();
+  const { login, isLoading } = useAuthStore();
   const [password, setPassword] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    clearError();
 
     if (!password.trim()) {
       return;
@@ -25,7 +24,7 @@ export default function LoginPage() {
       await login({ password });
       navigate('/welcome');
     } catch {
-      // 에러는 스토어에서 처리
+      // 에러는 snackbar로 표시됨
     }
   };
 
@@ -35,12 +34,6 @@ export default function LoginPage() {
       title={t('common.appName')}
       subtitle={t('auth.login.subtitle')}
     >
-      {error && (
-        <Alert severity='error' sx={{ width: '100%' }}>
-          {error}
-        </Alert>
-      )}
-
       <Box component='form' onSubmit={handleSubmit} sx={{ width: '100%' }}>
         <PasswordField
           margin='normal'

@@ -9,6 +9,16 @@ export default {
       cancel: '취소',
       save: '저장',
       close: '닫기',
+      refresh: '새로고침',
+      saving: '저장 중...',
+      rowsPerPage: '페이지당 행',
+    },
+
+    // Dialog
+    dialog: {
+      notice: '알림',
+      confirm: '확인',
+      confirmButton: '확인',
     },
 
     // Auth
@@ -76,6 +86,11 @@ export default {
         close: '닫기',
         error: '스캔 중 오류가 발생했습니다',
       },
+
+      // 에러 메시지
+      errors: {
+        loadFailed: '미디어 목록을 불러오는데 실패했습니다',
+      },
     },
 
     // Settings
@@ -112,6 +127,11 @@ export default {
       video: '비디오',
       audio: '오디오',
       bitrate: '비트레이트',
+      errors: {
+        missingId: '미디어 ID가 없습니다',
+        loadFailed: '미디어 정보를 불러오는데 실패했습니다',
+        streamTimeout: '스트리밍 준비 시간이 초과되었습니다. 다시 시도해주세요.',
+      },
     },
 
     // Errors
@@ -158,6 +178,17 @@ export default {
         system: '시스템',
         database: 'DB',
       },
+      errors: {
+        loadFailed: '로그를 불러오는데 실패했습니다',
+        settingsSaveFailed: '설정 저장에 실패했습니다',
+        cleanupFailed: '로그 정리에 실패했습니다',
+        deleteFailed: '로그 삭제에 실패했습니다',
+      },
+      confirm: {
+        cleanup: '설정에 따라 오래된 로그를 정리합니다. 계속하시겠습니까?',
+        deleteAll: '모든 로그를 삭제합니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?',
+      },
+      cleanupResult: '{{count}}개의 로그가 정리되었습니다.',
     },
   },
 };
