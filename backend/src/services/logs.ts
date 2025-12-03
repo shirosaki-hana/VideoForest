@@ -90,6 +90,10 @@ export const getLogs = async (params: GetLogsRequest) => {
 
 //------------------------------------------------------------------------------//
 // 로그 통계
+// 모든 레벨과 카테고리에 대해 기본값 0을 설정 (Zod 스키마 검증을 위해)
+const ALL_LEVELS = ['ERROR', 'WARN', 'INFO', 'DEBUG'] as const;
+const ALL_CATEGORIES = ['api', 'streaming', 'media', 'auth', 'system', 'database'] as const;
+
 export const getLogStats = async () => {
   const now = new Date();
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -109,14 +113,20 @@ export const getLogStats = async () => {
     database.log.count({ where: { createdAt: { gte: oneWeekAgo } } }),
   ]);
 
-  // 레벨별 통계를 객체로 변환
+  // 레벨별 통계를 객체로 변환 (모든 레벨에 대해 기본값 0 설정)
   const byLevelMap: Record<string, number> = {};
+  for (const level of ALL_LEVELS) {
+    byLevelMap[level] = 0;
+  }
   for (const item of byLevel) {
     byLevelMap[item.level] = item._count.level;
   }
 
-  // 카테고리별 통계를 객체로 변환
+  // 카테고리별 통계를 객체로 변환 (모든 카테고리에 대해 기본값 0 설정)
   const byCategoryMap: Record<string, number> = {};
+  for (const category of ALL_CATEGORIES) {
+    byCategoryMap[category] = 0;
+  }
   for (const item of byCategory) {
     byCategoryMap[item.category] = item._count.category;
   }
