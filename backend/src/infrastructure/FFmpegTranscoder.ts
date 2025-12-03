@@ -58,7 +58,7 @@ export class FFmpegTranscoder {
     }
 
     this.activeProcesses.clear();
-    logger.success('system', 'All FFmpeg processes killed');
+    logger.info('system', 'All FFmpeg processes killed');
   }
 
   /**

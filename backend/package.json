@@ -40,7 +40,6 @@
     "@prisma/client": "^7.0.1",
     "@prisma/client-runtime-utils": "^7.0.1",
     "@videoforest/types": "workspace:*",
-    "ansi-colors": "^4.1.3",
     "axios": "^1.13.2",
     "better-sqlite3": "^12.4.6",
     "dotenv": "^17.2.2",

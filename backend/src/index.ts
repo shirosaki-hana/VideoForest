@@ -42,7 +42,7 @@ async function startServer(host: string, port: number) {
   await detectFFprobe();
   await HardwareAccelerationDetector.detect();
   await fastify.listen({ port, host: host });
-  logger.success('system', `Server is running on http://${host}:${port}`);
+  logger.info('system', `Server is running on http://${host}:${port}`);
 
   return fastify;
 }
@@ -55,7 +55,7 @@ async function gracefulShutdown(fastify: Awaited<ReturnType<typeof createFastify
     FFmpegTranscoder.killAllProcesses(); // 활성 FFmpeg 프로세스 종료 (고아 프로세스 방지)
     await fastify.close(); // Fastify 서버 종료
     await disconnectDatabase(); // 데이터베이스 연결 해제
-    logger.success('system', 'Server closed successfully');
+    logger.info('system', 'Server closed successfully');
     process.exitCode = 0;
   } catch (error) {
     logger.error('system', 'Error during graceful shutdown:', error);

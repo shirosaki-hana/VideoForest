@@ -49,7 +49,7 @@ export async function detectFFprobe(): Promise<FFprobeInfo> {
   }
 
   // 2. Installer FFprobe 사용
-  logger.info('system', 'system', `Using bundled FFprobe: ${ffprobeInstaller.path}`);
+  logger.info('system', `Using bundled FFprobe: ${ffprobeInstaller.path}`);
 
   const installerInfo: FFprobeInfo = {
     path: ffprobeInstaller.path,
