@@ -34,14 +34,16 @@ async function createFastifyApp() {
 
 // 서버 시작 함수
 async function startServer(host: string, port: number) {
-  const fastify = await createFastifyApp();
-  //앱 초기 동작
+  //앱 초기 동작 (Fastify 생성 전)
   await checkDatabaseConnection(); // 1. 데이터베이스 커넥션 확인
-  initializeLogger(); // 2. 로거 초기화
-  await detectFFmpeg(); // 3. FFmpeg 감지
-  await detectFFprobe(); // 4. FFprove 감지
-  await HardwareAccelerationDetector.detect(); // 5. 하드웨어 가속 감지
-  await fastify.listen({ port, host: host }); // 6. 서버 리스닝 시작
+  initializeLogger(); // 2. 로거 초기화 (Fastify 로거가 사용하므로 먼저 초기화)
+  //Fastify 앱 생성
+  const fastify = await createFastifyApp(); // 3. Fastify 앱 생성 (로거 스트림 사용)
+  //앱 초기 동작 (Fastify 생성 후)
+  await detectFFmpeg(); // 4. FFmpeg 감지
+  await detectFFprobe(); // 5. FFprobe 감지
+  await HardwareAccelerationDetector.detect(); // 6. 하드웨어 가속 감지
+  await fastify.listen({ port, host: host }); // 7. 서버 리스닝 시작
 
   return fastify;
 }
