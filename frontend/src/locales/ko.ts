@@ -177,6 +177,7 @@ export default {
         auth: '인증',
         system: '시스템',
         database: 'DB',
+        server: '서버',
       },
       errors: {
         loadFailed: '로그를 불러오는데 실패했습니다',
