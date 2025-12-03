@@ -225,15 +225,8 @@ class StreamingService {
       return null;
     }
 
-    // 3. 캐시 확인
-    const cachedPath = FFmpegTranscoder.checkCache(mediaId, quality, segmentNumber);
-    if (cachedPath) {
-      // 캐시 히트 시에도 다음 세그먼트 프리페칭 트리거
-      this.prefetchSegments(metadata, quality, segmentNumber, profile);
-      return cachedPath;
-    }
-
-    // 4. JIT 트랜스코딩 (중복 요청 방지)
+    // 3. 진행 중인 작업 확인 (먼저! - 불완전한 파일 반환 방지)
+    //    프리페칭 중인 세그먼트 요청 시, 파일이 존재하지만 아직 쓰는 중일 수 있음
     const existingJob = this.transcodingJobs.get(mediaId, quality, segmentNumber);
     if (existingJob) {
       logger.debug('streaming', `Transcoding already in progress for ${mediaId}:${quality}:${segmentNumber}, waiting...`);
@@ -241,6 +234,14 @@ class StreamingService {
       // 기존 작업 완료 후 프리페칭 트리거
       this.prefetchSegments(metadata, quality, segmentNumber, profile);
       return result;
+    }
+
+    // 4. 캐시 확인 (작업이 없을 때만 - 완료된 파일만 존재)
+    const cachedPath = FFmpegTranscoder.checkCache(mediaId, quality, segmentNumber);
+    if (cachedPath) {
+      // 캐시 히트 시에도 다음 세그먼트 프리페칭 트리거
+      this.prefetchSegments(metadata, quality, segmentNumber, profile);
+      return cachedPath;
     }
 
     // 새로운 트랜스코딩 작업 시작
