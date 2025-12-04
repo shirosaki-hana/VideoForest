@@ -11,6 +11,7 @@ import Playlist from '../components/Player/Playlist';
 import { getMediaInfo, getHLSPlaylistUrl, waitForPlaylist } from '../api/streaming';
 import { useMediaStore } from '../stores/mediaStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useWatchHistoryStore } from '../stores/watchHistoryStore';
 import { getNextFile, getPreviousFile, getSiblingFiles } from '../utils/mediaTree';
 import { dialog } from '../stores/dialogStore';
 import { snackbar } from '../stores/snackbarStore';
@@ -31,6 +32,7 @@ export default function PlayerPage() {
   // 미디어 트리와 자동재생 설정
   const { mediaTree } = useMediaStore();
   const { autoPlayNext, setAutoPlayNext } = useSettingsStore();
+  const markAsWatched = useWatchHistoryStore(state => state.markAsWatched);
 
   // 재생 목록 정보
   const [playlist, setPlaylist] = useState<MediaTreeNode[]>([]);
@@ -67,6 +69,8 @@ export default function PlayerPage() {
         if (isReady) {
           setPlaylistUrl(getHLSPlaylistUrl(mediaId));
           setPreparingStream(false);
+          // 재생 시작 시 시청 완료로 마킹
+          markAsWatched(mediaId);
         } else {
           throw new Error('streamTimeout');
         }

@@ -87,6 +87,9 @@ export default {
         error: 'An error occurred during scan',
       },
 
+      // Watch status
+      watched: 'Watched',
+
       // Error messages
       errors: {
         loadFailed: 'Failed to load media list',

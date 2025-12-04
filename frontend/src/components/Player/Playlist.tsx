@@ -1,6 +1,8 @@
 import { Box, Paper, Typography, Stack, useMediaQuery, useTheme } from '@mui/material';
+import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { formatDuration } from '../../utils/format';
+import { useWatchHistoryStore } from '../../stores/watchHistoryStore';
 import type { MediaTreeNode } from '@videoforest/types';
 
 interface PlaylistProps {
@@ -13,6 +15,7 @@ export default function Playlist({ playlist, currentMediaId, onSelectMedia }: Pl
   const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const watchedMediaIds = useWatchHistoryStore(state => state.watchedMediaIds);
 
   if (playlist.length <= 1) {
     return null;
@@ -44,54 +47,71 @@ export default function Playlist({ playlist, currentMediaId, onSelectMedia }: Pl
           </Typography>
         </Box>
         <Stack spacing={0} sx={{ p: 1 }}>
-          {playlist.map((file, index) => (
-            <Box
-              key={file.id}
-              onClick={() => onSelectMedia(file.id)}
-              sx={{
-                p: 1.5,
-                borderRadius: 1,
-                cursor: 'pointer',
-                bgcolor: file.id === currentMediaId ? 'primary.main' : 'transparent',
-                color: file.id === currentMediaId ? 'primary.contrastText' : 'text.primary',
-                '&:hover': {
-                  bgcolor: file.id === currentMediaId ? 'primary.dark' : 'action.hover',
-                },
-                transition: 'background-color 0.2s',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                <Typography
-                  variant='body2'
-                  color={file.id === currentMediaId ? 'inherit' : 'text.secondary'}
-                  sx={{ minWidth: 24, fontWeight: file.id === currentMediaId ? 'bold' : 'normal', mt: 0.2 }}
-                >
-                  {index + 1}
-                </Typography>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography
-                    variant='body2'
-                    sx={{
-                      fontWeight: file.id === currentMediaId ? 600 : 400,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {file.name}
-                  </Typography>
-                  {file.duration && (
-                    <Typography variant='caption' sx={{ opacity: 0.8, display: 'block', mt: 0.5 }}>
-                      {formatDuration(file.duration)}
+          {playlist.map((file, index) => {
+            const isCurrent = file.id === currentMediaId;
+            const isWatched = watchedMediaIds.has(file.id);
+
+            return (
+              <Box
+                key={file.id}
+                onClick={() => onSelectMedia(file.id)}
+                sx={{
+                  p: 1.5,
+                  borderRadius: 1,
+                  cursor: 'pointer',
+                  bgcolor: isCurrent ? 'primary.main' : 'transparent',
+                  color: isCurrent ? 'primary.contrastText' : 'text.primary',
+                  opacity: !isCurrent && isWatched ? 0.7 : 1,
+                  '&:hover': {
+                    bgcolor: isCurrent ? 'primary.dark' : 'action.hover',
+                  },
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                  <Box sx={{ minWidth: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 0.2 }}>
+                    {isWatched ? (
+                      <CheckCircleIcon
+                        sx={{
+                          fontSize: 16,
+                          color: isCurrent ? 'inherit' : 'success.main',
+                        }}
+                      />
+                    ) : (
+                      <Typography
+                        variant='body2'
+                        color={isCurrent ? 'inherit' : 'text.secondary'}
+                        sx={{ fontWeight: isCurrent ? 'bold' : 'normal' }}
+                      >
+                        {index + 1}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      variant='body2'
+                      sx={{
+                        fontWeight: isCurrent ? 600 : 400,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {file.name}
                     </Typography>
-                  )}
+                    {file.duration && (
+                      <Typography variant='caption' sx={{ opacity: 0.8, display: 'block', mt: 0.5 }}>
+                        {formatDuration(file.duration)}
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
               </Box>
-            </Box>
-          ))}
+            );
+          })}
         </Stack>
       </Paper>
     </Box>

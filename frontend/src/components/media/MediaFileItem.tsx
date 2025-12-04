@@ -1,7 +1,9 @@
 import { Box, Typography, Chip, Stack, Tooltip } from '@mui/material';
-import { VideoFile as VideoFileIcon } from '@mui/icons-material';
+import { VideoFile as VideoFileIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { formatFileSize, formatDuration } from '../../utils/format';
+import { useWatchHistoryStore } from '../../stores/watchHistoryStore';
 import type { MediaTreeNode } from '@videoforest/types';
 
 interface MediaFileItemProps {
@@ -11,6 +13,8 @@ interface MediaFileItemProps {
 
 export default function MediaFileItem({ node, depth }: MediaFileItemProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const isWatched = useWatchHistoryStore(state => state.watchedMediaIds.has(node.id));
 
   const handleClick = () => {
     navigate(`/player/${node.id}`);
@@ -30,9 +34,27 @@ export default function MediaFileItem({ node, depth }: MediaFileItemProps) {
           bgcolor: 'action.hover',
         },
         borderRadius: 1,
+        opacity: isWatched ? 0.7 : 1,
       }}
     >
-      <VideoFileIcon sx={{ mr: 2, color: 'text.secondary' }} />
+      <Tooltip title={isWatched ? t('media.watched') : ''} placement='top'>
+        <Box sx={{ position: 'relative', mr: 2 }}>
+          <VideoFileIcon sx={{ color: isWatched ? 'success.main' : 'text.secondary' }} />
+          {isWatched && (
+            <CheckCircleIcon
+              sx={{
+                position: 'absolute',
+                bottom: -4,
+                right: -4,
+                fontSize: 14,
+                color: 'success.main',
+                bgcolor: 'background.paper',
+                borderRadius: '50%',
+              }}
+            />
+          )}
+        </Box>
+      </Tooltip>
       <Box sx={{ flexGrow: 1, minWidth: 0 }}>
         <Tooltip title={node.name}>
           <Typography

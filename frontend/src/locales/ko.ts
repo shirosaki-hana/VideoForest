@@ -87,6 +87,9 @@ export default {
         error: '스캔 중 오류가 발생했습니다',
       },
 
+      // 시청 상태
+      watched: '시청 완료',
+
       // 에러 메시지
       errors: {
         loadFailed: '미디어 목록을 불러오는데 실패했습니다',
