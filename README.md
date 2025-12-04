@@ -212,6 +212,110 @@ pnpm db:reset
 2. The server will automatically scan and index media files on startup
 3. Browse and play videos through the web interface
 
+## Docker Deployment
+
+VideoForest supports Docker deployment with hardware acceleration options for NVIDIA and Intel GPUs.
+
+### Quick Start
+
+1. Copy the example environment file:
+
+```bash
+cp env.example .env
+```
+
+2. Edit `.env` and set your media library path:
+
+```env
+MEDIA_PATH_1=/path/to/your/media/library
+MEDIA_PATHS=/media/library1
+```
+
+3. Start the container:
+
+```bash
+# CPU only (default)
+docker compose up -d
+
+# With NVIDIA GPU (NVENC)
+docker compose --profile nvidia up -d
+
+# With Intel GPU (QSV)
+docker compose --profile intel up -d
+```
+
+4. Access the application at `http://localhost:4001`
+
+### Hardware Acceleration
+
+#### NVIDIA GPU (NVENC)
+
+Requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html):
+
+```bash
+# Install NVIDIA Container Toolkit (Ubuntu/Debian)
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+
+# Run with NVIDIA profile
+docker compose --profile nvidia up -d
+```
+
+#### Intel GPU (QSV)
+
+Requires Intel GPU drivers on the host:
+
+```bash
+# Check render group ID
+getent group render
+
+# Update group_add in docker-compose.yml if different from 109
+# Then run with Intel profile
+docker compose --profile intel up -d
+```
+
+### Multiple Media Libraries
+
+To mount multiple media directories, edit `docker-compose.yml`:
+
+```yaml
+volumes:
+  - ${MEDIA_PATH_1:-./media}:/media/library1:ro
+  - ${MEDIA_PATH_2:-./media2}:/media/library2:ro
+  - ${MEDIA_PATH_3:-./media3}:/media/library3:ro
+```
+
+Then update `.env`:
+
+```env
+MEDIA_PATH_1=/mnt/nas/movies
+MEDIA_PATH_2=/mnt/nas/tvshows
+MEDIA_PATH_3=/mnt/external/videos
+MEDIA_PATHS=/media/library1,/media/library2,/media/library3
+```
+
+### Data Persistence
+
+- **Database**: Stored in `videoforest-data` Docker volume
+- **HLS Cache**: Stored in `videoforest-temp` Docker volume
+
+To backup the database:
+
+```bash
+docker cp videoforest:/app/data/videoforest.db ./backup/
+```
+
+### Building from Source
+
+```bash
+docker compose build
+```
+
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
