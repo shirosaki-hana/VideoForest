@@ -112,6 +112,13 @@ export default {
         autoPlayNext: '자동 연속 재생',
         autoPlayNextDesc: '비디오가 끝나면 같은 폴더의 다음 파일을 자동으로 재생합니다',
       },
+      quality: {
+        title: '화질 설정',
+        description: 'JIT 트랜스코딩 환경에서 안정적인 재생을 위해 고정 화질로 재생합니다',
+        high: '최고',
+        medium: '중간',
+        low: '최저',
+      },
     },
 
     // Player

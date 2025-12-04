@@ -112,6 +112,13 @@ export default {
         autoPlayNext: 'Auto-play Next',
         autoPlayNextDesc: 'Automatically play the next file in the same folder when the video ends',
       },
+      quality: {
+        title: 'Video Quality',
+        description: 'Fixed quality playback for stable streaming in JIT transcoding environment',
+        high: 'High',
+        medium: 'Medium',
+        low: 'Low',
+      },
     },
 
     // Player

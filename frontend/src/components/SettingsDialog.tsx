@@ -12,14 +12,14 @@ import {
   Switch,
   FormControlLabel,
 } from '@mui/material';
-import { Close as CloseIcon, LightMode, DarkMode, SettingsBrightness } from '@mui/icons-material';
+import { Close as CloseIcon, LightMode, DarkMode, SettingsBrightness, HighQuality, Sd, Hd } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import { useSettingsStore } from '../stores/settingsStore';
+import { useSettingsStore, type QualityPreference } from '../stores/settingsStore';
 import { useThemeStore, type ThemeMode } from '../stores/themeStore';
 
 export default function SettingsDialog() {
   const { t, i18n } = useTranslation();
-  const { isOpen, closeSettings, autoPlayNext, setAutoPlayNext } = useSettingsStore();
+  const { isOpen, closeSettings, autoPlayNext, setAutoPlayNext, preferredQuality, setPreferredQuality } = useSettingsStore();
   const { mode: themeMode, setMode: setThemeMode } = useThemeStore();
 
   const handleThemeChange = (_event: React.MouseEvent<HTMLElement>, newMode: ThemeMode | null) => {
@@ -32,6 +32,12 @@ export default function SettingsDialog() {
     if (newLang !== null) {
       i18n.changeLanguage(newLang);
       localStorage.setItem('language', newLang);
+    }
+  };
+
+  const handleQualityChange = (_event: React.MouseEvent<HTMLElement>, newQuality: QualityPreference | null) => {
+    if (newQuality !== null) {
+      setPreferredQuality(newQuality);
     }
   };
 
@@ -118,6 +124,32 @@ export default function SettingsDialog() {
             <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: 0.5, ml: 4 }}>
               {t('settings.playback.autoPlayNextDesc')}
             </Typography>
+          </Box>
+
+          <Divider />
+
+          {/* 화질 설정 */}
+          <Box>
+            <Typography variant='subtitle2' gutterBottom sx={{ fontWeight: 600 }}>
+              {t('settings.quality.title')}
+            </Typography>
+            <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 1.5 }}>
+              {t('settings.quality.description')}
+            </Typography>
+            <ToggleButtonGroup value={preferredQuality} exclusive onChange={handleQualityChange} fullWidth size='medium'>
+              <ToggleButton value='high' aria-label='high quality'>
+                <HighQuality sx={{ mr: 1 }} />
+                {t('settings.quality.high')}
+              </ToggleButton>
+              <ToggleButton value='medium' aria-label='medium quality'>
+                <Hd sx={{ mr: 1 }} />
+                {t('settings.quality.medium')}
+              </ToggleButton>
+              <ToggleButton value='low' aria-label='low quality'>
+                <Sd sx={{ mr: 1 }} />
+                {t('settings.quality.low')}
+              </ToggleButton>
+            </ToggleButtonGroup>
           </Box>
         </Stack>
       </DialogContent>
