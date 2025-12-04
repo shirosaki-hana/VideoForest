@@ -12,6 +12,7 @@ import { env, fastifyConfig, helmetConfig, rateLimitConfig, corsConfig, staticFi
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
 import { notFoundHandler, errorHandler } from './handlers/index.js';
 import { initializeLogger } from './services/logs.js';
+import { console_error } from './utils/index.js';
 //------------------------------------------------------------------------------//
 
 // Fastify 서버 생성
@@ -55,7 +56,8 @@ async function gracefulShutdown(fastify: Awaited<ReturnType<typeof createFastify
     await fastify.close(); // 2. Fastify 서버 종료
     await disconnectDatabase(); // 3. 데이터베이스 연결 해제
     process.exitCode = 0;
-  } catch {
+  } catch (error) {
+    console_error(error)
     process.exitCode = 1;
   }
 }
@@ -70,7 +72,8 @@ async function main() {
     process.on('SIGTERM', () => {
       gracefulShutdown(fastify).catch(() => {}); // SIGTERM으로 인한 서버 종료
     });
-  } catch {
+  } catch (error) {
+    console_error(error)
     process.exitCode = 1;
   }
 }
