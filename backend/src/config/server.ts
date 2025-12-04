@@ -56,13 +56,13 @@ export const helmetConfig = {
       mediaSrc: ["'self'", 'blob:', 'data:'],
       // HLS 세그먼트 fetch를 위한 설정
       connectSrc: ["'self'", 'blob:', 'data:'],
-      // 스크립트 소스 (Video.js 등)
+      // 스크립트 소스 (Vidstack 플레이어)
       scriptSrc: ["'self'", "'unsafe-inline'"],
       // 스타일 소스
       styleSrc: ["'self'", "'unsafe-inline'"],
       // 이미지 소스 (썸네일 등)
       imgSrc: ["'self'", 'blob:', 'data:', 'https:'],
-      // 웹 워커 (Video.js가 사용할 수 있음)
+      // 웹 워커 (Vidstack이 사용할 수 있음)
       workerSrc: ["'self'", 'blob:'],
       // 폰트
       fontSrc: ["'self'", 'data:'],

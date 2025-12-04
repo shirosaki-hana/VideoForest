@@ -119,21 +119,9 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
               const targetLevel = getQualityLevelIndex(preferredQuality, levelCount);
 
               // 선택된 화질로 고정 (ABR 비활성화)
-              // currentLevel을 설정하면 autoLevelEnabled가 자동으로 false가 됨
               hls.currentLevel = targetLevel;
-
-              // 레벨 변경 로그 (디버그용)
-              const level = hls.levels[targetLevel];
-              const levelName = level?.name || `${level?.height}p`;
-              console.log(`[VideoPlayer] Quality fixed to: ${levelName} (level ${targetLevel}/${levelCount}, ${level?.bitrate} bps)`);
-              console.log(`[VideoPlayer] All levels:`, hls.levels.map((l, i) => `${i}: ${l.name || l.height + 'p'}`).join(', '));
             });
 
-            // 디버그: 레벨 변경 감지
-            hls.on(HLS.Events.LEVEL_SWITCHED, (_event, data) => {
-              const level = hls.levels[data.level];
-              console.log(`[VideoPlayer] Level switched to: ${level?.name || level?.height + 'p'}`);
-            });
           });
         }
       }}
@@ -149,9 +137,6 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
         - ABR을 비활성화하고 고정 화질로 재생
         - 화질은 애플리케이션 설정에서만 제어
         - Auto 옵션은 혼동을 주므로 숨김
-        
-        Note: Vidstack은 특정 품질 옵션만 숨기는 공식 API를 제공하지 않음
-        aria-label은 접근성 속성이므로 비교적 안정적임
       */}
       <style>{`
         .jit-player .vds-menu-checkbox[aria-label="Auto"],
@@ -159,7 +144,6 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
         .jit-player .vds-radio[aria-label="Auto"] {
           display: none !important;
         }
-        /* 부모 menu-item도 숨김 (구조에 따라) */
         .jit-player .vds-menu-item:has(.vds-menu-checkbox[aria-label="Auto"]) {
           display: none !important;
         }
