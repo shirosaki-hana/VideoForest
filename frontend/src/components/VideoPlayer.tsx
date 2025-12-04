@@ -90,6 +90,7 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
         streamType='on-demand'
         crossOrigin='use-credentials'
         playsInline
+        autoPlay
         onCanPlay={handleCanPlay}
         onEnded={handleEnded}
         onError={handleError}
