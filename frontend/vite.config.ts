@@ -16,19 +16,26 @@ function getPackageName(id: string): string | null {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    react(),
-    visualizer({
-      filename: 'dist/stats.html',
-      open: false,
-      gzipSize: true,
-      brotliSize: true,
-    }),
-  ],
-  build: {
-    target: 'es2023',
-    chunkSizeWarningLimit: 900,
+export default defineConfig(({ mode }) => {
+  // debug 모드: 소스맵 포함, 난독화 제거 (프로덕션 버그 추적용)
+  // 사용법: pnpm build:debug 또는 vite build --mode debug
+  const isDebug = mode === 'debug';
+
+  return {
+    plugins: [
+      react(),
+      visualizer({
+        filename: 'dist/stats.html',
+        open: false,
+        gzipSize: true,
+        brotliSize: true,
+      }),
+    ],
+    build: {
+      target: 'es2023',
+      chunkSizeWarningLimit: 900,
+      sourcemap: isDebug, // debug 모드에서 소스맵 생성
+      minify: !isDebug,   // debug 모드에서 난독화 비활성화
     rollupOptions: {
       output: {
         // 자동 청크 분리: pnpm 구조까지 고려해 패키지 단위로 분리
@@ -87,4 +94,5 @@ export default defineConfig({
       },
     },
   },
+  };
 });

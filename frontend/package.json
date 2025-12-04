@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "pnpm clean && pnpm -w exec tsc -b frontend/tsconfig.json && vite build",
+    "build:debug": "pnpm clean && pnpm -w exec tsc -b frontend/tsconfig.json && vite build --mode debug",
     "lint": "pnpm -w exec eslint frontend/",
     "lint:fix": "pnpm -w exec eslint frontend/ --fix",
     "format": "pnpm -w exec prettier --write frontend/",
