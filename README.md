@@ -92,7 +92,7 @@ cp .env.example .env
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NODE_ENV` | `development` | Set to `production` to enable CORS restrictions and security headers |
+| `NODE_ENV` | `production` | Set to `development` to relax CORS and security headers, and perform segment validations. |
 | `HOST` | `127.0.0.1` | IP address to bind the server |
 | `PORT` | `4001` | Server port number |
 | `FRONTEND_URL` | `http://127.0.0.1:4001` | Frontend URL for CORS (restricted in production mode) |
