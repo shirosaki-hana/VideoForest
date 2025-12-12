@@ -39,6 +39,12 @@ Initial password setup (only available when password is not set).
 }
 ```
 
+**Password Requirements:**
+
+- Minimum 8 characters, maximum 128 characters
+- Must contain at least one letter (a-z or A-Z)
+- Must contain at least one digit (0-9)
+
 **Response:**
 
 ```json
@@ -99,13 +105,14 @@ Scan media directory and refresh library database.
     {
       "id": string,
       "name": string,
-      "path": string,
-      "duration": number,
-      "width": number,
-      "height": number,
-      "codec": string,
+      "filePath": string,
+      "folderId": string | null,
+      "duration": number | null,
+      "width": number | null,
+      "height": number | null,
+      "codec": string | null,
       "bitrate": number | null,
-      "fps": number,
+      "fps": number | null,
       "audioCodec": string | null,
       "fileSize": number | null,
       "createdAt": string,
@@ -129,13 +136,14 @@ Get all media items from the database.
     {
       "id": string,
       "name": string,
-      "path": string,
-      "duration": number,
-      "width": number,
-      "height": number,
-      "codec": string,
+      "filePath": string,
+      "folderId": string | null,
+      "duration": number | null,
+      "width": number | null,
+      "height": number | null,
+      "codec": string | null,
       "bitrate": number | null,
-      "fps": number,
+      "fps": number | null,
       "audioCodec": string | null,
       "fileSize": number | null,
       "createdAt": string,
@@ -154,13 +162,25 @@ Get media library as hierarchical tree structure.
 ```json
 {
   "success": true,
-  "tree": {
-    "name": string,
-    "path": string,
-    "type": "folder" | "file",
-    "children": [...],
-    "mediaId"?: string
-  }
+  "tree": [
+    {
+      "id": string,
+      "name": string,
+      "type": "folder" | "file",
+      "path": string,
+      "folderId": string | null,
+      "children"?: [...],
+      // File-only metadata (when type is "file"):
+      "duration"?: number | null,
+      "width"?: number | null,
+      "height"?: number | null,
+      "codec"?: string | null,
+      "bitrate"?: number | null,
+      "fps"?: number | null,
+      "audioCodec"?: string | null,
+      "fileSize"?: number | null
+    }
+  ]
 }
 ```
 
@@ -267,15 +287,171 @@ Get media metadata for playback.
   "media": {
     "id": string,
     "name": string,
-    "duration": number,
-    "width": number,
-    "height": number,
-    "codec": string,
+    "duration": number | null,
+    "width": number | null,
+    "height": number | null,
+    "codec": string | null,
     "bitrate": number | null,
-    "fps": number,
+    "fps": number | null,
     "audioCodec": string | null,
     "fileSize": number | null
   }
+}
+```
+
+### Logs Management Routes (`/api/logs`)
+
+All endpoints require authentication.
+
+#### GET /api/logs
+
+Get paginated log entries with optional filtering.
+
+**Query Parameters:**
+
+| Parameter    | Type              | Description                                    |
+| ------------ | ----------------- | ---------------------------------------------- |
+| `level`      | string (optional) | Filter by single level: ERROR, WARN, INFO, DEBUG |
+| `levels`     | string[] (optional) | Filter by multiple levels                     |
+| `category`   | string (optional) | Filter by single category: api, streaming, media, auth, system, database, server |
+| `categories` | string[] (optional) | Filter by multiple categories                |
+| `search`     | string (optional) | Search in message text                         |
+| `startDate`  | string (optional) | Filter logs after this date (ISO 8601)         |
+| `endDate`    | string (optional) | Filter logs before this date (ISO 8601)        |
+| `page`       | number (optional) | Page number (default: 1)                       |
+| `limit`      | number (optional) | Items per page (1-100, default: 50)            |
+| `sortOrder`  | string (optional) | Sort order: "asc" or "desc" (default: "desc")  |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "logs": [
+    {
+      "id": number,
+      "level": "ERROR" | "WARN" | "INFO" | "DEBUG",
+      "category": "api" | "streaming" | "media" | "auth" | "system" | "database" | "server",
+      "message": string,
+      "meta": string | null,
+      "createdAt": string
+    }
+  ],
+  "pagination": {
+    "page": number,
+    "limit": number,
+    "total": number,
+    "totalPages": number
+  }
+}
+```
+
+#### GET /api/logs/stats
+
+Get log statistics overview.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "stats": {
+    "total": number,
+    "byLevel": {
+      "ERROR": number,
+      "WARN": number,
+      "INFO": number,
+      "DEBUG": number
+    },
+    "byCategory": {
+      "api": number,
+      "streaming": number,
+      "media": number,
+      "auth": number,
+      "system": number,
+      "database": number,
+      "server": number
+    },
+    "last24h": number,
+    "last7d": number
+  }
+}
+```
+
+#### DELETE /api/logs
+
+Delete log entries based on criteria.
+
+**Request Body:**
+
+```json
+{
+  "ids"?: number[],        // Delete specific log IDs
+  "olderThan"?: string,    // Delete logs older than date (ISO 8601)
+  "level"?: string         // Delete logs with specific level
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "deletedCount": number
+}
+```
+
+#### GET /api/logs/settings
+
+Get current log settings.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "settings": {
+    "retentionDays": number,
+    "maxLogs": number
+  }
+}
+```
+
+#### PUT /api/logs/settings
+
+Update log settings.
+
+**Request Body:**
+
+```json
+{
+  "retentionDays"?: number,  // 1-365 days (default: 7)
+  "maxLogs"?: number         // 100-1000000 (default: 10000)
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "settings": {
+    "retentionDays": number,
+    "maxLogs": number
+  }
+}
+```
+
+#### POST /api/logs/cleanup
+
+Manually trigger log cleanup based on current settings.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "deletedCount": number
 }
 ```
 
@@ -286,8 +462,7 @@ All endpoints may return error responses in the following format:
 ```json
 {
   "error": string,
-  "message"?: string,
-  "stack"?: string
+  "statusCode"?: number
 }
 ```
 
