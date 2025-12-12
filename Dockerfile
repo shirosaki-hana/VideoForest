@@ -81,19 +81,14 @@ FROM node:24-slim AS production
 # 런타임 의존성 설치 (FFmpeg, FFprobe)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    # Intel QSV 지원을 위한 패키지 (선택적)
-    intel-media-va-driver-non-free \
-    libmfx1 \
-    libva-drm2 \
-    libva2 \
-    # 기타 유틸리티
     ca-certificates \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
-# 보안을 위한 non-root 사용자 생성
-RUN groupadd --gid 1000 videoforest \
-    && useradd --uid 1000 --gid videoforest --shell /bin/bash --create-home videoforest
+# node:24-slim 이미지에는 이미 node 사용자(UID/GID 1000)가 존재함
+# 별도의 사용자 생성 없이 기존 node 사용자 활용
 
 WORKDIR /app
 
@@ -111,16 +106,11 @@ COPY types/package.json ./types/
 COPY backend/package.json ./backend/
 
 # 프로덕션 의존성만 설치 (better-sqlite3 네이티브 빌드 필요)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
-
+# 빌드 도구는 위에서 이미 설치됨
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod=false
 
 # 빌드 도구 제거 (이미지 크기 최적화)
-RUN apt-get purge -y python3 make g++ && apt-get autoremove -y
+RUN apt-get purge -y python3 make g++ && apt-get autoremove -y && apt-get clean
 
 # 빌드된 결과물 복사
 COPY --from=types-builder /app/types/dist ./types/dist
@@ -130,7 +120,7 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 # 데이터 디렉토리 생성 및 권한 설정
 RUN mkdir -p /app/backend/temp /app/data /media \
-    && chown -R videoforest:videoforest /app /media
+    && chown -R node:node /app /media
 
 # 환경 변수 기본값
 ENV NODE_ENV=production
@@ -147,8 +137,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "fetch('http://localhost:4001/api/auth/status').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
 # non-root 사용자로 전환
-USER videoforest
+USER node
 
-# 서버 시작
-CMD ["node", "backend/dist/index.js"]
+# 서버 시작 (마이그레이션 실행 후)
+CMD ["sh", "-c", "pnpm --filter backend db:deploy && node /app/backend/dist/index.js"]
 

@@ -7,7 +7,7 @@ import rateLimit from '@fastify/rate-limit';
 import staticFiles from '@fastify/static';
 import apiRoutes from './api/index.js';
 import { HardwareAccelerationDetector, FFmpegTranscoder } from './infrastructure/index.js';
-import { detectFFmpeg, detectFFprobe } from './utils/index.js';
+import { console_log, detectFFmpeg, detectFFprobe } from './utils/index.js';
 import { env, fastifyConfig, helmetConfig, rateLimitConfig, corsConfig, staticFilesConfig } from './config/index.js';
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
 import { notFoundHandler, errorHandler } from './handlers/index.js';
@@ -46,6 +46,7 @@ async function startServer(host: string, port: number) {
   await HardwareAccelerationDetector.detect(); // 6. 하드웨어 가속 감지
   await fastify.listen({ port, host: host }); // 7. 서버 리스닝 시작
 
+  console_log(`Server is running on http://${host}:${port}`);
   return fastify;
 }
 
