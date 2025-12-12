@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Base image with pnpm
 # -----------------------------------------------------------------------------
-FROM node:22-slim AS base
+FROM node:24-slim AS base
 
 # pnpm 설치
 ENV PNPM_HOME="/pnpm"
@@ -76,7 +76,7 @@ RUN pnpm --filter backend run build
 # -----------------------------------------------------------------------------
 # Stage 6: Production runtime
 # -----------------------------------------------------------------------------
-FROM node:22-slim AS production
+FROM node:24-slim AS production
 
 # 런타임 의존성 설치 (FFmpeg, FFprobe)
 RUN apt-get update && apt-get install -y --no-install-recommends \
