@@ -78,14 +78,27 @@ RUN pnpm --filter backend run build
 # -----------------------------------------------------------------------------
 FROM node:24-slim AS production
 
-# 런타임 의존성 설치 (FFmpeg, FFprobe)
+# 런타임 의존성 설치
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
     ca-certificates \
+    curl \
+    xz-utils \
     python3 \
     make \
     g++ \
     && rm -rf /var/lib/apt/lists/*
+
+# FFmpeg Static Binary 설치 (BtbN/FFmpeg-Builds)
+# apt 저장소 독립적으로 버전 고정 - 재현 가능한 빌드 보장
+# latest 태그의 n7.1 안정 버전 사용 (릴리즈가 영구 보존됨)
+ARG FFMPEG_VERSION=7.1
+RUN curl -fsSL "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n${FFMPEG_VERSION}-latest-linux64-gpl-${FFMPEG_VERSION}.tar.xz" \
+    -o /tmp/ffmpeg.tar.xz \
+    && tar -xJf /tmp/ffmpeg.tar.xz -C /tmp \
+    && mv /tmp/ffmpeg-n${FFMPEG_VERSION}-latest-linux64-gpl-${FFMPEG_VERSION}/bin/ffmpeg /usr/local/bin/ \
+    && mv /tmp/ffmpeg-n${FFMPEG_VERSION}-latest-linux64-gpl-${FFMPEG_VERSION}/bin/ffprobe /usr/local/bin/ \
+    && rm -rf /tmp/ffmpeg.tar.xz /tmp/ffmpeg-n${FFMPEG_VERSION}-latest-linux64-gpl-${FFMPEG_VERSION} \
+    && ffmpeg -version
 
 # node:24-slim 이미지에는 이미 node 사용자(UID/GID 1000)가 존재함
 # 별도의 사용자 생성 없이 기존 node 사용자 활용
