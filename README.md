@@ -119,7 +119,7 @@ cp .env.example .env
 |----------|---------|-------------|
 | `MEDIA_PATHS` | `media/` | Directories to scan for media files (comma-separated) |
 | `HLS_TEMP_DIR` | `temp/` | Directory for cached HLS segments |
-| `VIDEOFOREST_SPEED_MODE` | `false` | Enable faster encoding (trades quality for speed) |
+| `VIDEOFOREST_SPEED_MODE` | `true` | Enable faster encoding (trades quality for speed) |
 | `VIDEOFOREST_ENCODER` | `Auto` | Hardware encoder: `Auto`, `NVENC`, `QSV`, `CPU` |
 
 #### Prefetching
