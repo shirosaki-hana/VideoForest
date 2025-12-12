@@ -28,10 +28,10 @@ export default defineConfig([
   {
     files: ['backend/**/*.ts'],
     languageOptions: {
-      ecmaVersion: 2022,
+      ecmaVersion: 2024,
       parser: tseslint.parser,
       parserOptions: { tsconfigRootDir: __dirname },
-      globals: { ...globals.node, ...globals.es2022 },
+      globals: { ...globals.node, ...globals.es2025 },
     },
     plugins: {
       '@typescript-eslint': tseslint.plugin,
@@ -53,8 +53,8 @@ export default defineConfig([
   {
     files: ['backend/**/*.{js,mjs}'],
     languageOptions: {
-      ecmaVersion: 2022,
-      globals: { ...globals.node, ...globals.es2022 },
+      ecmaVersion: 2024,
+      globals: { ...globals.node, ...globals.es2025 },
     },
     rules: {
       'prefer-const': 'error',
@@ -70,10 +70,10 @@ export default defineConfig([
   {
     files: ['frontend/**/*.{ts,tsx}'],
     languageOptions: {
-      ecmaVersion: 2022,
+      ecmaVersion: 2023,
       parser: tseslint.parser,
       parserOptions: { tsconfigRootDir: __dirname },
-      globals: { ...globals.browser, ...globals.es2022 },
+      globals: { ...globals.browser, ...globals.es2024 },
     },
     plugins: {
       'react-hooks': reactHooks,

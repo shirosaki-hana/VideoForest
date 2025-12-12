@@ -1,7 +1,7 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2023",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "declaration": true,
@@ -10,7 +10,7 @@
     "rootDir": "./src",
     "sourceMap": true,
     "noEmit": false,
-    "lib": ["ES2022"]
+    "lib": ["ES2023"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

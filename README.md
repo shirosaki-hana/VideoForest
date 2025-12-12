@@ -10,7 +10,7 @@ VideoForest is designed to run on personal NAS or home servers with limited reso
 
 - **JIT Transcoding**: Segments are transcoded only when requested, minimizing upfront storage and processing requirements
 - **Persistent Caching**: Once transcoded, segments are stored permanently and reused across sessions
-- **Hardware Acceleration**: Automatic detection and use of NVIDIA NVENC with CPU fallback
+- **Hardware Acceleration**: Automatic detection with fallback chain (NVENC → QSV → CPU)
 - **Multiple Quality Profiles**: Adaptive bitrate streaming with automatic profile selection based on source media
 - **Efficient Seeking**: Back-seeking and quality switching work seamlessly without re-transcoding
 - **Modern Web Interface**: React-based frontend with Material UI and Video.js player
@@ -39,16 +39,15 @@ VideoForest is designed to run on personal NAS or home servers with limited reso
 1. Media duration is analyzed on first access
 2. HLS playlist is generated based on total duration
 3. Segments are transcoded on-demand when requested by the player
-4. Hardware acceleration (NVENC) is automatically detected and used when available
+4. Hardware acceleration is automatically detected with fallback chain: NVENC → QSV → CPU
 5. Transcoded segments are permanently cached on disk
 6. Subsequent requests serve cached segments directly
 
 ## Requirements
 
-- Node.js 18 or later
-- pnpm 9 or later
+- Node.js 24 or later
+- pnpm 10 or later
 - FFmpeg with libx264 support (automatically installed via npm packages)
-- (Optional) NVIDIA GPU with NVENC support for hardware acceleration
 
 ## Installation
 
@@ -67,51 +66,59 @@ pnpm install
 
 ## Configuration
 
-Create a `.env` file in the project root (or set environment variables):
+Copy the example environment file and modify as needed:
 
-```env
-# Server Configuration
-HOST=127.0.0.1
-PORT=4001
-NODE_ENV=development
-
-# Frontend URL (for CORS)
-FRONTEND_URL=http://127.0.0.1:4001
-
-# Database
-DATABASE_URL_SQLITE=file:./prisma/videoforest.db
-
-# Session
-SESSION_COOKIE=session
-SESSION_TTL=24h
-
-# Rate Limiting
-RATELIMIT_MAX=10
-RATELIMIT_WINDOWMS=10s
-
-# Media Paths (comma-separated for multiple paths)
-MEDIA_PATHS=./backend/media
-
-# Speed Mode (use faster encoding presets, lower quality)
-VIDEOFOREST_SPEED_MODE=0
-# Hardware encoder selection: Auto | NVENC | QSV | CPU
-VIDEOFOREST_ENCODER=Auto
+```bash
+cp .env.example .env
 ```
 
 ### Environment Variables
 
-- `HOST`: Server bind address (default: `127.0.0.1`)
-- `PORT`: Server port (default: `4001`)
-- `NODE_ENV`: Environment mode (`development` or `production`)
-- `FRONTEND_URL`: Frontend URL for CORS configuration
-- `DATABASE_URL_SQLITE`: SQLite database file path
-- `SESSION_COOKIE`: Cookie name for session management
-- `SESSION_TTL`: Session lifetime (e.g., `24h`, `7d`)
-- `RATELIMIT_MAX`: Maximum requests per time window
-- `RATELIMIT_WINDOWMS`: Rate limit time window (e.g., `10s`)
-- `MEDIA_PATHS`: Comma-separated list of media directories to scan
-- `VIDEOFOREST_SPEED_MODE`: Enable faster encoding presets (`0` or `1`)
-- `VIDEOFOREST_ENCODER`: Hardware encoder selection (`Auto`, `NVENC`, `QSV`, `CPU`). In `Auto` mode, the app detects NVENC/QSV and falls back to CPU; in manual modes (`NVENC`/`QSV`/`CPU`), it forces the chosen encoder without fallback.
+> **Note**: Duration values accept units: `ms`, `s`, `m`, `h`, `d`, `w`. Defaults to `ms` if no unit specified.
+
+#### Server
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NODE_ENV` | `development` | Set to `production` to enable CORS restrictions and security headers |
+| `HOST` | `127.0.0.1` | IP address to bind the server |
+| `PORT` | `4001` | Server port number |
+| `FRONTEND_URL` | `http://127.0.0.1:4001` | Frontend URL for CORS (restricted in production mode) |
+
+#### Database
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL_SQLITE` | `file:./prisma/videoforest.db` | Path to SQLite database file |
+
+#### Security & Session
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SESSION_COOKIE` | `session` | Name of the session cookie |
+| `SESSION_TTL` | `24h` | Session expiration time |
+| `REQUEST_BODY_LIMIT` | `10mb` | Maximum HTTP request body size |
+| `RATELIMIT_MAX` | `100` | Max requests within the rate limit window |
+| `RATELIMIT_WINDOWMS` | `10s` | Rate limit time window |
+
+#### Transcoding
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MEDIA_PATHS` | `media/` | Directories to scan for media files (comma-separated) |
+| `HLS_TEMP_DIR` | `temp/` | Directory for cached HLS segments |
+| `VIDEOFOREST_SPEED_MODE` | `false` | Enable faster encoding (trades quality for speed) |
+| `VIDEOFOREST_ENCODER` | `Auto` | Hardware encoder: `Auto`, `NVENC`, `QSV`, `CPU` |
+
+#### Prefetching
+
+Prefetching transcodes upcoming segments ahead of time for smoother playback.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VIDEOFOREST_PREFETCH_ENABLED` | `true` | Enable segment prefetching |
+| `VIDEOFOREST_PREFETCH_COUNT` | `3` | Number of segments to prefetch ahead |
+| `VIDEOFOREST_MAX_CONCURRENT_PREFETCH` | `2` | Maximum concurrent prefetch jobs |
 
 ## Running the Application
 
@@ -185,14 +192,6 @@ pnpm db:reset
 1. Place video files in the configured `MEDIA_PATHS` directories
 2. The server will automatically scan and index media files on startup
 3. Browse and play videos through the web interface
-
-### Cache Management
-
-Transcoded segments are stored in `backend/temp/hls/`. To clear the cache:
-
-```bash
-pnpm clean:cache
-```
 
 ## License
 
