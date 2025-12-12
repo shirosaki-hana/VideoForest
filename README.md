@@ -134,6 +134,14 @@ Prefetching transcodes upcoming segments ahead of time for smoother playback.
 
 ## Running the Application
 
+### Database Deployment
+
+Perform migrations for the SQLite database:
+
+```bash
+pnpm db:deploy
+```
+
 ### Development Mode
 
 Run both backend and frontend in development mode with hot reloading:
@@ -157,7 +165,6 @@ pnpm dev:frontend
 Build the entire application:
 
 ```bash
-pnpm db:deploy
 pnpm build
 ```
 
