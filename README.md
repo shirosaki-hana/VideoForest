@@ -1,6 +1,18 @@
-# VideoForest
+<div align="center">
+  <img src="assets/symbol_original.png" alt="VideoForest" width="180" />
+  <h1>VideoForest</h1>
+  <p>A self-hosted video streaming server with just-in-time (JIT) transcoding for resource-constrained home servers.</p>
 
-A self-hosted video streaming server with just-in-time (JIT) transcoding for resource-constrained home servers. Delivers HLS streams with automatic quality adaptation without pre-processing entire video libraries.
+  [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+  [![Node](https://img.shields.io/badge/Node.js-≥24-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+  [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+  [![pnpm](https://img.shields.io/badge/pnpm-≥10-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
+</div>
+
+---
+
+Delivers HLS streams with automatic quality adaptation without pre-processing entire video libraries.
 
 ## Overview
 
@@ -13,7 +25,7 @@ VideoForest is designed to run on personal NAS or home servers with limited reso
 - **Hardware Acceleration**: Automatic detection with fallback chain (NVENC → QSV → CPU)
 - **Multiple Quality Profiles**: Adaptive bitrate streaming with automatic profile selection based on source media
 - **Efficient Seeking**: Back-seeking and quality switching work seamlessly without re-transcoding
-- **Modern Web Interface**: React-based frontend with Material UI and Video.js player
+- **Modern Web Interface**: React-based frontend with Material UI and Vidstack player
 - **Authentication**: Built-in password protection with session management
 - **Folder Structure**: Hierarchical media organization with folder scanning
 
@@ -30,7 +42,7 @@ VideoForest is designed to run on personal NAS or home servers with limited reso
 
 - **React 19**: Modern UI framework
 - **Material UI (MUI)**: Component library
-- **Video.js**: HTML5 video player with HLS support
+- **Vidstack**: Modern HTML5 video player with HLS support
 - **Zustand**: State management
 - **i18next**: Internationalization
 
