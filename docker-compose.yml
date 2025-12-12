@@ -1,17 +1,15 @@
 # =============================================================================
 # VideoForest Docker Compose Configuration
 # =============================================================================
+# Usage:
+# docker compose up -d        # Start services (background)
+# docker compose up --build   # Rebuild images and start
+# docker compose down         # Stop and delete services
+# docker compose logs -f      # View logs
 #
-# 사용법:
-#   docker compose up -d        # 서비스 시작 (백그라운드)
-#   docker compose up --build   # 이미지 다시 빌드하고 시작
-#   docker compose down         # 서비스 중지 및 삭제
-#   docker compose logs -f      # 로그 보기
-#
-# 첫 실행 전:
-#   1. .env.docker.example을 .env로 복사
-#   2. .env 파일에서 미디어 경로 설정
-#
+# Before first run:
+#   1. Copy .env.docker.example to .env
+#   2. Set media paths in .env file
 # =============================================================================
 
 services:
@@ -41,14 +39,14 @@ services:
       - VIDEOFOREST_PREFETCH_COUNT=${VIDEOFOREST_PREFETCH_COUNT:-3}
       - VIDEOFOREST_MAX_CONCURRENT_PREFETCH=${VIDEOFOREST_MAX_CONCURRENT_PREFETCH:-2}
     volumes:
-      # SQLite 데이터베이스 영속화
+      # SQLite Database Persistence
       - videoforest-data:/app/data
-      # HLS 임시 파일 (선택적 - 재시작 시 캐시 유지)
+      # HLS Temporary Files (Optional - Cache Persistence on Restart)
       - videoforest-temp:/app/backend/temp
-      # 미디어 라이브러리 마운트 (읽기 전용)
-      # .env 파일에서 MEDIA_PATH_1, MEDIA_PATH_2 등을 설정하세요
-      # 예: MEDIA_PATH_1=/home/user/videos
-      - ${MEDIA_PATH_1:?MEDIA_PATH_1 환경변수를 설정해주세요}:/media/library1:ro
+      # Media Library Mount (Read-Only)
+      # Set MEDIA_PATH_1, MEDIA_PATH_2, etc. in the .env file
+      # Ex: MEDIA_PATH_1=/home/user/videos
+      - ${MEDIA_PATH_1:?Set the MEDIA_PATH_1 environment variable.}:/media/library1:ro
       # - ${MEDIA_PATH_2}:/media/library2:ro
       # - ${MEDIA_PATH_3}:/media/library3:ro
     healthcheck:
