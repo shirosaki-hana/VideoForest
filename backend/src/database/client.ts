@@ -53,3 +53,13 @@ export async function disconnectDatabase(): Promise<void> {
   await database.$disconnect();
   logger.info('database', 'Database connection closed successfully');
 }
+
+// Database connection health check (for Docker healthcheck)
+export async function isDatabaseConnected(): Promise<boolean> {
+  try {
+    await database.$queryRaw`SELECT 1`;
+    return true;
+  } catch {
+    return false;
+  }
+}

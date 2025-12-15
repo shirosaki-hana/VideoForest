@@ -16,9 +16,16 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
 # -----------------------------------------------------------------------------
-# Stage 2: Dependencies installer
+# Stage 2: Dependencies installer (with native module build)
 # -----------------------------------------------------------------------------
 FROM base AS deps
+
+# 네이티브 모듈 빌드에 필요한 도구 (better-sqlite3)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 # 워크스페이스 설정 파일들 복사
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -29,7 +36,7 @@ COPY types/package.json ./types/
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
 
-# 프로덕션 의존성만 설치 (devDependencies 제외하지 않음 - 빌드에 필요)
+# 의존성 설치 (better-sqlite3 네이티브 빌드 포함)
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # -----------------------------------------------------------------------------
@@ -57,13 +64,6 @@ RUN pnpm --filter frontend run build
 # -----------------------------------------------------------------------------
 FROM deps AS backend-builder
 
-# 빌드에 필요한 네이티브 모듈 의존성 (better-sqlite3)
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
-
 # types 빌드 결과물 복사
 COPY --from=types-builder /app/types ./types
 
@@ -78,7 +78,7 @@ RUN pnpm --filter backend run build
 # -----------------------------------------------------------------------------
 FROM node:24-slim AS production
 
-# 런타임 의존성 설치
+# 런타임 + 빌드 도구 설치 (better-sqlite3 네이티브 빌드 필요)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
@@ -105,7 +105,7 @@ RUN curl -fsSL "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/f
 
 WORKDIR /app
 
-# pnpm 설치 (프로덕션 의존성 설치용)
+# pnpm 설치
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -118,22 +118,22 @@ COPY tsconfig.base.json ./
 COPY types/package.json ./types/
 COPY backend/package.json ./backend/
 
-# 프로덕션 의존성만 설치 (better-sqlite3 네이티브 빌드 필요)
-# 빌드 도구는 위에서 이미 설치됨
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod=false
+# 프로덕션 의존성 설치 (better-sqlite3 네이티브 빌드 포함)
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # 빌드 도구 제거 (이미지 크기 최적화)
 RUN apt-get purge -y python3 make g++ && apt-get autoremove -y && apt-get clean
 
-# 빌드된 결과물 복사
-COPY --from=types-builder /app/types/dist ./types/dist
-COPY --from=backend-builder /app/backend/dist ./backend/dist
-COPY --from=backend-builder /app/backend/prisma ./backend/prisma
-COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+# 빌드된 결과물 복사 (--chown으로 소유권 설정)
+COPY --chown=node:node --from=types-builder /app/types/dist ./types/dist
+COPY --chown=node:node --from=backend-builder /app/backend/dist ./backend/dist
+COPY --chown=node:node --from=backend-builder /app/backend/prisma ./backend/prisma
+COPY --chown=node:node --from=frontend-builder /app/frontend/dist ./frontend/dist
 
-# 데이터 디렉토리 생성 및 권한 설정
+# 쓰기 권한이 필요한 디렉토리만 생성 및 권한 설정
+# node_modules는 읽기 전용이므로 root 소유 유지 (chown 불필요)
 RUN mkdir -p /app/backend/temp /app/data /media \
-    && chown -R node:node /app /media
+    && chown -R node:node /app/backend/temp /app/data /media
 
 # 환경 변수 기본값
 ENV NODE_ENV=production
@@ -147,11 +147,10 @@ EXPOSE 4001
 
 # 헬스체크
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "fetch('http://localhost:4001/api/auth/status').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+    CMD node -e "fetch('http://localhost:4001/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
 # non-root 사용자로 전환
 USER node
 
 # 서버 시작 (마이그레이션 실행 후)
 CMD ["sh", "-c", "pnpm --filter backend db:deploy && node /app/backend/dist/index.js"]
-
