@@ -1,0 +1,72 @@
+# =============================================================================
+# VideoForest Docker Compose Configuration
+# =============================================================================
+# Usage:
+# docker compose up -d        # Start services (background)
+# docker compose up --build   # Rebuild images and start
+# docker compose down         # Stop and delete services
+# docker compose logs -f      # View logs
+#
+# Before first run:
+#   1. Copy .env.docker.example to .env
+#   2. Set media paths in .env file
+# =============================================================================
+
+services:
+  videoforest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: videoforest
+    restart: unless-stopped
+    ports:
+      - "${PORT:-4001}:4001"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - HOST=0.0.0.0
+      - PORT=4001
+      - DATABASE_URL_SQLITE=file:/app/data/videoforest.db
+      - MEDIA_PATHS=${MEDIA_PATHS:-/media}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4001}
+      - SESSION_TTL=${SESSION_TTL:-24h}
+      - SESSION_COOKIE=${SESSION_COOKIE:-session}
+      - RATELIMIT_MAX=${RATELIMIT_MAX:-100}
+      - RATELIMIT_WINDOWMS=${RATELIMIT_WINDOWMS:-10s}
+      - HLS_TEMP_DIR=/app/backend/temp
+      - VIDEOFOREST_ENCODER=${VIDEOFOREST_ENCODER:-auto}
+      - VIDEOFOREST_SPEED_MODE=${VIDEOFOREST_SPEED_MODE:-0}
+      - VIDEOFOREST_PREFETCH_ENABLED=${VIDEOFOREST_PREFETCH_ENABLED:-1}
+      - VIDEOFOREST_PREFETCH_COUNT=${VIDEOFOREST_PREFETCH_COUNT:-3}
+      - VIDEOFOREST_MAX_CONCURRENT_PREFETCH=${VIDEOFOREST_MAX_CONCURRENT_PREFETCH:-2}
+    volumes:
+      # SQLite Database Persistence
+      - videoforest-data:/app/data
+      # HLS Temporary Files (Optional - Cache Persistence on Restart)
+      - videoforest-temp:/app/backend/temp
+      # Media Library Mount (Read-Only)
+      # Set MEDIA_PATH_1, MEDIA_PATH_2, etc. in the .env file
+      # Ex: MEDIA_PATH_1=/home/user/videos
+      - ${MEDIA_PATH_1:?Set the MEDIA_PATH_1 environment variable.}:/media/library1:ro
+      # - ${MEDIA_PATH_2}:/media/library2:ro
+      # - ${MEDIA_PATH_3}:/media/library3:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4001/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# -----------------------------------------------------------------------------
+# Named Volumes
+# -----------------------------------------------------------------------------
+volumes:
+  videoforest-data:
+    name: videoforest-data
+  videoforest-temp:
+    name: videoforest-temp
+

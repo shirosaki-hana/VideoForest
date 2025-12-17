@@ -176,6 +176,80 @@ pnpm start
 
 The server will serve both API and frontend from a single port. Access the application at `http://127.0.0.1:4001` (or your configured `HOST:PORT`).
 
+## Docker Deployment
+
+Docker provides the easiest way to run VideoForest without worrying about dependencies.
+
+### Quick Start
+
+1. Copy the example environment file:
+
+```bash
+cp .env.docker.example .env
+```
+
+2. Edit `.env` and set your media path:
+
+```bash
+# Required: Path to your media library
+MEDIA_PATH_1=/path/to/your/videos
+```
+
+3. Start the container:
+
+```bash
+docker compose up -d
+```
+
+4. Access the application at `http://localhost:4001`
+
+### Docker Commands
+
+| Command | Description |
+|---------|-------------|
+| `docker compose up -d` | Start services in background |
+| `docker compose up --build` | Rebuild image and start |
+| `docker compose down` | Stop and remove containers |
+| `docker compose logs -f` | View logs (follow mode) |
+| `docker compose restart` | Restart services |
+
+### Customizing Configuration
+
+For user-specific customizations that shouldn't be tracked in Git, create a `docker-compose.override.yml` file:
+
+```yaml
+# docker-compose.override.yml (automatically merged)
+services:
+  videoforest:
+    ports:
+      - "8080:4001"  # Use different port
+    volumes:
+      # Add additional media libraries
+      - /another/path:/media/library2:ro
+      - /more/videos:/media/library3:ro
+```
+
+Docker Compose automatically merges `docker-compose.override.yml` with the base configuration. This file is already in `.gitignore`.
+
+### Data Persistence
+
+VideoForest uses named volumes for data persistence:
+
+| Volume | Purpose |
+|--------|---------|
+| `videoforest-data` | SQLite database |
+| `videoforest-temp` | Cached HLS segments |
+
+To backup your data:
+
+```bash
+# Backup database
+docker run --rm -v videoforest-data:/data -v $(pwd):/backup alpine tar czf /backup/videoforest-backup.tar.gz -C /data .
+
+# Restore database
+docker run --rm -v videoforest-data:/data -v $(pwd):/backup alpine tar xzf /backup/videoforest-backup.tar.gz -C /data
+```
+
 ## Database Management
 
 Initialize or update the database:

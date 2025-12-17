@@ -16,3 +16,7 @@ node_modules/
 backend/media/
 backend/temp/
 backend/src/test/output
+
+# Docker
+docker-compose.override.yml
+docker-compose.local.yml
