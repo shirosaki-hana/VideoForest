@@ -29,16 +29,16 @@
     "@vidstack/react": "1.12.13",
     "axios": "^1.13.2",
     "hls.js": "^1.6.15",
-    "i18next": "^25.7.2",
+    "i18next": "^25.7.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "react-i18next": "^16.4.1",
+    "react-i18next": "^16.5.0",
     "react-router-dom": "^7.10.1",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.1.2",
     "rollup-plugin-visualizer": "^6.0.5",
-    "vite": "^7.2.7"
+    "vite": "^7.3.0"
   }
 }
