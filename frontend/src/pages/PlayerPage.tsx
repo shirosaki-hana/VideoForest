@@ -91,7 +91,7 @@ export default function PlayerPage() {
     return () => {
       abortController.abort();
     };
-  }, [mediaId, navigate, t]);
+  }, [mediaId, navigate, t, markAsWatched]);
 
   // 재생 목록 업데이트
   useEffect(() => {
