@@ -281,7 +281,7 @@ export class FFmpegTranscoder {
     const args: string[] = [];
 
     // 1. 전역 플래그
-    args.push(...EncoderOptions.getGlobalArgs(this.speedMode));
+    args.push(...EncoderOptions.getGlobalArgs());
 
     // 2. 에러 복원 옵션 (손상된 파일 대응)
     args.push(...EncoderOptions.getErrorResilienceArgs());
