@@ -344,8 +344,8 @@ export class FFmpegTranscoder {
     // 9. 단일 세그먼트용 keyframe 설정 (첫 프레임만 강제)
     args.push('-force_key_frames', 'expr:eq(n,0)');
 
-    // 10. 오디오 인코딩 옵션
-    args.push(...EncoderOptions.buildAudioArgs(profile, analysis));
+    // 10. 오디오 인코딩 옵션 (세그먼트 duration 전달하여 페이드 적용)
+    args.push(...EncoderOptions.buildAudioArgs(profile, analysis, segmentInfo.duration));
 
     // 11. 오디오가 없고 무음을 생성한 경우
     if (!analysis.hasAudio) {

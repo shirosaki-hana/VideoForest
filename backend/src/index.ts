@@ -58,7 +58,7 @@ async function gracefulShutdown(fastify: Awaited<ReturnType<typeof createFastify
     await disconnectDatabase(); // 3. 데이터베이스 연결 해제
     process.exitCode = 0;
   } catch (error) {
-    console_error(error)
+    console_error(error);
     process.exitCode = 1;
   }
 }
@@ -74,7 +74,7 @@ async function main() {
       gracefulShutdown(fastify).catch(() => {}); // SIGTERM으로 인한 서버 종료
     });
   } catch (error) {
-    console_error(error)
+    console_error(error);
     process.exitCode = 1;
   }
 }

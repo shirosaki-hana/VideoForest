@@ -135,9 +135,37 @@ export class EncoderOptions {
 
   /**
    * 오디오 인코더 옵션
+   *
+   * 팝 노이즈 방지를 위한 처리:
+   * - 극히 짧은 페이드 인/아웃으로 DC offset 및 급격한 waveform 전환 완화
+   * - aresample 필터로 오디오 동기화 및 PTS 정렬
+   *
+   * 페이드 시간 선택 근거 (청각 심리학):
+   * - 2-3ms: 팝/클릭 방지에 충분, 인지 거의 불가능
+   * - 5-10ms: 안전한 범위, 일반적인 크로스페이드 표준
+   * - 10ms+: 예민한 청자가 "펌핑" 느낌을 받을 수 있음
+   *
+   * 2.5ms를 선택한 이유:
+   * - DC offset 제거에 충분 (약 120 샘플 @ 48kHz)
+   * - 인간 청각의 temporal masking 범위 내
+   * - 6초마다 반복되어도 감지 불가능한 수준
    */
-  static buildAudioArgs(profile: QualityProfile, _analysis: MediaAnalysis): string[] {
-    return ['-c:a', 'aac', '-b:a', profile.audioBitrate, '-ar', '48000', '-ac', '2'];
+  static buildAudioArgs(profile: QualityProfile, _analysis: MediaAnalysis, segmentDuration?: number): string[] {
+    const baseArgs = ['-c:a', 'aac', '-b:a', profile.audioBitrate, '-ar', '48000', '-ac', '2'];
+
+    // 오디오 필터 체인 구성
+    // - aresample: 오디오 리샘플링 및 PTS 정렬 (async=1로 드리프트 보정)
+    // - afade: 극히 짧은 페이드로 팝 노이즈 방지 (청각적으로 인지 불가)
+    const fadeSec = 0.0025; // 2.5ms - 팝 방지에 충분하면서 인지 불가능
+
+    if (segmentDuration && segmentDuration > fadeSec * 2) {
+      const fadeOutStart = Math.max(0, segmentDuration - fadeSec);
+      const audioFilter = `aresample=async=1:first_pts=0,afade=t=in:st=0:d=${fadeSec},afade=t=out:st=${fadeOutStart.toFixed(5)}:d=${fadeSec}`;
+      return [...baseArgs, '-af', audioFilter];
+    }
+
+    // segmentDuration이 없거나 너무 짧은 경우 기본 리샘플링만 적용
+    return [...baseArgs, '-af', 'aresample=async=1:first_pts=0'];
   }
 
   /**

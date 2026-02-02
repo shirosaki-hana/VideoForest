@@ -84,17 +84,17 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
 
   return (
     <MediaPlayer
-        ref={playerRef}
-        src={src}
-        viewType='video'
-        streamType='on-demand'
-        crossOrigin='use-credentials'
-        playsInline
-        autoPlay
-        onCanPlay={handleCanPlay}
-        onEnded={handleEnded}
-        onError={handleError}
-        onProviderChange={provider => {
+      ref={playerRef}
+      src={src}
+      viewType='video'
+      streamType='on-demand'
+      crossOrigin='use-credentials'
+      playsInline
+      autoPlay
+      onCanPlay={handleCanPlay}
+      onEnded={handleEnded}
+      onError={handleError}
+      onProviderChange={provider => {
         // HLS.js에 로컬 번들 라이브러리 및 withCredentials 설정 (쿠키 인증용)
         if (isHLSProvider(provider)) {
           provider.library = HLS;
@@ -110,7 +110,7 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
           };
 
           // HLS 인스턴스 이벤트 핸들링을 위한 설정
-          provider.onInstance((hls) => {
+          provider.onInstance(hls => {
             hlsRef.current = hls;
 
             // 마스터 플레이리스트 파싱 완료 시 화질 고정
@@ -122,12 +122,11 @@ export default function VideoPlayer({ src, mediaId, onReady, onEnded, onError }:
               // 선택된 화질로 고정 (ABR 비활성화)
               hls.currentLevel = targetLevel;
             });
-
           });
         }
       }}
       style={{ width: '100%', height: '100%' }}
-      className="jit-player"
+      className='jit-player'
     >
       <MediaProvider />
       <DefaultVideoLayout icons={defaultLayoutIcons} />
